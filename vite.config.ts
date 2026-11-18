@@ -10,6 +10,7 @@ export const alias = {
   "@lets-explain/kafka": here("./courses/kafka/src/index.ts"),
   "@lets-explain/git": here("./courses/git/src/index.ts"),
   "@lets-explain/rabbitmq": here("./courses/rabbitmq/src/index.ts"),
+  "@lets-explain/docker": here("./courses/docker/src/index.ts"),
 };
 
 export default defineConfig({

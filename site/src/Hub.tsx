@@ -35,6 +35,7 @@ const islandLabels = (t: (x: { tr: string; en: string }) => string): Record<Isla
   kubernetes: "Kubernetes",
   git: "Git",
   transactions: t(l("Transaction", "Transactions")),
+  docker: "Docker",
 });
 
 export function Hub() {

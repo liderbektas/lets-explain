@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/docker",
+  "private": true,
+  "description": "The Docker course: a small deterministic Docker model (images, layers, build cache, containers, volumes, networks, compose, registry) and its lessons.",
+  "type": "module"
+}

@@ -7,7 +7,7 @@ import { Belt, IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes
  * lessons. Each island is drawn around (0, 0), the centre of its top face.
  */
 
-export type IslandId = "kafka" | "rabbitmq" | "kubernetes" | "git" | "transactions";
+export type IslandId = "kafka" | "rabbitmq" | "kubernetes" | "git" | "transactions" | "docker";
 
 /** The pastel each technology wears on the hub, in island tops and card headers. */
 export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
@@ -16,6 +16,7 @@ export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
   kubernetes: { top: "var(--sky)", soft: "var(--sky-soft)" },
   git: { top: "var(--lilac)", soft: "var(--lilac-soft)" },
   transactions: { top: "var(--mint)", soft: "var(--mint-soft)" },
+  docker: { top: "var(--sky-deep)", soft: "#dcebff" },
 };
 
 const GROUND: Shades = ["#fffdf8", "#efe5d2", "#ddd0b8"];
@@ -166,12 +167,26 @@ function DbTop({ s }: { s: number }) {
   );
 }
 
+/* ------------------------------------------------------------- Docker */
+
+function DockerTop({ s }: { s: number }) {
+  // Shipping containers: two on the ground, one stacked on top.
+  return (
+    <g className="island-ctr">
+      <IsoBox s={s} at={[-1.35, -1.2, 0]} size={[1.25, 2.3, 0.75]} shades={CORAL} />
+      <IsoBox s={s} at={[0.1, -1.2, 0]} size={[1.25, 2.3, 0.75]} shades={SKY} />
+      <IsoBox s={s} at={[-0.62, -1.2, 0.75]} size={[1.25, 2.3, 0.75]} shades={SUN} />
+    </g>
+  );
+}
+
 const TOPS: Record<IslandId, (p: { s: number }) => ReactNode> = {
   kafka: KafkaTop,
   rabbitmq: RabbitTop,
   kubernetes: KubeTop,
   git: GitTop,
   transactions: DbTop,
+  docker: DockerTop,
 };
 
 /** A whole island: slab plus its landmark. */
@@ -203,10 +218,11 @@ export function IslandsHero({ labels, live }: { labels: Record<IslandId, string>
     ["kubernetes", 330, 95, 0.95],
     ["rabbitmq", 95, 300, 0.95],
     ["transactions", 345, 280, 0.9],
+    ["docker", 222, 352, 0.85],
     ["kafka", 222, 205, 1.25],
   ];
   return (
-    <svg className="islands-hero" viewBox="10 20 430 360" aria-hidden="true">
+    <svg className="islands-hero" viewBox="10 20 430 410" aria-hidden="true">
       {spots.map(([id, x, y, k], i) => (
         <g key={id} transform={`translate(${x} ${y}) scale(${k})`}>
           <g className="float" style={{ animationDelay: `${i * -1.3}s` }}>

@@ -15,6 +15,7 @@ Every lesson follows the same rhythm:
 | Apache Kafka | 20 lessons in 7 chapters |
 | Git | 19 lessons in 6 chapters, each with the real commands to use in your own project |
 | RabbitMQ | 17 lessons in 5 chapters, with commands and Python code to set it up in your own project |
+| Docker | 22 lessons in 8 chapters, from your first container to Dockerfiles, Compose, CI and a first look at Kubernetes |
 | Kubernetes, database transactions | Planned |
 
 ## Running it
@@ -50,6 +51,11 @@ courses/rabbitmq/  the RabbitMQ course
   engine/          a small broker model: exchanges, bindings, queues, acks, prefetch,
                    dead letters, TTL, quorum queues and streams
   iso/             the broker stage: producers, exchanges, queues and consumers
+  lessons/<slug>/  one folder per lesson
+courses/docker/    the Docker course
+  engine/          a small Docker model: images and layers with a build cache, containers
+                   with real exit codes, volumes, ports, networks and DNS, Compose, a registry
+  iso/             the host stage (images, containers, volumes, networks) and the build stage
   lessons/<slug>/  one folder per lesson
 site/              the hub listing every course, and the app shell
 ```
