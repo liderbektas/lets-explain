@@ -1,73 +1,71 @@
 # Let's explain
 
-Yazılım teknolojilerini adım adım ilerleyen canlı sahnelerle anlatan interaktif kurslar. Türkçe ve İngilizce.
+Interactive courses that explain software technologies with live, step-by-step scenes. Every course is available in Turkish and English.
 
-*Interactive courses that explain software technologies with live, step-by-step scenes. Turkish and English.*
+Every lesson follows the same rhythm:
 
-Her ders aynı düzende ilerler:
+- **Watch:** each step the scene shows something happening, such as where a message goes or what happens when a service crashes.
+- **Predict:** on some steps the scene pauses and asks for your guess first, then plays what really happens.
+- **Try:** every lesson ends with missions. You build and break the system yourself with buttons; the fewer moves you need, the more stars you earn.
 
-- **İzle:** Her adımda sahne bir şey gösterir: bir mesajın nereye gittiğini, bir servis çökünce ne olduğunu.
-- **Tahmin et:** Bazı adımlarda sahne durur ve önce senin tahminini sorar, sonra gerçekte ne olduğunu oynatır.
-- **Dene:** Her ders görevlerle biter. Düğmelerle sistemi kendin kurar ve bozarsın; ne kadar az hamleyle çözersen o kadar çok yıldız alırsın.
+## Courses
 
-## Kurslar
-
-| Kurs | Durum |
+| Course | Status |
 |---|---|
-| Apache Kafka | 20 ders, 7 bölüm |
-| RabbitMQ, Kubernetes, Git, veritabanı transaction'ları | Planlanıyor |
+| Apache Kafka | 20 lessons in 7 chapters |
+| RabbitMQ, Kubernetes, Git, database transactions | Planned |
 
-## Çalıştırmak
+## Running it
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # simülasyon ve görev testleri
-npm run build      # dist/ altına statik site
+npm test           # simulation and mission tests
+npm run build      # static site in dist/
 ```
 
-Site sadece statik dosyalardan oluşur ve hash ile yönlenir (`#/kafka/log-and-offset/3`), bu yüzden GitHub Pages gibi herhangi bir statik barınakta çalışır.
+The site is plain static files with hash routes (`#/kafka/log-and-offset/3`), so it runs on any static host, GitHub Pages included.
 
-## Yapı
+## Layout
 
 ```text
-packages/core/     her kursun ortak parçaları
-  components/      ders oynatıcı, tahmin, görev paneli, özet ve quiz
-  course/          Course ve Lesson tipleri, kurs context'i
-  iso/             izometrik çizim parçaları (kutu, bant, karakter, bina)
-  i18n/            TR/EN metin yardımcıları
-  lib/             yönlendirme, ilerleme kaydı, animasyon zamanlayıcıları
-  styles/          renkler, yazı tipleri, genel stil
-courses/kafka/     Kafka kursu
-  engine/          tarayıcıda çalışan küçük, deterministik bir Kafka modeli
-  iso/             Kafka'ya özel sahneler (partition bandı, broker'lar, segment'ler)
-  lessons/<slug>/  her ders: metin, sahne, model, görevler, testler
-site/              kurs listesi (hub) ve uygulama kabuğu
+packages/core/     shared by every course
+  components/      lesson player, predictions, mission panel, recap and quiz
+  course/          Course and Lesson types, the course context
+  iso/             isometric drawing pieces (boxes, belts, characters, buildings)
+  i18n/            TR/EN text helpers
+  lib/             routing, progress storage, animation timers
+  styles/          colours, fonts, global styles
+courses/kafka/     the Kafka course
+  engine/          a small, deterministic Kafka model that runs in the browser
+  iso/             Kafka-specific scenes (partition belts, brokers, segments)
+  lessons/<slug>/  one folder per lesson: text, scene, model, missions, tests
+site/              the hub listing every course, and the app shell
 ```
 
-Kurslar birbirini import etmez; hepsi `@lets-explain/core`'u kullanır. İlerleme ve yıldızlar tarayıcıda, kurs başına ayrı anahtarlarla tutulur.
+Courses never import each other; they all build on `@lets-explain/core`. Progress and stars are kept in the browser, under separate keys per course.
 
-## Bir ders nasıl yazılır?
+## Writing a lesson
 
-`courses/<kurs>/src/lessons/<slug>/` altında:
+Inside `courses/<course>/src/lessons/<slug>/`:
 
-| Dosya | İçinde ne var |
+| File | What it holds |
 |---|---|
-| `lesson.ts` | Adımlar (TR+EN), tahmin soruları, özet, quiz. Tek bir `Lesson` export eder; kurs onu slug'ından otomatik bulur. |
-| `model.ts` | Dersin küçük, deterministik simülasyonu. Aynı hamleler her zaman aynı sonucu verir. |
-| `Scene.tsx` | Sahne: `step` alır, o adımın görüntüsünü çizer. Son adımda görevli deneme alanı. |
-| `missions.ts` | Görevler: hedef, ipucu, 3 yıldız için gereken hamle sayısı (`par`). |
-| `missions.test.ts` | Her görevin `par` hamlede çözülebildiğini ve daha kısa bir çözümün olmadığını tüm olasılıkları deneyerek kanıtlar. |
-| `terms.ts` | İsteğe bağlı: metinde `[[terim]]` olarak geçen sözlük terimleri. |
+| `lesson.ts` | The steps (TR + EN), prediction questions, recap and quiz. Exports a single `Lesson`; the course finds it by slug. |
+| `model.ts` | The lesson's small, deterministic simulation. The same moves always give the same result. |
+| `Scene.tsx` | The scene: takes `step` and draws that moment. The last step is the try-it area with missions. |
+| `missions.ts` | Missions: goal, hint, and the moves needed for three stars (`par`). |
+| `missions.test.ts` | Proves each mission can be won in exactly `par` moves, and that no shorter win exists, by trying every move sequence. |
+| `terms.ts` | Optional: glossary entries for terms written as `[[term]]` in the text. |
 
-Ders metninde işaretler: `**kalın**`, `` `kod` ``, `[[terim]]` ya da `[[terim|gösterilen metin]]`.
+Lesson text supports `**bold**`, `` `code` ``, `[[term]]` and `[[term|shown text]]`.
 
-## Yeni bir kurs eklemek
+## Adding a course
 
-1. `courses/<kurs>/src/index.ts` içinde bir `Course` nesnesi export et (ad, kısa tanım, bölümler, sözlük, ana sayfa sahnesi). Örnek: `courses/kafka/src/index.ts`.
-2. `tsconfig.json` ve `vite.config.ts` içine `@lets-explain/<kurs>` takma adını ekle.
-3. `site/src/catalog.ts` içinde kursu `courses` listesine ekle (ve `planned` listesinden çıkar).
+1. Export a `Course` from `courses/<course>/src/index.ts`: name, tagline, chapters, glossary and a home-page scene. See `courses/kafka/src/index.ts`.
+2. Add the `@lets-explain/<course>` alias to `tsconfig.json` and `vite.config.ts`.
+3. Add the course to the `courses` list in `site/src/catalog.ts`, and remove it from `planned`.
 
-## Doğruluk hakkında
+## Accuracy
 
-Simülasyonlar öğretmek için sadeleştirilmiştir; her sadeleştirme derste bir "Gerçekte" notuyla belirtilir. Bir hata görürsen issue açman çok makbule geçer.
+The simulations are simplified for teaching, and every simplification is called out in the lesson with an "In reality" note. If you spot a mistake, please open an issue.
