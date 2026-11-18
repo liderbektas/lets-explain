@@ -1,58 +1,94 @@
 import { CourseProvider } from "@lets-explain/core/course/context";
 import type { Course } from "@lets-explain/core/course/types";
-import { ChapterCube } from "@lets-explain/core/components/CourseDrawer";
+import { HowItWorks } from "@lets-explain/core/components/HowItWorks";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { l, useLang } from "@lets-explain/core/i18n";
-import { courseHref } from "@lets-explain/core/lib/router";
-import { useProgress } from "@lets-explain/core/lib/storage";
+import { ui } from "@lets-explain/core/i18n/ui";
+import { courseHref, lessonHref } from "@lets-explain/core/lib/router";
+import { resumeStep, useProgress } from "@lets-explain/core/lib/storage";
+import { IslandCard, IslandsHero, ISLAND_TINT, type IslandId } from "./art/Islands";
 import { courses, planned } from "./catalog";
 
 const copy = {
-  crumb: l("Let's explain · interaktif kurslar", "Let's explain · interactive courses"),
-  title: [l("Yazılım teknolojilerini", "Learn software tech by"), l("izleyerek", "watching"), l("ve deneyerek öğren.", "and trying it.")],
+  title: [l("Yazılımın içini", "See inside software:"), l("izle,", "watch,"), l("tahmin et, dene.", "predict, try.")] as const,
   lead: l(
-    "Her kurs, içini göremediğin bir teknolojiyi adım adım ilerleyen canlı sahnelerle açar. Önce ne olacağını tahmin edersin, sonra izlersin; her dersin sonunda da kendi kurduğun görevleri çözersin.",
-    "Each course opens up a technology you normally cannot see inside, with live scenes you step through. You guess what happens, then watch; every lesson ends with missions you solve yourself.",
+    "Her kurs, normalde göremediğin bir teknolojiyi adım adım ilerleyen canlı sahnelerle açar. Bir mesajın nereye gittiğini, bir şey çökünce ne olduğunu kendi gözünle görürsün. Ön bilgi gerekmiyor.",
+    "Each course opens up a technology you normally cannot see inside, with live scenes you step through. You see where a message goes and what a crash does, with your own eyes. No prior knowledge needed.",
   ),
+  startKafka: l("Kafka ile başla", "Start with Kafka"),
+  howLink: l("Nasıl çalışır?", "How it works"),
+  how: l("Nasıl öğrenirsin?", "How you learn"),
   courses: l("Kurslar", "Courses"),
+  coursesLead: l("Biri açık, diğerleri yolda.", "One is live, more are on the way."),
   lessons: l("ders", "lessons"),
+  chapters: l("bölüm", "chapters"),
+  missions: l("görev", "missions"),
   done: l("bitti", "done"),
   soon: l("Yakında", "Soon"),
-  open: l("Açık", "Live"),
+  live: l("Açık", "Live"),
+  open: l("Kursa git", "Open course"),
 };
+
+const islandLabels = (t: (x: { tr: string; en: string }) => string): Record<IslandId, string> => ({
+  kafka: "Kafka",
+  rabbitmq: "RabbitMQ",
+  kubernetes: "Kubernetes",
+  git: "Git",
+  transactions: t(l("Transaction", "Transactions")),
+});
 
 export function Hub() {
   const { t } = useLang();
   const [before, highlight, after] = copy.title;
+  const kafka = courses[0]!;
+
   return (
-    <div className="home">
-      <section className="hero hub-hero">
+    <div className="home hub">
+      <section className="hero">
         <div>
-          <p className="crumb">{t(copy.crumb)}</p>
           <h1>
-            {t(before!)} <em>{t(highlight!)}</em> {t(after!)}
+            {t(before)} <em>{t(highlight)}</em> {t(after)}
           </h1>
           <p className="lead">{t(copy.lead)}</p>
+          <div className="hero-actions">
+            <a className="btn btn-primary" href={courseHref(kafka.id)}>
+              {t(copy.startKafka)} <Icon name="arrowRight" />
+            </a>
+            <a className="btn" href="#how" onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+            }}>
+              {t(copy.howLink)}
+            </a>
+          </div>
+        </div>
+        <div className="hub-art">
+          <IslandsHero labels={islandLabels(t)} />
         </div>
       </section>
 
+      <HowItWorks title={copy.how} />
+
       <section className="outline">
-        <h2>{t(copy.courses)}</h2>
+        <div className="section-head">
+          <h2>{t(copy.courses)}</h2>
+          <p>{t(copy.coursesLead)}</p>
+        </div>
         <div className="hub-grid">
-          {courses.map((course, i) => (
+          {courses.map((course) => (
             <CourseProvider key={course.id} course={course}>
-              <CourseCard course={course} index={i} />
+              <LiveCard course={course} />
             </CourseProvider>
           ))}
-          {planned.map((p, i) => (
-            <div key={p.id} className="hub-card card is-soon">
-              <h3>
-                <ChapterCube index={courses.length + i} size={26} />
-                {t(p.name)}
-              </h3>
-              <p>{t(p.tagline)}</p>
-              <div className="hub-meta">
+          {planned.map((p) => (
+            <div key={p.id} className="hub-card is-soon">
+              <div className="hub-card-art" style={{ background: ISLAND_TINT[p.id as IslandId]?.soft }}>
+                <IslandCard id={p.id as IslandId} />
                 <span className="hub-badge">{t(copy.soon)}</span>
+              </div>
+              <div className="hub-card-body">
+                <h3>{t(p.name)}</h3>
+                <p>{t(p.tagline)}</p>
               </div>
             </div>
           ))}
@@ -62,26 +98,60 @@ export function Hub() {
   );
 }
 
-function CourseCard({ course, index }: { course: Course; index: number }) {
+function LiveCard({ course }: { course: Course }) {
   const { t } = useLang();
   const { progress } = useProgress();
   const lessons = course.chapters.flatMap((c) => c.lessons).filter((e) => e.lesson);
   const done = lessons.filter((e) => progress.done[e.slug]).length;
+  const missions = lessons.reduce((n, e) => n + (e.lesson!.missions?.length ?? 0), 0);
+  const started = Object.keys(progress.reached).length > 0;
+  const resume = lessons.find((e) => !progress.done[e.slug] && progress.reached[e.slug] !== undefined) ?? lessons.find((e) => !progress.done[e.slug]);
+  const id = course.id as IslandId;
+
   return (
-    <a className="hub-card card" href={courseHref(course.id)}>
-      <h3>
-        <ChapterCube index={index} size={26} />
-        {course.name}
-      </h3>
-      <p>{t(course.tagline)}</p>
-      <div className="hub-meta">
-        <span className="hub-badge">{t(copy.open)}</span>
-        <span className="hub-progress">
-          {lessons.length} {t(copy.lessons)}
-          {done > 0 && ` · ${done} ${t(copy.done)}`}
-        </span>
-        <Icon name="arrowRight" />
+    <article className="hub-card is-live">
+      <a className="hub-card-art" href={courseHref(course.id)} style={{ background: ISLAND_TINT[id]?.soft }} aria-label={course.name}>
+        <IslandCard id={id} />
+        <span className="hub-badge">{t(copy.live)}</span>
+      </a>
+      <div className="hub-card-body">
+        <h3>
+          <a href={courseHref(course.id)}>{course.name}</a>
+        </h3>
+        <p>{t(course.tagline)}</p>
+        <ul className="stat-row is-small">
+          <li>
+            <b>{lessons.length}</b> {t(copy.lessons)}
+          </li>
+          <li>
+            <b>{course.chapters.length}</b> {t(copy.chapters)}
+          </li>
+          <li>
+            <b>{missions}</b> {t(copy.missions)}
+          </li>
+        </ul>
+        {started && (
+          <div className="progress-meter">
+            <span>
+              {done}/{lessons.length} {t(copy.done)}
+            </span>
+            <div className="meter">
+              <div style={{ width: `${(done / Math.max(lessons.length, 1)) * 100}%` }} />
+            </div>
+          </div>
+        )}
+        <div className="hub-card-actions">
+          {started && resume?.lesson ? (
+            <a className="btn btn-primary" href={lessonHref(course.id, resume.slug, resumeStep(progress, resume.slug, resume.lesson.steps.length))}>
+              {t(ui.continue)}: {t(resume.title)} <Icon name="arrowRight" size={16} />
+            </a>
+          ) : (
+            <a className="btn btn-primary" href={courseHref(course.id)}>
+              {t(copy.open)} <Icon name="arrowRight" size={16} />
+            </a>
+          )}
+        </div>
       </div>
-    </a>
+    </article>
   );
 }

@@ -15,7 +15,8 @@ const copy = {
 /** A small loop for the course home: orders arrive, two readers follow at their own pace. */
 export function KafkaHero() {
   const { t } = useLang();
-  const tick = useTicker(true, false, 1100) % 22;
+  // Start with a few records already on the belt, so the first look is never an empty log.
+  const tick = 5 + (useTicker(true, false, 1100) % 16);
   const state = useMemo(() => {
     const actions: Action[] = [
       { type: "createTopic", name: "orders", partitions: 1 },

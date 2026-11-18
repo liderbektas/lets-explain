@@ -53,7 +53,7 @@ export const ui = {
   predictWrong: l("Bu sefer olmadı.", "Not this time."),
   predictYours: l("Tahminin", "Your guess"),
   predictAgain: l("Yeniden tahmin et", "Guess again"),
-  predictWaiting: l("Soldan tahminini seç, sahne ondan sonra oynayacak", "Pick your guess on the left; the scene plays after that"),
+  predictWaiting: l("Önce tahminini seç, sahne sonra oynayacak", "Make your guess first; then the scene plays"),
   predictKeys: l("seç", "pick"),
   missions: l("Görevler", "Missions"),
   freePlay: l("Serbest", "Free play"),

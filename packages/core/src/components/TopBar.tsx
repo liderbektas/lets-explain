@@ -14,7 +14,7 @@ export function TopBar({ course, onMenu }: Props) {
   const { lang, setLang, t } = useLang();
 
   return (
-    <header className="topbar">
+    <header className={`topbar ${course ? "has-course" : ""}`}>
       <a className="brand" href="#/">
         <BrandMark />
         <span>Let's explain</span>

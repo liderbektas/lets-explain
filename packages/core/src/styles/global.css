@@ -1072,37 +1072,31 @@ a.drawer-item:hover {
   font-size: 14px;
 }
 
-/* ---------- Home ---------- */
+/* ---------- Home pages (hub and course) ---------- */
 
 .home {
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 40px 24px 80px;
-}
-
-.crumb {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--tangerine-deep);
-  margin-bottom: 4px;
+  padding: 44px 24px 96px;
 }
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 40px;
   align-items: center;
 }
 
 .hero h1 {
-  font-size: clamp(36px, 4.8vw, 56px);
-  margin-bottom: 16px;
+  font-size: clamp(38px, 4.6vw, 58px);
+  line-height: 1.08;
+  margin-bottom: 18px;
 }
 
 .hero h1 em {
   font-style: normal;
   background: var(--tangerine);
-  padding: 0 10px;
+  padding: 0 12px;
   border-radius: 14px;
   border: var(--stroke) solid var(--ink);
   box-shadow: var(--sticker-s);
@@ -1112,78 +1106,375 @@ a.drawer-item:hover {
 
 .hero .lead {
   font-size: 18px;
+  line-height: 1.6;
   color: var(--ink-2);
+  max-width: 560px;
+  margin-bottom: 22px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+}
+
+.hero-actions .btn {
+  min-height: 52px;
+  font-size: 17px;
+  padding: 0 22px;
+}
+
+.stat-row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stat-row {
   margin-bottom: 24px;
 }
 
-.hero .btn {
-  min-height: 52px;
-  font-size: 17px;
+.stat-row li {
+  padding: 5px 13px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
 }
 
-.hero-art {
-  height: 340px;
-  min-height: 0 !important;
-  padding: 0;
+.stat-row b {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.stat-row.is-small {
+  margin: 4px 0 2px;
+}
+
+.stat-row.is-small li {
+  padding: 2px 10px;
+  font-size: 13px;
+}
+
+.stat-row.is-small b {
+  font-size: 15px;
+}
+
+.progress-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 170px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.meter {
+  height: 12px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
   overflow: hidden;
 }
 
+.meter > div {
+  height: 100%;
+  background: var(--mint-deep);
+  transition: width 0.4s;
+}
+
+/* The course hero's live scene sits in a framed card with the stage's diamond grid. */
+.hero-art {
+  height: 360px;
+  padding: 0;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(26.565deg, transparent 0 23px, rgba(43, 42, 51, 0.05) 23px 24px),
+    repeating-linear-gradient(-26.565deg, transparent 0 23px, rgba(43, 42, 51, 0.05) 23px 24px),
+    var(--card) !important;
+}
+
+.hero-art .stage-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The hub's islands float free, no frame. */
+.hub-art {
+  position: relative;
+}
+
+.hub-art::before {
+  content: "";
+  position: absolute;
+  inset: 8% 4% 4%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sun-soft), transparent);
+  z-index: -1;
+}
+
+.islands-hero {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.island-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.island-shadow {
+  fill: rgba(43, 42, 51, 0.12);
+}
+
+.island-wire {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.island-branch {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.island-ghost {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.island-pole,
+.lock-shackle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.island-db path,
+.island-db ellipse {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.db-body {
+  fill: var(--mint-mid);
+}
+
+.db-band {
+  fill: none;
+}
+
+.db-top {
+  fill: var(--mint);
+}
+
+.island-tag-text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.float {
+  animation: float 5.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float,
+  .how-bob,
+  .how-arrive {
+    animation: none !important;
+  }
+}
+
+/* ---------- Sections ---------- */
+
 .how,
 .outline {
-  margin-top: 56px;
+  margin-top: 72px;
 }
 
 .how h2,
 .outline h2 {
-  font-size: 28px;
-  margin-bottom: 16px;
+  font-size: 30px;
+  margin-bottom: 18px;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin-bottom: 18px;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.section-head p {
+  margin: 0;
+  color: var(--ink-3);
+  font-weight: 700;
 }
 
 .how-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
 .how-item {
-  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.how-art {
+  height: 124px;
+  border-bottom: var(--stroke) solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.how-art svg {
+  width: 88%;
+  height: 100%;
+  overflow: visible;
+}
+
+.how-text {
+  padding: 14px 18px 18px;
+}
+
+.how-text h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 21px;
+  margin: 0 0 6px;
 }
 
 .how-item .num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: var(--stroke) solid var(--ink);
   border-radius: 50%;
   background: var(--tangerine);
   font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 800;
-  margin-bottom: 8px;
 }
 
-.how-item p {
+.how-text p {
   margin: 0;
   color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.55;
 }
+
+.how-q {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.how-bob {
+  animation: float 2.8s ease-in-out infinite;
+}
+
+.how-arrive {
+  animation: arrive 2.6s ease-in-out infinite;
+}
+
+@keyframes arrive {
+  0%,
+  15% {
+    transform: translate(30px, 15px);
+    opacity: 0;
+  }
+  45%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---------- Course outline ---------- */
 
 .outline-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
 }
 
 .outline-chapter {
-  padding: 14px 16px;
+  padding: 16px 18px 14px;
+}
+
+.outline-chapter.is-complete {
+  background: var(--mint-soft) !important;
 }
 
 .outline-chapter h3 {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  margin-bottom: 8px;
+  gap: 10px;
+  font-size: 19px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px dashed var(--line);
+}
+
+.outline-chapter h3 > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.outline-chapter h3 small {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.outline-chapter h3 em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-3);
 }
 
 .outline-chapter ol {
@@ -1195,10 +1486,16 @@ a.drawer-item:hover {
 .outline-chapter li {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 0;
+  gap: 9px;
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 700;
+}
+
+.outline-chapter li.is-next {
+  background: var(--tangerine-soft);
 }
 
 .outline-chapter li.is-soon {
@@ -1207,12 +1504,31 @@ a.drawer-item:hover {
 }
 
 .outline-chapter a {
+  color: var(--ink);
   text-decoration: none;
 }
 
 .outline-chapter a:hover {
   text-decoration: underline;
   text-decoration-color: var(--tangerine);
+  text-decoration-thickness: 2px;
+}
+
+.nav-state.is-done {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--card);
+}
+
+.next-chip {
+  margin-left: auto;
+  padding: 0 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--tangerine);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 /* ---------- Responsive ---------- */
@@ -1496,80 +1812,208 @@ a.drawer-item:hover {
   background: var(--tangerine);
 }
 
-/* ---------- Hub: every course ---------- */
+/* ---------- Hub: course cards ---------- */
 
 .hub-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
 }
 
 .hub-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 18px 20px;
-  color: var(--ink);
-  text-decoration: none;
-  transition: transform 0.12s, box-shadow 0.12s;
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--radius-l);
+  background: var(--card);
+  overflow: hidden;
 }
 
-a.hub-card:hover {
-  transform: translateY(-3px);
+.hub-card.is-live {
+  grid-column: span 2;
+  flex-direction: row;
+  box-shadow: var(--sticker);
+}
+
+.hub-card.is-soon {
+  border-style: dashed;
+}
+
+.hub-card-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 168px;
+  padding: 10px 24px 0;
+  border-bottom: var(--stroke) solid var(--ink);
+}
+
+.hub-card.is-soon .hub-card-art {
+  border-bottom-style: dashed;
+}
+
+.hub-card.is-live .hub-card-art {
+  flex: 0 0 44%;
+  height: auto;
+  min-height: 250px;
+  border-bottom: 0;
+  border-right: var(--stroke) solid var(--ink);
+}
+
+.hub-card.is-soon .island-svg {
+  filter: saturate(0.75);
+  opacity: 0.9;
+}
+
+.hub-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 1px 11px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.hub-card.is-live .hub-badge {
+  background: var(--mint);
+}
+
+.hub-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px 20px;
+}
+
+.hub-card.is-live .hub-card-body {
+  padding: 22px 24px;
+  justify-content: center;
 }
 
 .hub-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin: 0;
   font-size: 22px;
+}
+
+.hub-card.is-live h3 {
+  font-size: 30px;
+}
+
+.hub-card h3 a {
+  color: var(--ink);
+  text-decoration: none;
 }
 
 .hub-card p {
   margin: 0;
   color: var(--ink-2);
   font-size: 15px;
+  line-height: 1.5;
 }
 
-.hub-meta {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 800;
+.hub-card.is-live p {
+  font-size: 16px;
 }
 
-.hub-card.is-soon {
-  opacity: 0.7;
-  background: var(--paper-2) !important;
-  box-shadow: none !important;
+.hub-card-actions {
+  margin-top: 6px;
 }
 
-.hub-badge {
-  padding: 2px 10px;
-  border: var(--stroke) solid var(--ink);
-  border-radius: 999px;
-  background: var(--mint);
-  font-size: 13px;
+.hub-card-actions .btn {
+  min-height: 46px;
 }
 
-.hub-card.is-soon .hub-badge {
-  background: var(--card);
+@media (max-width: 960px) {
+  .hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .how-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .how-item {
+    flex-direction: row;
+  }
+
+  .how-art {
+    flex: 0 0 38%;
+    height: auto;
+    min-height: 120px;
+    border-bottom: 0;
+    border-right: var(--stroke) solid var(--ink);
+  }
 }
 
-.hub-progress {
-  color: var(--ink-3);
-}
+@media (max-width: 640px) {
+  .hub-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-@media (max-width: 560px) {
+  .hub-card.is-live {
+    grid-column: auto;
+    flex-direction: column;
+  }
+
+  .hub-card.is-live .hub-card-art {
+    min-height: 190px;
+    border-right: 0;
+    border-bottom: var(--stroke) solid var(--ink);
+  }
+
+  .how-item {
+    flex-direction: column;
+  }
+
+  .how-art {
+    min-height: 110px;
+    border-right: 0;
+    border-bottom: var(--stroke) solid var(--ink);
+  }
+
   .course-chip {
     margin-left: 8px;
     font-size: 13px;
   }
 }
 
-.hero.hub-hero {
-  grid-template-columns: minmax(0, 760px);
+.brand span {
+  white-space: nowrap;
+}
+
+/* On a phone inside a course, the course chip says where you are; the logo mark is enough. */
+@media (max-width: 560px) {
+  .topbar.has-course .brand span {
+    display: none;
+  }
+
+  .topbar.has-course .course-chip {
+    margin-left: 4px;
+  }
+}
+
+@media (max-width: 900px) {
+  /* The question sits under the stage on narrow screens, so the arrow would point the wrong way. */
+  .stage-wait svg {
+    display: none;
+  }
+
+  .stage-wait {
+    top: 42%;
+    bottom: auto;
+    max-width: calc(100% - 24px);
+    white-space: normal;
+    text-align: center;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hub-card.is-live .hub-card-art {
+    flex: none;
+  }
 }
