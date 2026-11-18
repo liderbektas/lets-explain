@@ -36,6 +36,8 @@ export interface Step {
 export interface Practice {
   intro?: L;
   commands: { cmd: string; note?: L }[];
+  /** Short code to copy into your own app, shown under the commands. */
+  snippets?: { label: string; code: string; note?: L }[];
 }
 
 export interface Prediction {

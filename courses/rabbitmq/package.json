@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/rabbitmq",
+  "private": true,
+  "description": "The RabbitMQ course: a small deterministic broker model (exchanges, queues, acks, dead letters, quorum queues, streams) and its lessons.",
+  "type": "module"
+}

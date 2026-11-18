@@ -1,0 +1,90 @@
+/* The RabbitMQ course's broker drawing. */
+
+.broker .road {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.broker .road.is-dashed {
+  stroke-dasharray: 5 6;
+  stroke-width: 2;
+}
+
+.broker .ex-box polygon,
+.broker .q-trough polygon {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.broker .ex-glyph path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.broker .ex-glyph-text {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.broker .tag-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.broker .q-depth,
+.broker .c-meta {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.broker .q-chips {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  fill: var(--ink-3);
+}
+
+.broker .q-more {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.broker .is-down {
+  opacity: 0.45;
+}
+
+.broker .q-slot {
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+
+.broker .q-head {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.broker .q-depth,
+.broker .c-meta {
+  font-size: 13px;
+}
+
+.broker .q-chips {
+  font-size: 12px;
+}

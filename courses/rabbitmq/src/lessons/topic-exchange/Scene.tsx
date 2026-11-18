@@ -1,0 +1,115 @@
+import { l } from "@lets-explain/core/i18n";
+import { createBroker, depth, simulate, type Binding, type Broker, type BrokerAction, type Message } from "../../engine/broker";
+import { BrokerStage } from "../../iso/BrokerStage";
+import { labels } from "../first-queue/Scene";
+import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
+import { missions } from "./missions";
+
+export const SLUG = "topic-exchange";
+const EX = "events";
+
+const pub = (routingKey: string, body: string, exchange = EX): BrokerAction => ({ type: "publish", exchange, routingKey, body });
+const bind = (queue: string, key: string, exchange = EX): BrokerAction => ({ type: "bind", exchange, queue, key });
+
+/** Three queues with three patterns: Europe only, every order, and everything. */
+export const START: Broker = simulate(
+  [
+    { type: "declareExchange", name: EX, kind: "topic" },
+    { type: "declareQueue", name: "eu-orders" },
+    { type: "declareQueue", name: "all-orders" },
+    { type: "declareQueue", name: "audit" },
+    bind("eu-orders", "order.*.eu"),
+    bind("all-orders", "order.#"),
+    bind("audit", "#"),
+  ],
+  createBroker(),
+).states[7]!;
+
+export const steps: BrokerAction[][] = [
+  [],
+  [pub("order.created.eu", "ce")],
+  [pub("order.created", "c")],
+  [pub("user.signup.eu", "su")],
+  [pub("order.paid.eu.vip", "pv")],
+  [{ type: "declareQueue", name: "refunds" }, bind("refunds", "*.cancelled.*"), pub("order.cancelled.eu", "xe")],
+  [],
+  [],
+];
+
+/** Colour by what the message is about: orders mint, users blue, cancellations peach. */
+export const kindOf = (m: Message) => (m.routingKey.includes("cancelled") ? "cancel" : m.routingKey.startsWith("user") ? "payment" : "order");
+
+/**
+ * Several bindings between the same exchange and queue would print their keys on top of
+ * each other, so the drawing gets one binding per pair with the keys joined.
+ */
+export function mergedForDrawing(b: Broker): Broker {
+  const groups = new Map<string, Binding>();
+  for (const x of b.bindings) {
+    const id = `${x.exchange}|${x.queue}`;
+    const prev = groups.get(id);
+    groups.set(id, prev ? { ...prev, key: `${prev.key}  ·  ${x.key}` } : { ...x });
+  }
+  return { ...b, bindings: [...groups.values()] };
+}
+
+/* ------------------------------------------------------------------ sandbox */
+
+export const TARGET = "target";
+export const PATTERNS = ["order.*.eu", "order.#", "#", "*.created.*", "user.#", "*.*.us"];
+export const KEYS: { key: string; body: string }[] = [
+  { key: "order.created.eu", body: "ce" },
+  { key: "order.paid.eu", body: "pe" },
+  { key: "order.created.us", body: "cu" },
+  { key: "user.signup.eu", body: "su" },
+];
+
+const sandboxStart = (): Broker =>
+  simulate([{ type: "declareExchange", name: EX, kind: "topic" }, { type: "declareQueue", name: TARGET }], createBroker()).states[2]!;
+
+function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
+  const tr = lang === "tr";
+  const sent = new Set(history.flatMap((a) => (a.type === "publish" ? [a.routingKey] : [])));
+  const bound = (key: string) => b.bindings.some((x) => x.queue === TARGET && x.key === key);
+  return [
+    {
+      label: tr ? "Gönder" : "Publish",
+      buttons: KEYS.map((k) => ({ label: k.key, action: pub(k.key, k.body), tone: "producer" as const, disabled: sent.has(k.key) })),
+    },
+    {
+      label: tr ? "target'a bağla" : "Bind target",
+      buttons: PATTERNS.map((p) =>
+        bound(p)
+          ? { label: `− ${p}`, action: { type: "unbind", exchange: EX, queue: TARGET, key: p } as BrokerAction, tone: "danger" as const }
+          : { label: `+ ${p}`, action: bind(TARGET, p), tone: "go" as const },
+      ),
+    },
+  ];
+}
+
+export const scene = makeBrokerScene({
+  slug: SLUG,
+  start: START,
+  steps,
+  label: l("Bir topic exchange: kalıplara göre dağıtım", "A topic exchange routing by patterns"),
+  view: (b, info) => (
+    <BrokerStage
+      broker={mergedForDrawing(b)}
+      last={info.last}
+      labels={labels(info.t)}
+      kindOf={kindOf}
+      layout={{
+        producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: EX }],
+        queues: info.sandbox ? [TARGET] : ["eu-orders", "all-orders", "audit", "refunds"],
+      }}
+    />
+  ),
+  metrics: (b, t, info) => {
+    const qs = info.sandbox ? [TARGET] : ["eu-orders", "all-orders", "audit", "refunds"].filter((q) => b.queues[q]);
+    return [
+      ...qs.map((q) => ({ label: q, value: depth(b, q).ready })),
+      { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? ("danger" as const) : ("plain" as const) },
+    ];
+  },
+  sandbox: { start: sandboxStart, rows, missions },
+});

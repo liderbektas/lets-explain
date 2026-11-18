@@ -1,0 +1,11 @@
+.direct-call .dc-road {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.direct-call .dc-road.is-broken {
+  stroke: var(--red);
+  stroke-dasharray: 8 8;
+}

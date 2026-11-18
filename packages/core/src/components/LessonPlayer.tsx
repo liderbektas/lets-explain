@@ -346,6 +346,24 @@ function PracticeCard({ practice }: { practice: Practice }) {
           </li>
         ))}
       </ul>
+      {practice.snippets?.map((sn, i) => (
+        <div key={sn.label} className="practice-snippet">
+          <div className="practice-snippet-head">
+            <span>{sn.label}</span>
+            <button className="practice-copy" onClick={() => copy(100 + i, sn.code)} aria-label={t(ui.copy)} title={t(ui.copy)}>
+              {copied === 100 + i ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
+            </button>
+          </div>
+          <pre>
+            <code>{sn.code}</code>
+          </pre>
+          {sn.note && (
+            <p className="practice-note">
+              <Rich text={t(sn.note)} />
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

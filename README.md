@@ -14,7 +14,8 @@ Every lesson follows the same rhythm:
 |---|---|
 | Apache Kafka | 20 lessons in 7 chapters |
 | Git | 19 lessons in 6 chapters, each with the real commands to use in your own project |
-| RabbitMQ, Kubernetes, database transactions | Planned |
+| RabbitMQ | 17 lessons in 5 chapters, with commands and Python code to set it up in your own project |
+| Kubernetes, database transactions | Planned |
 
 ## Running it
 
@@ -44,6 +45,11 @@ courses/kafka/     the Kafka course
 courses/git/       the Git course
   engine/          a small Git model whose object ids match real Git (tested against git itself)
   iso/             the commit graph and the three areas
+  lessons/<slug>/  one folder per lesson
+courses/rabbitmq/  the RabbitMQ course
+  engine/          a small broker model: exchanges, bindings, queues, acks, prefetch,
+                   dead letters, TTL, quorum queues and streams
+  iso/             the broker stage: producers, exchanges, queues and consumers
   lessons/<slug>/  one folder per lesson
 site/              the hub listing every course, and the app shell
 ```

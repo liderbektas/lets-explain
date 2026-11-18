@@ -2137,3 +2137,38 @@ a.drawer-item:hover {
 .speech .practice strong {
   color: #fffdf8;
 }
+
+.practice-snippet {
+  margin: 0 12px 10px;
+  border: 1.5px solid #55535f;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.practice-snippet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 4px 10px;
+  background: #34333d;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #cfc8d6;
+}
+
+.practice-snippet pre {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  background: #26252d;
+}
+
+.practice-snippet pre code {
+  white-space: pre;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.practice-snippet .practice-note {
+  padding: 4px 10px 6px;
+}

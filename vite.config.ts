@@ -9,6 +9,7 @@ export const alias = {
   "@lets-explain/core": here("./packages/core/src"),
   "@lets-explain/kafka": here("./courses/kafka/src/index.ts"),
   "@lets-explain/git": here("./courses/git/src/index.ts"),
+  "@lets-explain/rabbitmq": here("./courses/rabbitmq/src/index.ts"),
 };
 
 export default defineConfig({
