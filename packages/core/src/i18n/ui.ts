@@ -76,6 +76,9 @@ export const ui = {
   scoreTitle: l("Senin skorun", "Your score"),
   scorePredictions: l("Doğru tahmin", "Right guesses"),
   scoreStars: l("Görev yıldızı", "Mission stars"),
+  practiceTitle: l("Kendi projende", "In your project"),
+  copy: l("Kopyala", "Copy"),
+  copied: l("Kopyalandı", "Copied"),
   tags: {
     problem: l("Sorun", "Problem"),
     idea: l("Fikir", "Idea"),

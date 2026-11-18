@@ -197,7 +197,7 @@ export function IslandCard({ id }: { id: IslandId }) {
 }
 
 /** The hub's hero: every technology as an island, Kafka in front. */
-export function IslandsHero({ labels }: { labels: Record<IslandId, string> }) {
+export function IslandsHero({ labels, live }: { labels: Record<IslandId, string>; live: IslandId[] }) {
   const spots: [IslandId, number, number, number][] = [
     ["git", 120, 120, 0.9],
     ["kubernetes", 330, 95, 0.95],
@@ -212,7 +212,7 @@ export function IslandsHero({ labels }: { labels: Record<IslandId, string> }) {
           <g className="float" style={{ animationDelay: `${i * -1.3}s` }}>
             <Island id={id} s={22} />
             <g transform="translate(0 58)">
-              <IslandTag text={labels[id]} live={id === "kafka"} />
+              <IslandTag text={labels[id]} live={live.includes(id)} />
             </g>
           </g>
         </g>

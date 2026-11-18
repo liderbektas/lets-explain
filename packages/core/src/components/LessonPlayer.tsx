@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { useLang, type L } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
-import type { Change, Lesson, LessonEntry } from "@lets-explain/core/course/types";
+import type { Change, Lesson, LessonEntry, Practice } from "@lets-explain/core/course/types";
 import { useCourse } from "@lets-explain/core/course/context";
 import { courseHref, lessonHref, replaceHash } from "@lets-explain/core/lib/router";
 import { useGame, useProgress } from "@lets-explain/core/lib/storage";
@@ -213,6 +213,7 @@ export function LessonPlayer(props: Props) {
                     </div>
                   )}
                   {current.callouts?.map((c, i) => <Callout key={i} kind={c.kind} text={c.text} />)}
+                  {current.practice && <PracticeCard practice={current.practice} />}
                   {changes.length > 0 && (
                     <div className="changes">
                       <h3>{t(ui.whatChanged)}</h3>
@@ -294,6 +295,57 @@ function PredictResult({ right, guess, why, onAgain }: { right: boolean; guess: 
           {t(ui.predictAgain)}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** The real commands for this step, in a terminal-style card with a copy button per line. */
+function PracticeCard({ practice }: { practice: Practice }) {
+  const { t } = useLang();
+  const [copied, setCopied] = useState<number | null>(null);
+  const copy = (i: number, cmd: string) => {
+    navigator.clipboard?.writeText(cmd).then(
+      () => {
+        setCopied(i);
+        setTimeout(() => setCopied((c) => (c === i ? null : c)), 1400);
+      },
+      () => {},
+    );
+  };
+  return (
+    <div className="practice">
+      <div className="practice-head">
+        <span className="practice-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <b>{t(ui.practiceTitle)}</b>
+      </div>
+      {practice.intro && (
+        <p className="practice-intro">
+          <Rich text={t(practice.intro)} />
+        </p>
+      )}
+      <ul>
+        {practice.commands.map((c, i) => (
+          <li key={i}>
+            <div className="practice-line">
+              <code>
+                <span className="prompt">$</span> {c.cmd}
+              </code>
+              <button className="practice-copy" onClick={() => copy(i, c.cmd)} aria-label={t(ui.copy)} title={t(ui.copy)}>
+                {copied === i ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
+              </button>
+            </div>
+            {c.note && (
+              <p className="practice-note">
+                <Rich text={t(c.note)} />
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

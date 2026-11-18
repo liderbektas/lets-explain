@@ -13,7 +13,8 @@ Every lesson follows the same rhythm:
 | Course | Status |
 |---|---|
 | Apache Kafka | 20 lessons in 7 chapters |
-| RabbitMQ, Kubernetes, Git, database transactions | Planned |
+| Git | 19 lessons in 6 chapters, each with the real commands to use in your own project |
+| RabbitMQ, Kubernetes, database transactions | Planned |
 
 ## Running it
 
@@ -40,6 +41,10 @@ courses/kafka/     the Kafka course
   engine/          a small, deterministic Kafka model that runs in the browser
   iso/             Kafka-specific scenes (partition belts, brokers, segments)
   lessons/<slug>/  one folder per lesson: text, scene, model, missions, tests
+courses/git/       the Git course
+  engine/          a small Git model whose object ids match real Git (tested against git itself)
+  iso/             the commit graph and the three areas
+  lessons/<slug>/  one folder per lesson
 site/              the hub listing every course, and the app shell
 ```
 
@@ -57,6 +62,8 @@ Inside `courses/<course>/src/lessons/<slug>/`:
 | `missions.ts` | Missions: goal, hint, and the moves needed for three stars (`par`). |
 | `missions.test.ts` | Proves each mission can be won in exactly `par` moves, and that no shorter win exists, by trying every move sequence. |
 | `terms.ts` | Optional: glossary entries for terms written as `[[term]]` in the text. |
+
+A step can also carry `practice`: the real commands for what it showed, shown as an "In your project" terminal card with copy buttons.
 
 Lesson text supports `**bold**`, `` `code` ``, `[[term]]` and `[[term|shown text]]`.
 

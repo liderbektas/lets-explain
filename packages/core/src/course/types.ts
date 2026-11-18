@@ -26,6 +26,16 @@ export interface Step {
    * The step's text stays hidden until they answer, because it gives the answer away.
    */
   predict?: Prediction;
+  /**
+   * "In your project": the real commands for what this step showed, so the reader can do it
+   * in their own work. Each line is one command; an optional note says what it does.
+   */
+  practice?: Practice;
+}
+
+export interface Practice {
+  intro?: L;
+  commands: { cmd: string; note?: L }[];
 }
 
 export interface Prediction {

@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/git",
+  "private": true,
+  "description": "The Git course: a small deterministic Git model with real object hashes, and its lessons.",
+  "type": "module"
+}

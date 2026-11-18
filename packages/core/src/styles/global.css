@@ -1816,6 +1816,7 @@ a.drawer-item:hover {
 
 .hub-grid {
   display: grid;
+  grid-auto-flow: row dense;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
 }
@@ -2016,4 +2017,123 @@ a.drawer-item:hover {
   .hub-card.is-live .hub-card-art {
     flex: none;
   }
+}
+
+/* ---------- "In your project": real commands ---------- */
+
+.practice {
+  margin: 14px 0 4px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--radius-m);
+  background: #2b2a33;
+  color: #f4efe6;
+  box-shadow: var(--sticker-s);
+  overflow: hidden;
+}
+
+.practice-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: #3a3943;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.practice-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.practice-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+.practice-dots i:nth-child(2) {
+  background: var(--sun);
+}
+
+.practice-dots i:nth-child(3) {
+  background: var(--mint);
+}
+
+.speech .practice-intro,
+.speech .practice-note {
+  margin: 0;
+  color: #cfc8d6;
+  font-size: 14px;
+}
+
+.speech .practice-intro {
+  padding: 8px 12px 0;
+}
+
+.practice ul {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 8px;
+}
+
+.practice li {
+  padding: 5px 12px;
+}
+
+.practice-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.practice code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: pre;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #fffdf8;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+.practice .prompt {
+  color: var(--mint);
+  user-select: none;
+}
+
+.practice-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid #6d6a78;
+  border-radius: 8px;
+  background: transparent;
+  color: #f4efe6;
+  cursor: pointer;
+}
+
+.practice-copy:hover {
+  background: #45444f;
+}
+
+.speech .practice-note {
+  margin-top: 2px;
+  padding-left: 14px;
+  color: #b9b2c2;
+}
+
+.speech .practice-note code {
+  color: #fffdf8;
+}
+
+.speech .practice strong {
+  color: #fffdf8;
 }

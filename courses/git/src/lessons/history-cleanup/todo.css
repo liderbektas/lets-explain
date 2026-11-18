@@ -1,0 +1,73 @@
+/* The rebase -i todo list in the history-cleanup lesson. */
+
+.todo-box {
+  fill: #2b2a33;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.todo-title {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--mint);
+}
+
+.todo-row {
+  fill: #3a3943;
+}
+
+.todo-row.is-fixup,
+.todo-row.is-squash {
+  fill: #4a3f6b;
+}
+
+.todo-row.is-drop {
+  fill: #5a3336;
+}
+
+.todo-row.is-reword {
+  fill: #5a4b26;
+}
+
+.todo-action {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: #fffdf8;
+}
+
+.todo-action.is-fixup,
+.todo-action.is-squash {
+  fill: var(--lilac);
+}
+
+.todo-action.is-drop {
+  fill: var(--coral);
+}
+
+.todo-action.is-reword {
+  fill: var(--sun);
+}
+
+.todo-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: #b9b2c2;
+}
+
+.todo-line {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: #f4efe6;
+}
+
+.todo-line.is-drop {
+  text-decoration: line-through;
+  fill: #b9b2c2;
+}
+
+.todo-line.is-empty {
+  fill: #b9b2c2;
+  font-style: italic;
+}

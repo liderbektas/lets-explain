@@ -19,7 +19,7 @@ const copy = {
   howLink: l("Nasıl çalışır?", "How it works"),
   how: l("Nasıl öğrenirsin?", "How you learn"),
   courses: l("Kurslar", "Courses"),
-  coursesLead: l("Biri açık, diğerleri yolda.", "One is live, more are on the way."),
+  coursesLead: l("{n} kurs açık, diğerleri yolda.", "{n} live, more on the way."),
   lessons: l("ders", "lessons"),
   chapters: l("bölüm", "chapters"),
   missions: l("görev", "missions"),
@@ -63,7 +63,7 @@ export function Hub() {
           </div>
         </div>
         <div className="hub-art">
-          <IslandsHero labels={islandLabels(t)} />
+          <IslandsHero labels={islandLabels(t)} live={courses.map((c) => c.id as IslandId)} />
         </div>
       </section>
 
@@ -72,7 +72,7 @@ export function Hub() {
       <section className="outline">
         <div className="section-head">
           <h2>{t(copy.courses)}</h2>
-          <p>{t(copy.coursesLead)}</p>
+          <p>{t(copy.coursesLead).replace("{n}", String(courses.length))}</p>
         </div>
         <div className="hub-grid">
           {courses.map((course) => (

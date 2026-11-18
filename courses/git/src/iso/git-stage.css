@@ -1,0 +1,194 @@
+/* The Git course's drawings: the commit graph and the three areas. */
+
+.graph-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.graph-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.graph-edge.is-merge {
+  stroke-dasharray: 2 6;
+}
+
+.graph-edge.is-ghost {
+  stroke: var(--ink-3);
+  stroke-dasharray: 5 5;
+  stroke-width: 2;
+}
+
+.commit .iso polygon {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.commit.is-ghost .iso polygon {
+  stroke: var(--ink-3);
+  stroke-dasharray: 4 3;
+}
+
+.commit.is-ghost text {
+  fill: var(--ink-3);
+}
+
+.commit.is-lit .iso polygon {
+  stroke-width: 3;
+}
+
+.commit.is-lit {
+  filter: drop-shadow(0 0 6px rgba(255, 148, 102, 0.9));
+}
+
+.commit-id {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.commit-msg {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  fill: var(--ink-2);
+}
+
+.ref {
+  stroke: var(--ink);
+  stroke-width: 2;
+  fill: var(--card);
+}
+
+.ref-current {
+  fill: var(--tangerine);
+}
+
+.ref-branch {
+  fill: var(--card);
+}
+
+.ref-tag {
+  fill: var(--sun);
+}
+
+.ref-remote {
+  fill: var(--paper-2);
+  stroke-dasharray: 4 3;
+}
+
+.ref-head {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ref-text {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.ref-head-text {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--card);
+}
+
+/* Three areas */
+
+.area-tray {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.area-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.area-sub {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: var(--ink-3);
+}
+
+.file-card rect.sheet {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.file-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.file-body {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--ink-2);
+}
+
+.file-badge {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.area-arrow {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.area-arrow.is-lit {
+  stroke: var(--tangerine-deep);
+  stroke-width: 3.5;
+}
+
+.area-arrow-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.area-empty {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: var(--ink-3);
+}
+
+.iso-icon .iso polygon {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.ref-stem {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 2 3;
+}
+
+.graph-edge.is-stub {
+  stroke: var(--ink-3);
+  stroke-dasharray: 3 5;
+  stroke-width: 2.5;
+}
