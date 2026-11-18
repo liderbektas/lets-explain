@@ -1,0 +1,51 @@
+/* Idempotence & transactions: the producer settings card. */
+
+.it-card {
+  fill: var(--card);
+}
+
+.it-title {
+  font-family: var(--font-display) !important;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.it-line {
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: var(--ink-2) !important;
+}
+
+.it-line.is-soft {
+  fill: var(--ink-3) !important;
+}
+
+.it-line.is-warn {
+  fill: #b7791f !important;
+}
+
+.it-line.is-bad {
+  fill: #c33a33 !important;
+}
+
+.it-on {
+  fill: var(--mint);
+}
+
+.it-off {
+  fill: var(--paper-2);
+}
+
+.it-open {
+  fill: var(--sun);
+}
+
+.it-divider {
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.it-indent {
+  padding-left: 84px;
+}

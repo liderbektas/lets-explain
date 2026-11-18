@@ -1,0 +1,401 @@
+/* Isometric drawing kit. Everything gets the same ink outline. */
+
+.stage-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-svg text {
+  font-family: var(--font-sans);
+  fill: var(--ink);
+}
+
+.iso polygon,
+.ink,
+.belt polygon {
+  stroke: var(--ink);
+  stroke-width: var(--stroke);
+  stroke-linejoin: round;
+}
+
+.tape {
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.parcel-label {
+  font-family: var(--font-display) !important;
+  font-size: 14px;
+  font-weight: 800;
+  fill: var(--ink) !important;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 3px;
+}
+
+.parcel.is-dim {
+  opacity: 0.35;
+}
+
+.parcel.is-dup .iso polygon {
+  stroke: var(--red);
+  stroke-width: 3;
+}
+
+.badge-dup {
+  fill: var(--red);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.badge-dup-text {
+  fill: #fff !important;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--font-display) !important;
+}
+
+.check {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ghost-slot {
+  fill: rgba(255, 255, 255, 0.5);
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.belt-top {
+  fill: #ece2cf;
+}
+
+.belt-side {
+  fill: #d9caae;
+}
+
+.belt-end {
+  fill: #c7b593;
+}
+
+.belt-stripe {
+  stroke: #d6c8ad;
+  stroke-width: 1.5;
+}
+
+.belt-roller {
+  fill: #b9a684;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.ground-shadow {
+  fill: rgba(43, 42, 51, 0.13);
+}
+
+.skin {
+  fill: #fde3cf;
+}
+
+.face path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.eye {
+  fill: var(--ink);
+}
+
+.cheek {
+  fill: #ff9f8a;
+  opacity: 0.55;
+}
+
+.sweat {
+  fill: var(--sky);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.star {
+  fill: var(--sun);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.dizzy {
+  animation: spin 1.6s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.person {
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+.person.is-hop {
+  animation: hop 0.45s ease-out 1;
+}
+
+.person.is-busy {
+  animation: jitter 0.35s linear infinite;
+}
+
+.person.is-crashed {
+  animation: none;
+}
+
+.flag-pole {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.flag-foot {
+  fill: var(--ink);
+}
+
+.flag-label {
+  font-family: var(--font-display) !important;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.flag.is-muted .flag-label {
+  fill: var(--ink-2) !important;
+}
+
+.seal-ring {
+  stroke-width: 2;
+}
+
+.seal-inner {
+  fill: none;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.seal-label {
+  font-family: var(--font-display) !important;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.door {
+  fill: #c9a77f;
+}
+
+.window {
+  fill: var(--sky-soft);
+}
+
+.building.is-down .door,
+.building.is-down .window {
+  fill: #cfc9d4;
+}
+
+.badge-down {
+  fill: var(--red);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.badge-x {
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.smoke {
+  fill: #d9d4dd;
+  stroke: var(--ink-3);
+  stroke-width: 1.2;
+  animation: smoke 2.2s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.smoke-2 {
+  animation-delay: 1.1s;
+}
+
+.shredder-slot {
+  stroke: #2b2a33;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.shredder-teeth {
+  fill: none;
+  stroke: #fffdf8;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.pill-shadow {
+  fill: var(--ink);
+}
+
+.pill {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.pill-danger {
+  fill: var(--red-soft);
+}
+
+.pill-warn,
+.pill-sun {
+  fill: var(--sun-soft);
+}
+
+.pill-ok {
+  fill: var(--mint-soft);
+}
+
+.pill-ink {
+  fill: var(--ink);
+}
+
+.pill-text {
+  font-weight: 700;
+}
+
+.pill-text-danger {
+  fill: #b8352f !important;
+}
+
+.pill-text-ok {
+  fill: #23704a !important;
+}
+
+.pill-text-ink {
+  fill: var(--card) !important;
+}
+
+.link {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 2;
+  stroke-dasharray: 2 6;
+  stroke-linecap: round;
+}
+
+.link.is-broken {
+  stroke: var(--red);
+  stroke-dasharray: 7 6;
+}
+
+.link.is-hot {
+  stroke: var(--ink-2);
+}
+
+.pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop 0.35s cubic-bezier(0.3, 1.6, 0.6, 1) both;
+}
+
+.arrow-head {
+  fill: var(--ink);
+}
+
+.dashed-arrow {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  stroke-linecap: round;
+}
+
+.label-soft {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-3) !important;
+}
+
+/* Playback control: pausing freezes every CSS animation in the stage. */
+.stage.is-paused *,
+.stage.is-paused *::before,
+.stage.is-paused *::after {
+  animation-play-state: paused !important;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes hop {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-9px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes jitter {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes smoke {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-18px) scale(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sight-line {
+  stroke-width: 2;
+  stroke-dasharray: 3 5;
+  stroke-linecap: round;
+}

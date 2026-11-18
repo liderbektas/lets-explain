@@ -1,0 +1,85 @@
+/* Delivery semantics: the service memory card and the inbox row. */
+
+.ds-card {
+  fill: var(--card);
+}
+
+.ds-title {
+  font-family: var(--font-display) !important;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ds-line {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ink-2) !important;
+}
+
+.ds-line.is-bad {
+  fill: #c33a33 !important;
+}
+
+.ds-ledger {
+  fill: var(--paper-2);
+}
+
+.ds-ledger.is-on {
+  fill: var(--mint);
+}
+
+.ds-ledger-text {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ds-divider {
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.ds-env {
+  fill: var(--mint-soft);
+}
+
+.ds-env.is-bad {
+  fill: var(--red-soft);
+}
+
+.ds-env-flap {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.ds-slot {
+  fill: rgba(255, 255, 255, 0.6);
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.ds-slot.is-lost {
+  fill: var(--red-soft);
+  stroke: var(--red);
+  stroke-dasharray: none;
+}
+
+.ds-x {
+  stroke: var(--red);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.ds-offset {
+  font-family: var(--font-display) !important;
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink-2) !important;
+}
+
+.ds-ledger-name {
+  min-width: 0;
+}

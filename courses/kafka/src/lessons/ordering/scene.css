@@ -1,0 +1,123 @@
+/* Shared by the ordering and consumer-lag lessons (both use BeltsStage). */
+
+.belts-offset {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink-3);
+}
+
+.belts-plabel {
+  font-family: var(--font-display);
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.belts-plabel.is-hot {
+  fill: #c33a33 !important;
+}
+
+.belts-next {
+  font-size: 11px !important;
+}
+
+.order-row-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.order-step {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.order-step.is-ok {
+  fill: var(--mint);
+}
+
+.order-step.is-bad {
+  fill: var(--red);
+}
+
+.order-step-text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.order-row-bad {
+  font-size: 16px;
+  font-weight: 800;
+  fill: #c33a33;
+}
+
+.legend-num {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.legend-num.is-soft {
+  fill: var(--ink-3);
+}
+
+.seq-tag {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.order-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+}
+
+.order-dot.kind-order {
+  background: var(--mint);
+}
+
+.order-dot.kind-payment {
+  background: var(--sky);
+}
+
+.order-dot.kind-cancel {
+  background: var(--peach);
+}
+
+.order-card {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.order-card-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.belts-alert {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  fill: #fff;
+}
+
+.control-name i.kind-order {
+  background: var(--mint);
+}
+
+.control-name i.kind-payment {
+  background: var(--sky);
+}
+
+.control-note {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+}

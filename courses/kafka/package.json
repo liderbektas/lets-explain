@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/kafka",
+  "private": true,
+  "description": "The Apache Kafka course: 20 lessons, a small deterministic Kafka model and its scenes.",
+  "type": "module"
+}

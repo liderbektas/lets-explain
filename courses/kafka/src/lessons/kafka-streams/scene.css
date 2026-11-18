@@ -1,0 +1,62 @@
+/* Text and chips inside the Kafka Streams scene. */
+.stage-svg .ks-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stage-svg .ks-mono {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.stage-svg .ks-row {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-2);
+}
+
+.stage-svg .ks-strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.stage-svg .ks-warn {
+  font-size: 11px;
+  font-weight: 800;
+  fill: #c33a33;
+}
+
+.stage-svg .ks-struck {
+  text-decoration: line-through;
+  fill: #c33a33;
+}
+
+.ks-chip {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.ks-chip-open {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+}
+
+.ks-chip-aborted {
+  fill: var(--red-soft);
+  stroke: #c33a33;
+  stroke-width: 1.6;
+}
+
+.ks-flow {
+  stroke-dasharray: 5 6;
+  opacity: 0.5;
+}
+
+.ks-flow.is-hot {
+  opacity: 1;
+}

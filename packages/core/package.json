@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/core",
+  "private": true,
+  "description": "Shared pieces for every course: lesson player, predictions, missions, isometric shapes, i18n, styles.",
+  "type": "module"
+}

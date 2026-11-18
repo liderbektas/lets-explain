@@ -1,0 +1,12 @@
+/* Multi-partition stage (TopicStage). */
+
+.partition-tag {
+  fill: var(--card) !important;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.belt-new .belt-top {
+  fill: var(--tangerine-soft);
+}

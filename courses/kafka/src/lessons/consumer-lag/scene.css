@@ -1,0 +1,35 @@
+.cli {
+  margin: 0 14px 14px;
+  padding: 12px 14px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--radius-m);
+  background: #2b2a33;
+  color: #f3eee6;
+}
+
+.cli h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #ffd66b;
+}
+
+.cli pre {
+  margin: 0;
+  overflow-x: auto;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.cli-prompt {
+  color: #7fd3b5;
+}
+
+.cli pre b {
+  color: #bfaef5;
+  font-weight: 700;
+}
+
+.cli-bad {
+  color: #ff9a8f;
+}

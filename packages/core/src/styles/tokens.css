@@ -1,0 +1,61 @@
+/* Design tokens.
+   Look: warm paper, ink outlines, chunky "pressable" cards whose shadow sits straight
+   underneath, pastel fills, tangerine as the action colour, rounded Baloo headings.
+   Light theme only for now; dark comes once the light look is settled.
+
+   Colors carry meaning and stay the same in every lesson:
+   record = mint, producer = blue, consumer groups = coral / lilac / sun,
+   failure = red, special events (cancel) = peach. */
+
+:root {
+  color-scheme: light;
+
+  --paper: #fbf6ec;
+  --paper-2: #f5eddf;
+  --grid: #ebe1cf;
+  --card: #fffdf8;
+  --ink: #2b2a33;
+  --ink-2: #57535f;
+  --ink-3: #8b8694;
+  --line: #e4d9c6;
+
+  --sun: #ffd66b;
+  --sun-soft: #fff2c7;
+  --mint: #a8e6cf;
+  --mint-mid: #7fd3b5;
+  --mint-deep: #4fb08c;
+  --mint-soft: #e3f7ee;
+  --sky: #a9c8f7;
+  --sky-mid: #8db4f0;
+  --sky-deep: #5f8fdc;
+  --sky-soft: #e5efff;
+  --coral: #ff9f8a;
+  --coral-deep: #e2735c;
+  --coral-soft: #ffe6df;
+  --lilac: #bfaef5;
+  --lilac-deep: #8f78e0;
+  --lilac-soft: #eee8ff;
+  --peach: #ffd3a5;
+  --peach-mid: #f9b67e;
+  --peach-deep: #e3955a;
+  --tangerine: #ff9466;
+  --tangerine-deep: #e5703f;
+  --tangerine-soft: #ffe7dc;
+  --red: #f2615a;
+  --red-soft: #ffe0dc;
+  --green: #3e9e62;
+
+  --font-display: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --stroke: 2px;
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  /* Shadows sit straight below, like a key you can press. */
+  --sticker: 0 5px 0 var(--ink);
+  --sticker-s: 0 3px 0 var(--ink);
+
+  --topbar-h: 64px;
+}

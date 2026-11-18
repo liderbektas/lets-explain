@@ -1,0 +1,45 @@
+/* Text and shapes inside the Kafka Connect scene. */
+.stage-svg .cx-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.stage-svg .cx-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stage-svg .cx-row {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--ink-2);
+}
+
+.stage-svg .cx-strong {
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.stage-svg .cx-warn {
+  font-weight: 800;
+  fill: #c33a33;
+}
+
+.cx-cluster-box {
+  fill: var(--lilac-soft);
+  stroke: var(--lilac-deep);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  opacity: 0.8;
+}
+
+.cx-flow {
+  stroke-dasharray: 5 6;
+  opacity: 0.5;
+}
+
+.cx-flow.is-hot {
+  opacity: 1;
+}

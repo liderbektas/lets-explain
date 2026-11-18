@@ -1,0 +1,40 @@
+/* Segment trays, key tags and corner cards for the Storage lessons. */
+
+.tray-expired polygon {
+  stroke: var(--red);
+  stroke-width: 3;
+}
+
+.key-tag {
+  font-family: var(--font-display) !important;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.info-card {
+  fill: var(--card);
+}
+
+.info-card-title {
+  font-family: var(--font-display) !important;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.info-card-row {
+  font-family: var(--font-mono) !important;
+  font-size: 10.5px;
+}
+
+.info-card-row.is-soft {
+  fill: var(--ink-3) !important;
+}
+
+.info-card-row.is-strong {
+  font-weight: 700;
+}
+
+.info-card-row.is-gone {
+  fill: var(--ink-3) !important;
+  text-decoration: line-through;
+}
