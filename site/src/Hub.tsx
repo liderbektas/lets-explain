@@ -3,6 +3,7 @@ import type { Course } from "@lets-explain/core/course/types";
 import { HowItWorks } from "@lets-explain/core/components/HowItWorks";
 import { Credit, StarCta } from "@lets-explain/core/components/Credit";
 import { Icon } from "@lets-explain/core/components/Icon";
+import { glideTo } from "@lets-explain/core/lib/smoothScroll";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import { courseHref, lessonHref } from "@lets-explain/core/lib/router";
@@ -16,7 +17,7 @@ const copy = {
     "Her kurs, normalde göremediğin bir teknolojiyi adım adım ilerleyen canlı sahnelerle açar. Bir mesajın nereye gittiğini, bir şey çökünce ne olduğunu kendi gözünle görürsün. Ön bilgi gerekmiyor.",
     "Each course opens up a technology you normally cannot see inside, with live scenes you step through. You see where a message goes and what a crash does, with your own eyes. No prior knowledge needed.",
   ),
-  startKafka: l("Kafka ile başla", "Start with Kafka"),
+  seeCourses: l("Kursları gör", "See the courses"),
   howLink: l("Nasıl çalışır?", "How it works"),
   how: l("Nasıl öğrenirsin?", "How you learn"),
   courses: l("Kurslar", "Courses"),
@@ -43,7 +44,6 @@ const islandLabels = (t: (x: { tr: string; en: string }) => string): Record<Isla
 export function Hub() {
   const { t } = useLang();
   const [before, highlight, after] = copy.title;
-  const kafka = courses[0]!;
 
   return (
     <div className="home hub">
@@ -54,12 +54,15 @@ export function Hub() {
           </h1>
           <p className="lead">{t(copy.lead)}</p>
           <div className="hero-actions">
-            <a className="btn btn-primary" href={courseHref(kafka.id)}>
-              {t(copy.startKafka)} <Icon name="arrowRight" />
+            <a className="btn btn-primary" href="#courses" onClick={(e) => {
+              e.preventDefault();
+              glideTo(document.getElementById("courses"));
+            }}>
+              {t(copy.seeCourses)} <Icon name="arrowDown" />
             </a>
             <a className="btn" href="#how" onClick={(e) => {
               e.preventDefault();
-              document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+              glideTo(document.getElementById("how"));
             }}>
               {t(copy.howLink)}
             </a>
@@ -73,7 +76,7 @@ export function Hub() {
 
       <HowItWorks title={copy.how} />
 
-      <section className="outline">
+      <section className="outline" id="courses">
         <div className="section-head">
           <h2>{t(copy.courses)}</h2>
           <p>{t(copy.coursesLead).replace("{n}", String(courses.length))}</p>

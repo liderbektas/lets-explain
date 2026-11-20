@@ -11,6 +11,7 @@ import "@fontsource/nunito/800.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/700.css";
 import "@fontsource/jetbrains-mono/800.css";
+import "lenis/dist/lenis.css";
 import "@lets-explain/core/styles/tokens.css";
 import "@lets-explain/core/styles/global.css";
 import "@lets-explain/core/styles/iso.css";
@@ -18,9 +19,13 @@ import "@lets-explain/core/styles/scene.css";
 import { App } from "./App";
 import { LangProvider } from "@lets-explain/core/i18n";
 import { migrateLegacyStorage } from "@lets-explain/core/lib/storage";
+import { startSmoothScroll } from "@lets-explain/core/lib/smoothScroll";
 
 // Before anything reads storage: older Kafka-only keys move to the per-course names.
 migrateLegacyStorage();
+
+// Eased wheel and touchpad scrolling for the page, unless the reader asks for less motion.
+startSmoothScroll();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

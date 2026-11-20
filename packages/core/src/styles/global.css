@@ -10,6 +10,11 @@ body {
   padding: 0;
 }
 
+/* Lenis (lib/smoothScroll.ts) eases page scrolling; CSS smoothing on top of it would make it lag. */
+html.lenis {
+  scroll-behavior: auto;
+}
+
 body {
   background-color: var(--paper);
   background-image: radial-gradient(var(--grid) 1.3px, transparent 1.3px);

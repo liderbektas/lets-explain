@@ -8,6 +8,7 @@ const paths: Record<string, string> = {
   undo: "M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3",
   reset: "M4 12a8 8 0 1 0 2.34-5.66M4 4v5h5",
   arrowRight: "M5 12h14m-5-5l5 5-5 5",
+  arrowDown: "M12 5v14m-5-5l5 5 5-5",
   arrowLeft: "M19 12H5m5-5l-5 5 5 5",
   clock: "M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2",
   bars: "M6 20v-5M12 20V9M18 20V4",

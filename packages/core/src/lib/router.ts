@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { jumpToTop } from "./smoothScroll";
 
 /**
  * Path routes:
@@ -47,10 +48,14 @@ export function canonicalHref(route: Route, pathname: string, hash: string): str
 const CHANGE = "lets-explain:navigate";
 const current = () => parseLocation(window.location.pathname, window.location.hash);
 
+/** Set by navigate; the router scrolls to the top once the new page is in the DOM, before it paints. */
+let scrollPending = false;
+
 /** Opens a page: a new history entry, starting at the top of the page. */
 export function navigate(href: string) {
   if (href !== window.location.pathname + window.location.hash) history.pushState(null, "", href);
-  window.scrollTo({ top: 0 });
+  // Scrolling here, before React renders, would show the old page's top for a frame.
+  scrollPending = true;
   window.dispatchEvent(new Event(CHANGE));
 }
 
@@ -87,5 +92,10 @@ export function useRoute(): Route {
       document.removeEventListener("click", onLinkClick);
     };
   }, []);
+  useLayoutEffect(() => {
+    if (!scrollPending) return;
+    scrollPending = false;
+    jumpToTop();
+  }, [route]);
   return route;
 }

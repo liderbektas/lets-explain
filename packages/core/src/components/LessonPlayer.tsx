@@ -4,6 +4,7 @@ import { useLang, type L } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import type { Change, Lesson, LessonEntry, Practice } from "@lets-explain/core/course/types";
 import { useCourse } from "@lets-explain/core/course/context";
+import { glideToTop } from "@lets-explain/core/lib/smoothScroll";
 import { courseHref, lessonHref, replaceRoute } from "@lets-explain/core/lib/router";
 import { useGame, useProgress } from "@lets-explain/core/lib/storage";
 import { Callout } from "@lets-explain/core/components/Callout";
@@ -56,7 +57,7 @@ export function LessonPlayer(props: Props) {
     markReached(lesson.slug, step);
     if (isRecap) {
       markDone(lesson.slug);
-      window.scrollTo({ top: 0 });
+      glideToTop();
     }
     setPaused(false);
   }, [lesson.slug, step, isRecap, markReached, markDone]);
