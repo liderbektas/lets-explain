@@ -1,74 +1,139 @@
+<div align="center">
+
+<img src="site/public/favicon.svg" width="76" alt="Let's explain logo" />
+
 # Let's explain
 
-Interactive courses that explain software technologies with live, step-by-step scenes. Every course is available in Turkish and English.
+**See inside software: watch, predict, try.**
 
-Every lesson follows the same rhythm:
+Interactive courses that open up the technologies you normally cannot see inside.
+Live scenes you step through, guesses before the answer, and real-work scenarios
+where you type the commands yourself.
 
-- **Watch:** each step the scene shows something happening, such as where a message goes or what happens when a service crashes.
-- **Predict:** on some steps the scene pauses and asks for your guess first, then plays what really happens.
-- **Try:** every lesson ends with missions. You build and break the system yourself with buttons; the fewer moves you need, the more stars you earn.
+[**letsexplain.co**](https://letsexplain.co) · Türkçe & English · Free
+
+[![Live site](https://img.shields.io/badge/live-letsexplain.co-ff9466?style=for-the-badge)](https://letsexplain.co)
+![Courses](https://img.shields.io/badge/courses-5-7fd3b5?style=for-the-badge)
+![Lessons](https://img.shields.io/badge/lessons-102-ffd66b?style=for-the-badge)
+![Scenarios](https://img.shields.io/badge/scenarios-442-a8c8ff?style=for-the-badge)
+
+<br />
+
+<a href="https://letsexplain.co"><img src="docs/images/hub.jpg" alt="The Let's explain home page: isometric islands for Git, Kafka, RabbitMQ, Docker and CI/CD" width="100%" /></a>
+
+</div>
+
+---
+
+## Why
+
+Most people learn Kafka, Git or Docker by reading about them and copying commands. What actually
+happens inside, where a message goes, what a rebase copies, why a container exited with 137, stays
+invisible. Let's explain draws it: every lesson is a small, faithful simulation you step through,
+and every lesson ends with you typing the real commands to solve a real problem.
+
+## How a lesson works
+
+### 1 · Watch
+
+Each step plays one moment on an isometric stage: records landing on partitions, commits being
+copied, a queue filling up. Nothing moves that does not move in the real system.
+
+### 2 · Predict
+
+On some steps the scene stops and asks you first. You guess, then watch what really happens.
+Being wrong is part of it.
+
+<p align="center">
+  <img src="docs/images/predict.jpg" alt="A Kafka consumer-groups lesson pausing to ask what a second consumer group will read" width="100%" />
+</p>
+
+### 3 · Try: real-work scenarios, typed by you
+
+Every lesson ends with 4–5 scenarios from real work: *"you fixed the bug but the README note is not
+ready, commit only the fix"*, *"push was rejected because a teammate pushed first"*, *"CI burns
+minutes on every branch, run it only on main"*. You type the commands in a terminal; the scene
+shows what each one does.
+
+<p align="center">
+  <img src="docs/images/terminal.jpg" alt="A Git scenario: git status and git add typed in the terminal, the file moving into staging on the stage above" width="100%" />
+</p>
+
+- **The output is the real tool's output.** `git status`, `docker build`, `kafka-consumer-groups.sh --describe`
+  and GitHub's workflow errors print what the real tools print.
+- **The check looks at the result, not the words.** `git restore --staged`, `git reset` and
+  `git rm --cached` all count when they leave the project in the right state.
+- **Hints open one at a time**, from a nudge to the command name to the answer. Few commands earn
+  three stars; looking at the answer leaves one.
+- **Files are edited in place.** `nano` opens Dockerfiles, `compose.yaml`, workflow YAML, Python
+  code and properties files, and `git commit` without `-m` opens the message editor, as it does
+  on your machine.
+
+<p align="center">
+  <img src="docs/images/yaml-editor.jpg" alt="A CI/CD scenario: the workflow YAML open in nano while the stage still shows the version GitHub has" width="72%" />
+</p>
 
 ## Courses
 
-| Course | Status |
-|---|---|
-| Apache Kafka | 20 lessons in 7 chapters |
-| Git | 19 lessons in 6 chapters, each with the real commands to use in your own project |
-| RabbitMQ | 17 lessons in 5 chapters, with commands and Python code to set it up in your own project |
-| Docker | 22 lessons in 8 chapters, from your first container to Dockerfiles, Compose, CI and a first look at Kubernetes |
-| CI/CD | 24 lessons in 8 chapters with GitHub Actions: workflows, runners, PR checks, cache, matrix, path filters, reusable workflows, secrets, environments, deploy strategies and rollbacks |
-| Kubernetes, database transactions | Planned |
+<p align="center">
+  <img src="docs/images/courses.jpg" alt="The course list: Apache Kafka, Git, RabbitMQ and more" width="100%" />
+</p>
 
-## Running it
+| Course | Lessons | What you type in the scenarios |
+|---|---|---|
+| **Git** | 19 in 6 chapters | `git` itself: status, add, commit, branch, merge, rebase and `rebase -i`, reset, revert, stash, cherry-pick, reflog, bisect, push and pull |
+| **Apache Kafka** | 20 in 7 chapters | `kafka-topics.sh`, the console producer and consumer, `kafka-consumer-groups.sh` with real lag, `kafka-configs.sh`, KRaft tools; `producer.properties`, connectors and schemas for the code-side lessons |
+| **RabbitMQ** | 17 in 5 chapters | Python (pika) code you edit and run, background workers, `rabbitmqctl` for queues, bindings and policies, and cluster nodes you stop and start |
+| **Docker** | 22 in 8 chapters | `docker run` and friends, Dockerfiles you write and build, `docker compose`, registries, and a first look at `kubectl` |
+| **CI/CD** | 24 in 8 chapters | GitHub Actions workflows written in YAML, `git push`, `gh pr`, `gh run view --log-failed`, secrets, environments and deploy strategies |
+| Kubernetes, database transactions | Planned | |
+
+Every course is available in Turkish and English, and needs no prior knowledge.
+
+## Faithful by design
+
+- **Real mechanisms, small scale.** Each course runs on a small, deterministic model of the real
+  system: Git objects with the ids real Git would give them, Kafka partitions with offsets and
+  consumer-group commits, a RabbitMQ broker with exchanges, acks, dead letters and quorum queues,
+  Docker images with a layer cache, a GitHub Actions runner with fresh machines.
+- **Honest about limits.** Where the model simplifies, the lesson says so in an *In reality* note,
+  and a command the sandbox does not support says so plainly instead of pretending.
+- **Tested.** About 2,400 tests check the models, the command lines, and every scenario: the start
+  state is not already solved, the intended commands win in exactly par, real alternatives also win,
+  and a tempting wrong move does not.
+
+## Running it locally
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # simulation and mission tests
+npm test           # models, command lines and scenarios
 npm run build      # static site in dist/
 ```
 
-The site is plain static files with hash routes (`#/kafka/log-and-offset/3`), so it runs on any static host, GitHub Pages included.
+The build is plain static files with path routes (`/kafka/consumer-groups/4`). Any static host
+works as long as unknown paths serve `index.html`; on nginx that is
+`try_files $uri $uri/ /index.html;`. The build also writes a `404.html` copy for hosts such as
+GitHub Pages.
 
-## Layout
+## Project layout
 
 ```text
-packages/core/     shared by every course
-  components/      lesson player, predictions, mission panel, recap and quiz
-  course/          Course and Lesson types, the course context
-  iso/             isometric drawing pieces (boxes, belts, characters, buildings)
-  i18n/            TR/EN text helpers
-  lib/             routing, progress storage, animation timers
-  styles/          colours, fonts, global styles
-courses/kafka/     the Kafka course
-  engine/          a small, deterministic Kafka model that runs in the browser
-  iso/             Kafka-specific scenes (partition belts, brokers, segments)
-  lessons/<slug>/  one folder per lesson: text, scene, model, missions, tests
-courses/git/       the Git course
-  engine/          a small Git model whose object ids match real Git (tested against git itself)
-  iso/             the commit graph and the three areas
-  lessons/<slug>/  one folder per lesson
-courses/rabbitmq/  the RabbitMQ course
-  engine/          a small broker model: exchanges, bindings, queues, acks, prefetch,
-                   dead letters, TTL, quorum queues and streams
-  iso/             the broker stage: producers, exchanges, queues and consumers
-  lessons/<slug>/  one folder per lesson
-courses/docker/    the Docker course
-  engine/          a small Docker model: images and layers with a build cache, containers
-                   with real exit codes, volumes, ports, networks and DNS, Compose, a registry
-  iso/             the host stage (images, containers, volumes, networks) and the build stage
-  lessons/<slug>/  one folder per lesson
-courses/cicd/      the CI/CD course
-  engine/          a small GitHub Actions model: workflows with triggers and filters, jobs on
-                   fresh runners, steps that fail like the real ones, cache, artifacts, matrix,
-                   concurrency, timeouts, PR checks, secrets, environments, approvals and deploys;
-                   it also writes each workflow out as real YAML
-  iso/             runs, workflow files, logs, PR checks, timelines and environments
-  lessons/<slug>/  one folder per lesson
-site/              the hub listing every course, and the app shell
+packages/core/       shared by every course
+  components/        lesson player, predictions, scenario panel, terminal, recap and quiz
+  course/            Course, Lesson and Scenario types
+  iso/               isometric drawing pieces (boxes, belts, characters, buildings)
+  i18n/              TR/EN text helpers
+  lib/               routing, progress storage, playback, smooth scrolling
+courses/<course>/
+  engine/            the course's model, and cli.ts: the command line on top of it
+  iso/               the course's stages
+  lessons/<slug>/    one folder per lesson
+site/                the hub listing every course, and the app shell
 ```
 
-Courses never import each other; they all build on `@lets-explain/core`. Progress and stars are kept in the browser, under separate keys per course.
+Courses never import each other; they all build on `@lets-explain/core`. Progress and stars stay
+in the browser, under separate keys per course.
 
 ## Writing a lesson
 
@@ -76,23 +141,28 @@ Inside `courses/<course>/src/lessons/<slug>/`:
 
 | File | What it holds |
 |---|---|
-| `lesson.ts` | The steps (TR + EN), prediction questions, recap and quiz. Exports a single `Lesson`; the course finds it by slug. |
-| `model.ts` | The lesson's small, deterministic simulation. The same moves always give the same result. |
-| `Scene.tsx` | The scene: takes `step` and draws that moment. The last step is the try-it area with missions. |
-| `missions.ts` | Missions: goal, hint, and the moves needed for three stars (`par`). |
-| `missions.test.ts` | Proves each mission can be won in exactly `par` moves, and that no shorter win exists, by trying every move sequence. |
-| `terms.ts` | Optional: glossary entries for terms written as `[[term]]` in the text. |
-
-A step can also carry `practice`: the real commands for what it showed, shown as an "In your project" terminal card with copy buttons.
+| `lesson.ts` | The steps (TR + EN), predictions, the "In your project" commands, recap and quiz |
+| `Scene.tsx` | The scene for each step; the last step is the terminal with the scenarios |
+| `scenarios.ts` | Each scenario's story, goal, start state, hints, par, and a check on the resulting state |
+| `scenarios.test.ts` | The intended commands win in exactly par, real alternatives win, a tempting wrong move fails |
 
 Lesson text supports `**bold**`, `` `code` ``, `[[term]]` and `[[term|shown text]]`.
 
 ## Adding a course
 
-1. Export a `Course` from `courses/<course>/src/index.ts`: name, tagline, chapters, glossary and a home-page scene. See `courses/kafka/src/index.ts`.
-2. Add the `@lets-explain/<course>` alias to `tsconfig.json` and `vite.config.ts`.
-3. Add the course to the `courses` list in `site/src/catalog.ts`, and remove it from `planned`.
+1. Export a `Course` from `courses/<course>/src/index.ts`: name, tagline, chapters, glossary and a
+   home-page scene.
+2. Give it a model in `engine/` and a command line (`run`, `prompt`, `complete`) that the shared
+   terminal can drive through `useTypedSandbox`.
+3. Add the `@lets-explain/<course>` alias to `tsconfig.json` and `vite.config.ts`, and list the
+   course in `site/src/catalog.ts`.
 
-## Accuracy
+## Feedback
 
-The simulations are simplified for teaching, and every simplification is called out in the lesson with an "In reality" note. If you spot a mistake, please open an issue.
+Spotted something that does not match the real tool? Please [open an issue](https://github.com/liderbektas/lets-explain/issues).
+If the courses helped you, a ⭐ on the repo helps others find them.
+
+<div align="center">
+<br />
+Made by <a href="https://github.com/liderbektas">@liderbektas</a>
+</div>
