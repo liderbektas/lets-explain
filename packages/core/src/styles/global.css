@@ -1402,6 +1402,11 @@ a.drawer-item:hover {
   margin-top: 72px;
 }
 
+/* In-page jumps ("How it works") stop below the sticky top bar, with the heading in view. */
+.how {
+  scroll-margin-top: calc(var(--topbar-h) + 28px);
+}
+
 .how h2,
 .outline h2 {
   font-size: 30px;
@@ -2260,8 +2265,33 @@ a.drawer-item:hover {
 
 .credit-wrap {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  padding: 40px 16px 56px;
+  gap: 16px;
+  padding: 48px 16px 20px;
+}
+
+/* The page's own bottom padding would sit under the footer: the footer ends the page instead. */
+.home:has(> .credit-wrap) {
+  padding-bottom: 0;
+}
+
+.credit-icon.credit-star-icon {
+  background: var(--sun-soft);
+  border: var(--stroke) solid var(--ink);
+}
+
+.credit-star:hover .star-mark {
+  transform: rotate(-14deg) scale(1.1);
+}
+
+.star-mark {
+  flex: none;
+  transition: transform 0.2s ease;
+}
+
+.star-count {
+  color: var(--ink-2);
 }
 
 .credit {
@@ -2369,5 +2399,68 @@ a.drawer-item:hover {
 @media (max-width: 560px) {
   .gh-chip {
     display: none;
+  }
+}
+
+/* Star call-to-action under the hub hero: a sun-yellow sticker, set apart from the buttons above. */
+.star-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  margin-top: 22px;
+  padding: 7px 8px 7px 12px;
+  border: var(--stroke) dashed var(--ink);
+  border-radius: 999px;
+  background: var(--sun-soft);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 700;
+  transition: background 0.15s ease;
+}
+
+.star-cta:hover {
+  background: var(--sun);
+}
+
+.star-cta:hover .star-mark {
+  transform: rotate(-14deg) scale(1.15);
+}
+
+.star-cta:focus-visible {
+  outline: 3px solid var(--tangerine);
+  outline-offset: 3px;
+}
+
+.star-cta-text {
+  line-height: 1.3;
+}
+
+.star-cta-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--card);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.star-cta-count {
+  padding-left: 6px;
+  border-left: 1.5px solid currentColor;
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-mark,
+  .star-cta {
+    transition: none;
   }
 }

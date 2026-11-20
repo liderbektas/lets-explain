@@ -1,7 +1,7 @@
 import { CourseProvider } from "@lets-explain/core/course/context";
 import type { Course } from "@lets-explain/core/course/types";
 import { HowItWorks } from "@lets-explain/core/components/HowItWorks";
-import { Credit } from "@lets-explain/core/components/Credit";
+import { Credit, StarCta } from "@lets-explain/core/components/Credit";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
@@ -64,6 +64,7 @@ export function Hub() {
               {t(copy.howLink)}
             </a>
           </div>
+          <StarCta />
         </div>
         <div className="hub-art">
           <IslandsHero labels={islandLabels(t)} live={courses.map((c) => c.id as IslandId)} />

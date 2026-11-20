@@ -4,7 +4,7 @@ import { useLang, type L } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import type { Change, Lesson, LessonEntry, Practice } from "@lets-explain/core/course/types";
 import { useCourse } from "@lets-explain/core/course/context";
-import { courseHref, lessonHref, replaceHash } from "@lets-explain/core/lib/router";
+import { courseHref, lessonHref, replaceRoute } from "@lets-explain/core/lib/router";
 import { useGame, useProgress } from "@lets-explain/core/lib/storage";
 import { Callout } from "@lets-explain/core/components/Callout";
 import { Icon } from "@lets-explain/core/components/Icon";
@@ -44,7 +44,7 @@ export function LessonPlayer(props: Props) {
   const guess = useCallback((i: number) => setPrediction(lesson.slug, step, i), [setPrediction, lesson.slug, step]);
 
   const go = useCallback(
-    (n: number) => replaceHash(lessonHref(courseId, lesson.slug, Math.min(Math.max(n, 0), last))),
+    (n: number) => replaceRoute(lessonHref(courseId, lesson.slug, Math.min(Math.max(n, 0), last))),
     [courseId, lesson.slug, last],
   );
   const replay = useCallback(() => {

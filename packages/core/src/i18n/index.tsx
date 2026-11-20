@@ -25,7 +25,8 @@ function initialLang(): Lang {
   } catch {
     /* storage unavailable */
   }
-  return navigator.language?.toLowerCase().startsWith("tr") ? "tr" : "en";
+  // English until the reader picks a language; the choice is remembered.
+  return "en";
 }
 
 export function LangProvider({ children }: { children: ReactNode }) {

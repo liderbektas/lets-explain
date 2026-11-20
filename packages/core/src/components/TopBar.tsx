@@ -3,7 +3,7 @@ import { useLang, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import { GITHUB, GITHUB_URL, GitHubMark } from "@lets-explain/core/components/Credit";
 import { Icon } from "@lets-explain/core/components/Icon";
-import { courseHref } from "@lets-explain/core/lib/router";
+import { courseHref, hubHref } from "@lets-explain/core/lib/router";
 
 interface Props {
   /** The course being viewed; absent on the hub. */
@@ -17,7 +17,7 @@ export function TopBar({ course, onMenu }: Props) {
 
   return (
     <header className={`topbar ${course ? "has-course" : ""}`}>
-      <a className="brand" href="#/">
+      <a className="brand" href={hubHref}>
         <BrandMark />
         <span>Let's explain</span>
       </a>

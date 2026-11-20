@@ -7,7 +7,7 @@ import { CourseProvider, findLesson } from "@lets-explain/core/course/context";
 import type { Course } from "@lets-explain/core/course/types";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
-import { lessonHref, replaceHash, useRoute, type Route } from "@lets-explain/core/lib/router";
+import { canonicalHref, hubHref, replaceRoute, useRoute, type Route } from "@lets-explain/core/lib/router";
 import { courses } from "./catalog";
 import { Hub } from "./Hub";
 
@@ -15,11 +15,10 @@ export function App() {
   const route = useRoute();
   const course = route.name === "course" || route.name === "lesson" ? courses.find((c) => c.id === route.course) : undefined;
 
-  // Old Kafka-only links (#/learn/...) still work; show them in the current form.
+  // Old hash links (#/kafka/..., #/learn/...) still work; show them in the current form.
   useEffect(() => {
-    if (route.name === "lesson" && window.location.hash.startsWith("#/learn/")) {
-      replaceHash(lessonHref(route.course, route.slug, route.step));
-    }
+    const href = canonicalHref(route, window.location.pathname, window.location.hash);
+    if (href) replaceRoute(href);
   }, [route]);
 
   useEffect(() => {
@@ -90,7 +89,7 @@ function NotFound() {
   return (
     <div className="not-found">
       <p>{t(ui.notFound)}</p>
-      <a href="#/">{t(l("Bütün kurslar", "All courses"))}</a>
+      <a href={hubHref}>{t(l("Bütün kurslar", "All courses"))}</a>
     </div>
   );
 }
