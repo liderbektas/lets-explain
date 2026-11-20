@@ -1,10 +1,10 @@
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, type L } from "@lets-explain/core/i18n";
-import { createHost, imageFor, simulate, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
+import { createHost, imageFor, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
 import { BuildStage } from "../../iso/BuildStage";
 import { buildLabels } from "../dockerfile-basics/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { builtWith, NAIVE as NAIVE_DOCKERFILE, scenarios } from "./scenarios";
 
 export const SLUG = "layers-and-cache";
 
@@ -48,60 +48,6 @@ export const steps: DockerAction[][] = [
   [],
 ];
 
-/* --------------------------------------------------------- the sandbox */
-
-export const ROOT = "/home/ada/project";
-const P = (f: string) => `${ROOT}/${f}`;
-
-/** Your folder, with the Dockerfile saying which order it uses and an optional .dockerignore. */
-export const sandboxStart = (): Host => {
-  const files: Files = {};
-  for (const [k, val] of Object.entries(APP)) files[P(k)] = val;
-  files[P("Dockerfile")] = "naive";
-  const h = createHost({ pulled: ["node:22-slim"], hostFiles: files });
-  return simulate([buildFromFolder(h)], h).states[1]!;
-};
-
-/** `docker build -t shop .` from the folder as it is now. */
-export function buildFromFolder(h: Host): DockerAction {
-  const context: Files = {};
-  for (const [k, val] of Object.entries(h.hostFiles)) if (k.startsWith(`${ROOT}/`)) context[k.slice(ROOT.length + 1)] = val;
-  const ignore = (context[".dockerignore"] ?? "").split("\n").filter(Boolean);
-  return { type: "build", tag: "shop", context, dockerfile: context.Dockerfile === "smart" ? SMART : NAIVE, ignore };
-}
-
-const count = (history: DockerAction[], path: string) => history.filter((a) => a.type === "editHost" && a.path === P(path)).length;
-
-function rows(h: Host, lang: "tr" | "en", history: DockerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const smart = h.hostFiles[P("Dockerfile")] === "smart";
-  const ignoring = Boolean(h.hostFiles[P(".dockerignore")]);
-  const edit = (path: string, content: string): DockerAction => ({ type: "editHost", path: P(path), content });
-  return [
-    {
-      label: "Dockerfile",
-      buttons: smart
-        ? [{ label: tr ? "Eski sıra (COPY . . önce)" : "Old order (COPY . . first)", action: edit("Dockerfile", "naive") }]
-        : [{ label: tr ? "package.json'u önce kopyala" : "Copy package.json first", action: edit("Dockerfile", "smart"), tone: "ok" }],
-    },
-    {
-      label: ".dockerignore",
-      buttons: ignoring
-        ? [{ label: tr ? "Sil" : "Delete", action: edit(".dockerignore", "") }]
-        : [{ label: tr ? "Ekle: node_modules, .git" : "Add: node_modules, .git", action: edit(".dockerignore", "node_modules\n.git"), tone: "ok" }],
-    },
-    {
-      label: tr ? "Değiştir" : "Change",
-      buttons: [
-        { label: "server.js", action: edit("server.js", `v${count(history, "server.js") + 2}`), tone: "producer" },
-        { label: tr ? "package.json (+ paket)" : "package.json (+ package)", action: edit("package.json", `{"dependencies":{"express":"^4","pkg${count(history, "package.json") + 1}":"^1"}}`), tone: "producer" },
-        { label: "git commit", action: edit(".git/HEAD", `commit-${count(history, ".git/HEAD") + 2}`), tone: "producer" },
-      ],
-    },
-    { label: "docker", buttons: [{ label: "build -t shop .", action: buildFromFolder(h), tone: "go" }] },
-  ];
-}
-
 function metrics(h: Host, t: (x: L) => string): Metric[] {
   const last = h.lastBuild;
   const img = last ? imageFor(h, last.tag) : undefined;
@@ -128,5 +74,6 @@ export const scene = makeDockerScene({
     );
   },
   metrics,
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the project with the copy-everything-first Dockerfile, built once.
+  sandbox: { start: () => builtWith(NAIVE_DOCKERFILE), scenarios },
 });

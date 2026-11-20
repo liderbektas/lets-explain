@@ -1,4 +1,4 @@
-import type { Container, DockerAction, Host, Instruction } from "../../engine/docker";
+import { createHost, normalize, simulate, type Container, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 
 /**
  * The lesson's images and how Docker turns ENTRYPOINT, CMD and the words after the image
@@ -7,7 +7,7 @@ import type { Container, DockerAction, Host, Instruction } from "../../engine/do
  * ENTRYPOINT; `--entrypoint` replaces ENTRYPOINT and drops the image's CMD.
  */
 
-interface ImageSpec {
+export interface ImageSpec {
   ref: string;
   entrypoint: string[];
   cmd: string[];
@@ -42,6 +42,20 @@ export const BUILDS: DockerAction[] = [
   ),
 ];
 
+/**
+ * The spec of the image a container came from: one of the lesson's own, or one the reader built,
+ * read from the image's settings (and its Dockerfile lines from the last build of that tag).
+ */
+export function specFor(c: Container, host?: Host): ImageSpec | undefined {
+  const known = IMAGES[c.ref];
+  if (known) return known;
+  const img = host?.images[c.image];
+  if (!img) return undefined;
+  const b = host!.lastBuild;
+  const lines = b && normalize(b.tag) === normalize(c.ref) ? b.steps.map((s) => s.text) : [];
+  return { ref: c.ref.replace(/:latest$/, ""), entrypoint: img.config.entrypoint, cmd: img.config.cmd, lines };
+}
+
 /** What `docker run [--entrypoint E] IMAGE [args...]` would execute as PID 1. */
 export function commandLine(ref: string, args: string[] = [], entrypoint?: string): string[] {
   const img = IMAGES[ref]!;
@@ -56,9 +70,9 @@ export function runOf(name: string, ref: string, args: string[] = [], entrypoint
 }
 
 /** The `docker run` line that produced a container, read back from its command. */
-export function runLineOf(c: Container): string {
-  const img = IMAGES[c.ref];
-  if (!img) return `docker run ${c.ref}`;
+export function runLineOf(c: Container, host?: Host): string {
+  const img = specFor(c, host);
+  if (!img) return `docker run ${c.ref.replace(/:latest$/, "")}`;
   const base = [...img.entrypoint, ...img.cmd];
   const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
   if (same(c.cmd, base)) return `docker run ${img.ref}`;
@@ -82,3 +96,9 @@ export function printed(c: Container): string[] {
 export function newest(h: Host): Container | undefined {
   return Object.values(h.containers).at(-1);
 }
+
+/** The lesson's machine: the four small images are built, nothing runs. */
+export const START: Host = (() => {
+  const r = simulate(BUILDS, createHost());
+  return r.states[r.states.length - 1]!;
+})();

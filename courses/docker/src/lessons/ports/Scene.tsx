@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
+import { createHost, type DockerAction, type Host } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
-import { missions } from "./missions";
+import { scenarios, MACHINE } from "./scenarios";
 
 export const SLUG = "ports";
 
@@ -28,34 +28,6 @@ export const steps: DockerAction[][] = [
 /** Step 3 asks for a host port that is already taken: that refusal is the lesson. */
 export const EXPECTED_ERRORS: Record<number, number> = { 3: 1 };
 
-/** The sandbox: an `old` nginx already holds host port 8080. */
-const sandboxStart = (): Host => simulate([nginx("old", ["8080:80"])], createHost({ pulled: ["nginx:1.27"] })).states[1]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const web = findContainer(h, "web");
-  const old = findContainer(h, "old");
-  return [
-    {
-      label: "web",
-      buttons: [
-        { label: "run --name web -p 8080:80", action: nginx("web", ["8080:80"]), tone: "producer", disabled: Boolean(web) },
-        { label: "run --name web -p 8081:80", action: nginx("web", ["8081:80"]), tone: "producer", disabled: Boolean(web) },
-        { label: "run --name web -p 8081:8080", action: nginx("web", ["8081:8080"]), tone: "producer", disabled: Boolean(web) },
-        { label: "rm -f web", action: rmf("web"), tone: "danger", disabled: !web },
-      ],
-    },
-    { label: "old", buttons: [{ label: "rm -f old", action: rmf("old"), tone: "danger", disabled: !old }] },
-    {
-      label: tr ? "Dene" : "Try",
-      buttons: [
-        { label: "curl localhost:8080", action: curl(8080), tone: "go" },
-        { label: "curl localhost:8081", action: curl(8081), tone: "go" },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -70,5 +42,5 @@ export const scene = makeDockerScene({
       { label: t(l("Kullanılan host portu", "Host ports in use")), value: all.filter((c) => c.state === "running").flatMap((c) => c.ports).map((p) => p.host).join(", ") || "—" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  sandbox: { start: () => MACHINE, scenarios },
 });

@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import type { Container, Host } from "../../engine/docker";
-import { IMAGES, printed, runLineOf } from "./model";
+import { printed, runLineOf, specFor } from "./model";
 
 type Origin = "entrypoint" | "cmd" | "typed";
 
@@ -9,8 +9,8 @@ type Origin = "entrypoint" | "cmd" | "typed";
  * ENTRYPOINT first, then either the words typed after the image name or, if none, the CMD.
  * `--entrypoint` replaces ENTRYPOINT and drops CMD, so then everything was typed.
  */
-export function partsOf(c: Container): { words: string[]; origin: Origin }[] {
-  const img = IMAGES[c.ref];
+export function partsOf(c: Container, host?: Host): { words: string[]; origin: Origin }[] {
+  const img = specFor(c, host);
   if (!img) return [{ words: c.cmd, origin: "cmd" }];
   const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
   const ep = img.entrypoint;
@@ -42,7 +42,6 @@ export interface CardLabels {
 const mono = { fontFamily: "var(--font-mono)", fontWeight: 700 } as const;
 
 export function ProcessCard({ host, c, x, y, w, labels, compact }: { host: Host; c: Container | undefined; x: number; y: number; w: number; labels: CardLabels; compact?: boolean }) {
-  void host;
   if (!c) {
     return (
       <text x={x + w / 2} y={y + 120} textAnchor="middle" style={{ fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 700, fill: "var(--ink-3)" }}>
@@ -50,9 +49,9 @@ export function ProcessCard({ host, c, x, y, w, labels, compact }: { host: Host;
       </text>
     );
   }
-  const img = IMAGES[c.ref];
+  const img = specFor(c, host);
   const lines = img?.lines ?? [];
-  const run = runLineOf(c);
+  const run = runLineOf(c, host);
   const out = printed(c);
   const code = c.exitCode;
   const ok = c.state === "running" || code === 0;
@@ -93,7 +92,7 @@ export function ProcessCard({ host, c, x, y, w, labels, compact }: { host: Host;
           {labels.pid1}
         </text>
         <rect y={8} width={w} height={compact ? 96 : 112} rx={12} style={{ fill: ok ? "var(--mint-soft)" : "var(--red-soft)", stroke: "var(--ink)", strokeWidth: 2 }} />
-        <Assembled key={c.id} c={c} lines={lines} w={w} h1={h1} fit={fit} />
+        <Assembled key={c.id} c={c} host={host} lines={lines} w={w} h1={h1} fit={fit} />
         <text x={12} y={66} style={{ fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 800, fill: "var(--ink-2)" }}>
           {labels.output}
         </text>
@@ -115,8 +114,8 @@ export function ProcessCard({ host, c, x, y, w, labels, compact }: { host: Host;
  * PID 1's command line as pieces, each flying in from where it came from: the ENTRYPOINT
  * or CMD line of the Dockerfile above, or the line typed after the image name.
  */
-function Assembled({ c, lines, w, h1, fit }: { c: Container; lines: string[]; w: number; h1: number; fit: (s: string, px: number) => string }) {
-  const parts = partsOf(c).map((p) => ({ ...p, text: p.words.map((x) => (x.includes(" ") ? `"${x}"` : x)).join(" ") }));
+function Assembled({ c, host, lines, w, h1, fit }: { c: Container; host: Host; lines: string[]; w: number; h1: number; fit: (s: string, px: number) => string }) {
+  const parts = partsOf(c, host).map((p) => ({ ...p, text: p.words.map((x) => (x.includes(" ") ? `"${x}"` : x)).join(" ") }));
   const width = (t: string) => t.length * 7.8 + 14;
   const total = parts.reduce((sum, p) => sum + width(p.text) + 6, 0);
   // Too long to show as pieces: just the line, as before.

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const runFlags: Lesson = {
@@ -14,7 +14,7 @@ export const runFlags: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`docker run`'ın image'ı indirip container başlattığını görmek", "See `docker run` pull an image and start a container"), step: 0 },
     { text: l("`-d` ve `--name` ile arka planda, isimle çalıştırmak", "Run in the background with a name using `-d` and `--name`"), step: 1 },
@@ -264,13 +264,16 @@ export const runFlags: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `nginx:1.27` ve `acme/api:1.0` image'ları var, hiçbir şey çalışmıyor. Düğmeler gerçek komutlara karşılık geliyor: container başlat, sil, `curl` ile dene.",
-          "This machine has the `nginx:1.27` and `acme/api:1.0` images and nothing running. The buttons are real commands: start a container, remove it, try it with `curl`.",
+          "Sıra sende. Bu dizüstünde `nginx:1.27` ve ekibin `acme/api:1.0` image'ı var. Aşağıda gerçek işten **5 senaryo** var: komutları terminale **kendin yaz**, sahne her komutta ne olduğunu gösterir.",
+          "Your turn. This laptop has `nginx:1.27` and the team's `acme/api:1.0` image. Below are **5 scenarios** from real work: **type the commands yourself** in the terminal, and the scene shows what each one does.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `docker ps -a` ve `docker logs <ad>` yaz: neyin çalıştığını ve neden kapandığını gösterirler. `curl localhost:8080` ile portu deneyebilirsin. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `docker ps -a` and `docker logs <name>`: they show what runs and why something stopped. `curl localhost:8080` tries a port. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

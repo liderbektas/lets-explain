@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, type DockerAction, type Host, type Instruction } from "../../engine/docker";
+import { createHost, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
 import { labels } from "../run-flags/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { scenarios, WITH_NGINX } from "./scenarios";
 
 export const SLUG = "images-and-containers";
 export const PAGE = "/usr/share/nginx/html/index.html";
@@ -42,33 +42,6 @@ export const steps: DockerAction[][] = [
 /** Step 5 tries to remove an image a container still uses: the refusal is the point. */
 export const EXPECTED_ERRORS: Record<number, number> = { 5: 1 };
 
-const web: DockerAction = { type: "run", image: "nginx:1.27", detach: true, name: "web", ports: ["8080:80"] };
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const has = (ref: string) => Boolean(h.tags[ref]);
-  const w = findContainer(h, "web");
-  return [
-    {
-      label: "Image",
-      buttons: [
-        { label: "pull nginx:1.27", action: { type: "pull", ref: "nginx:1.27" }, tone: "producer", disabled: has("nginx:1.27") },
-        { label: "tag nginx:1.27 mysite:1.0", action: { type: "tag", source: "nginx:1.27", target: "mysite:1.0" }, disabled: !has("nginx:1.27") || has("mysite:1.0") },
-        { label: "rmi nginx:1.27", action: { type: "rmi", ref: "nginx:1.27" }, tone: "danger", disabled: !has("nginx:1.27") },
-        { label: "rmi mysite:1.0", action: { type: "rmi", ref: "mysite:1.0" }, tone: "danger", disabled: !has("mysite:1.0") },
-      ],
-    },
-    {
-      label: "Container",
-      buttons: [
-        { label: "run -d --name web -p 8080:80 nginx:1.27", action: web, tone: "producer", disabled: Boolean(w) },
-        { label: "rm -f web", action: { type: "rm", container: "web", force: true }, tone: "danger", disabled: !w },
-      ],
-    },
-    { label: tr ? "Dene" : "Try", buttons: [{ label: "curl localhost:8080", action: { type: "curl", port: 8080 }, tone: "go" }] },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -84,5 +57,5 @@ export const scene = makeDockerScene({
       { label: t(l("Çalışan", "Running")), value: all.filter((c) => c.state === "running").length, tone: "ok" },
     ];
   },
-  sandbox: { start: () => createHost(), rows, missions },
+  sandbox: { start: () => WITH_NGINX, scenarios },
 });

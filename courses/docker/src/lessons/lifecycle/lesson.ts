@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const STATE = "docker inspect --format '{{.State.Status}} {{.State.ExitCode}}' web";
@@ -16,7 +16,7 @@ export const lifecycle: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Dört hali tanımak: created, running, exited, silindi", "Know the four states: created, running, exited, removed"), step: 0 },
     { text: l("Durdurmanın dosyaları silmediğini görmek", "See that stopping does not delete files"), step: 3 },
@@ -286,13 +286,16 @@ export const lifecycle: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `nginx:1.27` var, container yok. `web` adlı bir container'ı oluşturabilir, başlatabilir, durdurabilir, öldürebilir, silebilir ve içine not yazıp okuyabilirsin. Alttaki şerit hangi halde olduğunu gösterir.",
-          "This machine has `nginx:1.27` and no containers. You can create, start, stop, kill and remove a container called `web`, and write and read a note inside it. The strip below shows its state.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: bir container'ı önceden hazırlamak, bakım için durdurup geri açmak, kibarca kapatıp silmek ve kapanmışları temizlemek. Komutları terminale **kendin yaz**; alttaki şerit `web`'in hangi halde olduğunu gösterir.",
+          "Your turn. Below are **4 scenarios** from real work: preparing a container ahead of time, stopping and restarting it for maintenance, closing and removing it gently, and clearing out stopped ones. **Type the commands yourself** in the terminal; the strip shows which state `web` is in.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker ps -a` her container'ın STATUS'unu gösterir: Created, Up, Exited. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker ps -a` shows every container's STATUS: Created, Up, Exited. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

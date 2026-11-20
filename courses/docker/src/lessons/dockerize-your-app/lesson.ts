@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const NODE_DOCKERFILE = `FROM node:22-slim
@@ -58,7 +58,7 @@ export const dockerizeYourApp: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Projen için uygun bir base image seçmek", "Pick a fitting base image for your project"), step: 1 },
     { text: l("`.dockerignore` ile gereksiz ve gizli dosyaları dışarıda tutmak", "Keep unneeded and secret files out with `.dockerignore`"), step: 3 },
@@ -324,13 +324,16 @@ export const dockerizeYourApp: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Dükkân tarifle build edilmiş ve `localhost:3000`'de `v1` olarak çalışıyor. Kodu değiştirebilir, iki farklı Dockerfile ile build edebilir, container'ı silip yeniden başlatabilir ve `curl` ile deneyebilirsin.",
-          "The shop is built with the recipe and running on `localhost:3000` as `v1`. You can change the code, build with two different Dockerfiles, remove and restart the container, and try it with `curl`.",
+          "Sıra sende. Klasörde küçük bir Express uygulaması var: `server.js`, `index.html`, `package.json`, yerel `node_modules`, `.git` ve sır içeren bir `.env`. Aşağıda gerçek işten **5 senaryo** var: Dockerfile'ı `nano` ile **kendin yaz**, `docker build` ve `docker run` ile dene; sahne build'i ve container'ları gösterir.",
+          "Your turn. The folder holds a small Express app: `server.js`, `index.html`, `package.json`, a local `node_modules`, `.git` and a `.env` with a secret. Below are **5 scenarios** from real work: **write the Dockerfile yourself** with `nano` and try it with `docker build` and `docker run`; the scene shows the build and the containers.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `ls`, `cat Dockerfile` ve `docker images` yaz; `curl localhost:3000` sayfayı gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `ls`, `cat Dockerfile` and `docker images`; `curl localhost:3000` shows the page. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

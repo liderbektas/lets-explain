@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
+import { createHost, type DockerAction, type Host } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
 import { labels } from "../run-flags/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { scenarios, MACHINE } from "./scenarios";
 import { WhyPanel, type WhyMode } from "./WhyPanel";
 
 export const SLUG = "why-containers";
@@ -33,32 +33,6 @@ export const EXPECTED_ERRORS: Record<number, number> = {};
 /** Which comparison drawing each diagram step shows; other steps draw the machine. */
 const MODES: Record<number, WhyMode> = { 0: "mismatch", 1: "package", 2: "vm", 3: "both", 7: "desktop", 8: "both" };
 
-const sandboxStart = (): Host => simulate([{ type: "pull", ref: "nginx:1.27" }], createHost()).states[1]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const box = (n: string) => findContainer(h, n);
-  const up = (n: string) => box(n)?.state === "running";
-  return [
-    {
-      label: tr ? "Başlat" : "Start",
-      buttons: ["box1", "box2", "box3"].map((n) => ({ label: `run --name ${n}`, action: run(n), tone: "producer" as const, disabled: Boolean(box(n)) })),
-    },
-    {
-      label: "box1",
-      buttons: [
-        { label: tr ? "not yaz" : "write note", action: { type: "write", container: "box1", path: NOTE, content: "box1'in notu" }, disabled: !up("box1") },
-        { label: `cat ${NOTE}`, action: { type: "exec", container: "box1", cmd: `cat ${NOTE}` }, tone: "go", disabled: !up("box1") },
-        { label: "rm -f box1", action: { type: "rm", container: "box1", force: true }, tone: "danger", disabled: !box("box1") },
-      ],
-    },
-    {
-      label: "box2",
-      buttons: [{ label: `cat ${NOTE}`, action: { type: "exec", container: "box2", cmd: `cat ${NOTE}` }, tone: "go", disabled: !up("box2") }],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -75,5 +49,5 @@ export const scene = makeDockerScene({
       { label: t(l("İndirilen image", "Images pulled")), value: Object.keys(h.images).length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  sandbox: { start: () => MACHINE, scenarios },
 });

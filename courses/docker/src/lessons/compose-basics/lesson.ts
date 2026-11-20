@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const YAML_WEB = `services:
@@ -59,7 +59,7 @@ export const composeBasics: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir `compose.yaml` dosyasının yapısını okumak", "Read the structure of a `compose.yaml`"), step: 1 },
     { text: l("`.env` ile `${DEĞİŞKEN}` değerlerini doldurmak", "Fill `${VARIABLE}` values from `.env`"), step: 3 },
@@ -328,13 +328,16 @@ export const composeBasics: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`shop` projesinin tam `compose.yaml`'ı hazır: `web`, `api` ve `db`. Projeyi `.env` ile ya da `.env` olmadan ayağa kaldırabilir, `down` ve `down -v` ile kaldırabilir, `curl` ve `exec` ile deneyebilirsin.",
-          "The full `compose.yaml` of the `shop` project is ready: `web`, `api` and `db`. You can start it with or without `.env`, take it down with `down` or `down -v`, and try it with `curl` and `exec`.",
+          "Sıra sende. Klasörde shop projesi var: `compose.yaml` (`web`, `api`, `db`), bir `Dockerfile` ve `.env`. Aşağıda gerçek işten **5 senaryo** var: komutları terminale **kendin yaz**, dosyaları `nano` ile düzenle; sahne her komutta ne olduğunu gösterir.",
+          "Your turn. The shop project is in the folder: `compose.yaml` (`web`, `api`, `db`), a `Dockerfile` and `.env`. Below are **5 scenarios** from real work: **type the commands yourself** and edit files with `nano`; the scene shows what each command does.",
         ),
-        l("Sahnenin altında **4 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **4 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `docker compose ps` ve `docker compose logs <servis>` yaz: neyin çalıştığını ve neden kapandığını gösterirler. `cat compose.yaml` dosyayı gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `docker compose ps` and `docker compose logs <service>`: they show what runs and why something stopped. `cat compose.yaml` shows the file. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

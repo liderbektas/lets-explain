@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, KubernetesScene } from "./Scene";
 
 const YAML = `apiVersion: apps/v1
@@ -45,7 +45,7 @@ export const kubernetesIntro: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: KubernetesScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Pod, Deployment ve Service'in ne olduğunu bilmek", "Know what a pod, a Deployment and a Service are"), step: 2 },
     { text: l("Kubernetes'in istenen durumu kendisi koruduğunu görmek", "See Kubernetes keep the desired state on its own"), step: 3 },
@@ -309,13 +309,16 @@ export const kubernetesIntro: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Cluster'da 2 kopyalı bir `web` Deployment'ı ve önünde bir Service var. Kopya sayısını değiştirebilir, yeni sürüme geçebilir, bir pod'u silebilir, node'ları çökertip geri getirebilir ve `curl web` ile deneyebilirsin.",
-          "The cluster has a `web` Deployment with 2 copies and a Service in front. You can change the copy count, move to a new version, delete a pod, take nodes down and back, and try it with `curl web`.",
+          "Sıra sende. Üç node'lu bir cluster ve klasöründe bir `web.yaml` var. Aşağıda gerçek işten **5 senaryo** var: `kubectl` komutlarını terminale **kendin yaz**, dosyayı `nano` ile düzenleyebilirsin; sahne pod'ları ve node'ları gösterir.",
+          "Your turn. There's a three-node cluster and a `web.yaml` in your folder. Below are **5 scenarios** from real work: **type the `kubectl` commands yourself**, and edit the file with `nano` if you like; the scene shows the pods and the nodes.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `kubectl get pods -o wide`, `kubectl get deployments` ve `kubectl get nodes` yaz. Cluster'a bilgisayarından `kubectl port-forward` ile ulaşırsın. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `kubectl get pods -o wide`, `kubectl get deployments` and `kubectl get nodes`. You reach the cluster from your computer with `kubectl port-forward`. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

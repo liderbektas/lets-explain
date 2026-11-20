@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
-import type { Change, Mission, SceneProps } from "@lets-explain/core/course/types";
+import type { Change, Mission, Scenario, SceneProps } from "@lets-explain/core/course/types";
 import { starsFor } from "@lets-explain/core/course/types";
 import { useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import { useGame } from "@lets-explain/core/lib/storage";
+import { dockerShell } from "../../engine/cli";
 import { describeDocker } from "../../engine/describe";
 import { simulate, type DockerAction, type DockerEvent, type Host } from "../../engine/docker";
 import { buildTimeline } from "../../iso/BuildStage";
@@ -27,6 +29,8 @@ export interface DockerCtx {
   events: DockerEvent[][];
   states: Host[];
 }
+
+export type DockerScenario = Scenario<DockerCtx, Host>;
 
 export interface SandboxButton {
   label: string;
@@ -62,10 +66,13 @@ export interface DockerSceneConfig {
   metrics?: (repo: Host, t: (x: L) => string, info: ViewInfo) => Metric[];
   legend?: (t: (x: L) => string) => LegendItem[];
   sandbox?: {
-    /** Where the try-it step starts. Defaults to the state at the end of the lesson. */
+    /** Where the try-it step starts (free play, when there are scenarios). Defaults to the state at the end of the lesson. */
     start?: (end: Host) => Host;
-    rows: (repo: Host, lang: Lang, history: DockerAction[]) => SandboxRow[];
-    missions: Mission<DockerCtx>[];
+    /** Button rows, for a lesson whose try-it step is played with buttons. */
+    rows?: (repo: Host, lang: Lang, history: DockerAction[]) => SandboxRow[];
+    missions?: Mission<DockerCtx>[];
+    /** Scenarios played by typing commands in a terminal. They replace the buttons. */
+    scenarios?: DockerScenario[];
   };
   /** Extra "what changed" lines for a step, added after the computed ones. */
   extraChanges?: (step: number) => Change[];
@@ -121,7 +128,9 @@ export function makeDockerScene(config: DockerSceneConfig): DockerScene {
   const end = run.states[run.states.length - 1]!;
   const sandboxStart = config.sandbox?.start ? config.sandbox.start(end) : end;
   const moves = (repo: Host, history: DockerAction[]) =>
-    config.sandbox ? config.sandbox.rows(repo, "en", history).flatMap((r) => r.buttons.filter((b) => !b.disabled).map((b) => b.action)) : [];
+    config.sandbox?.rows ? config.sandbox.rows(repo, "en", history).flatMap((r) => r.buttons.filter((b) => !b.disabled).map((b) => b.action)) : [];
+  const scenarios = config.sandbox?.scenarios ?? [];
+  const typed = scenarios.length > 0;
 
   const changesFor = (step: number): Change[] => {
     if (step >= sandboxStep && config.sandbox) return [];
@@ -147,10 +156,27 @@ export function makeDockerScene(config: DockerSceneConfig): DockerScene {
       return missions.length ? (i < 0 ? 0 : i) : null;
     });
 
+    // Typing: the shared terminal runs docker commands on the model.
+    const typedBox = useTypedSandbox({
+      slug: config.slug,
+      active: typed && sandbox,
+      scenarios,
+      freeStart: sandboxStart,
+      shell: dockerShell,
+      replay: (start: Host, actions: DockerAction[]) => simulate(actions, start),
+      final: (r) => r.states[r.states.length - 1]!,
+      context: (start, actions, r): DockerCtx => ({ start, state: r.states[r.states.length - 1]!, actions, events: r.events, states: r.states }),
+    });
+    const typedRun = typedBox.run;
+
     let state: Host;
     let last: DockerEvent[];
     let shown: DockerEvent[];
-    if (sandRun) {
+    if (typedRun) {
+      state = typedRun.states[typedRun.states.length - 1]!;
+      last = typedRun.events[typedRun.events.length - 1] ?? [];
+      shown = typedRun.events.flat();
+    } else if (sandRun) {
       state = sandRun.states[sandRun.states.length - 1]!;
       last = sandRun.events[sandRun.events.length - 1] ?? [];
       shown = sandRun.events.flat();
@@ -178,7 +204,7 @@ export function makeDockerScene(config: DockerSceneConfig): DockerScene {
       <div className="events" aria-live="polite">
         <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
         {lines.length === 0 ? (
-          <p>{t(sandbox ? text.nothing : text.waiting)}</p>
+          <p>{t(sandbox ? (typed ? text.nothingTyped : text.nothing) : text.waiting)}</p>
         ) : (
           <ol>
             {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
@@ -193,7 +219,13 @@ export function makeDockerScene(config: DockerSceneConfig): DockerScene {
     );
 
     const footer =
-      sandbox && config.sandbox ? (
+      sandbox && typed ? (
+        <div className="sandbox">
+          {typedBox.panel}
+          {typedBox.terminal}
+          {eventList}
+        </div>
+      ) : sandbox && config.sandbox?.rows ? (
         <div className="sandbox">
           {missions.length > 0 && (
             <MissionPanel
@@ -262,6 +294,7 @@ const text = {
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
   nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothingTyped: l("Bir komut yaz; Docker'ın ne yaptığını burada sade bir dille gör.", "Type a command; see what Docker did here, in plain words."),
   undo: l("Geri al", "Undo"),
   reset: l("Sıfırla", "Reset"),
 };

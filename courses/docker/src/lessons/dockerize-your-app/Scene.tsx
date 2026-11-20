@@ -1,10 +1,10 @@
 import { l, type L } from "@lets-explain/core/i18n";
-import { apply, findContainer, imageFor, imageSize, instructionText, type DockerAction, type Host, type Instruction } from "../../engine/docker";
+import { apply, imageFor, imageSize, instructionText, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { BuildStage, type BuildLabels } from "../../iso/BuildStage";
 import { HostStage } from "../../iso/HostStage";
 import { labels } from "../run-flags/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { scenarios, SHIPPED } from "./scenarios";
 import { buildWith, contextOf, freshHost, IGNORE, NAIVE, PROJECT, SMART, versionOf } from "./project";
 import { ProjectPanel } from "./ProjectPanel";
 
@@ -58,38 +58,6 @@ const buildLabels = (t: (x: L) => string): BuildLabels => ({
   waiting: t(l("Henüz build yok", "Nothing built yet")),
 });
 
-/** The sandbox: the image is built with the recipe and running on :3000, showing v1. */
-const sandboxStart = (): Host => {
-  let h = freshHost();
-  h = apply(h, buildWith(h, SMART, "shop")).state;
-  return apply(h, runShop(["3000:3000"])).state;
-};
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const v = versionOf(h);
-  const box = findContainer(h, "shop");
-  const image = imageFor(h, "shop");
-  return [
-    { label: tr ? "Kod" : "Code", buttons: [{ label: tr ? `index.html → v${v + 1}` : `index.html → v${v + 1}`, action: edit(v + 1), tone: "producer", disabled: v >= 5 }] },
-    {
-      label: "Build",
-      buttons: [
-        { label: tr ? "build (önce COPY . .)" : "build (COPY . . first)", action: buildWith(h, NAIVE, "shop"), tone: "plain" },
-        { label: tr ? "build (önce package*.json)" : "build (package*.json first)", action: buildWith(h, SMART, "shop"), tone: "ok" },
-      ],
-    },
-    {
-      label: "Run",
-      buttons: [
-        { label: "run -d --name shop -p 3000:3000 shop", action: runShop(["3000:3000"]), tone: "producer", disabled: Boolean(box) || !image },
-        { label: "rm -f shop", action: { type: "rm", container: "shop", force: true }, tone: "danger", disabled: !box },
-      ],
-    },
-    { label: tr ? "Dene" : "Try", buttons: [{ label: "curl localhost:3000", action: curl, tone: "go" }] },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -123,5 +91,6 @@ export const scene = makeDockerScene({
       { label: t(l("Koddaki sürüm", "Code version")), value: `v${versionOf(h)}` },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the shipped project; each scenario brings its own state.
+  sandbox: { start: () => SHIPPED, scenarios },
 });

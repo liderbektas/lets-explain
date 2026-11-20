@@ -23,6 +23,12 @@ export interface Cluster {
   pods: Pod[];
   service: boolean;
   rr: number;
+  /** The version before the last rollout, for `kubectl rollout undo`. */
+  previous?: string;
+  /** The local port `kubectl port-forward` opened to the Service, if any. */
+  forward?: number;
+  /** Files in the reader's folder (web.yaml), for `nano` and `kubectl apply -f`. */
+  files?: Record<string, string>;
 }
 
 export type KubeAction =
@@ -33,7 +39,11 @@ export type KubeAction =
   | { type: "nodeDown"; node: string }
   | { type: "nodeUp"; node: string }
   | { type: "setImage"; version: string }
-  | { type: "curl" };
+  | { type: "undo" }
+  | { type: "forward"; port: number }
+  | { type: "file"; path: string; content: string }
+  /** `port`: curl localhost:port on the laptop, which only reaches the Service through a port-forward. */
+  | { type: "curl"; port?: number };
 
 export type KubeEvent =
   | { type: "podCreated"; id: string; node: string; version: string; why: "deploy" | "heal" | "scale" | "rollout" }
@@ -43,7 +53,8 @@ export type KubeEvent =
   | { type: "exposed" }
   | { type: "rolledOut"; version: string }
   | { type: "served"; pod: string; version: string }
-  | { type: "curlFailed"; why: "no-service" | "no-pods" }
+  | { type: "curlFailed"; why: "no-service" | "no-pods" | "no-forward" }
+  | { type: "forwarding"; port: number }
   | { type: "error"; message: string };
 
 export const NODES = ["node-1", "node-2", "node-3"];
@@ -128,6 +139,7 @@ export function apply(prev: Cluster, a: KubeAction): { state: Cluster; events: K
     case "setImage": {
       if (c.desired === null) return fail('deployments.apps "web" not found');
       if (c.version === a.version) return fail("image is already set");
+      c.previous = c.version;
       c.version = a.version;
       // Rolling update: one new pod up, then one old pod down, until none of the old are left.
       for (const old of c.pods.filter((p) => p.version !== a.version)) {
@@ -138,7 +150,24 @@ export function apply(prev: Cluster, a: KubeAction): { state: Cluster; events: K
       events.push({ type: "rolledOut", version: a.version });
       break;
     }
+    case "undo": {
+      if (c.desired === null) return fail('deployments.apps "web" not found');
+      if (!c.previous) return fail('no rollout history found for deployment "web"');
+      return apply(prev, { type: "setImage", version: c.previous });
+    }
+    case "file":
+      c.files = { ...c.files, [a.path]: a.content };
+      break;
+    case "forward":
+      if (!c.service) return fail('services "web" not found');
+      c.forward = a.port;
+      events.push({ type: "forwarding", port: a.port });
+      break;
     case "curl": {
+      if (a.port !== undefined && a.port !== c.forward) {
+        events.push({ type: "curlFailed", why: "no-forward" });
+        break;
+      }
       if (!c.service) {
         events.push({ type: "curlFailed", why: "no-service" });
         break;

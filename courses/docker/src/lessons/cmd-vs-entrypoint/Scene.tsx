@@ -1,17 +1,13 @@
 import { l, type L } from "@lets-explain/core/i18n";
-import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
-import { BUILDS, newest, runOf } from "./model";
+import { findContainer, type DockerAction } from "../../engine/docker";
+import { makeDockerScene } from "../shared/DockerScene";
+import { newest, runOf, START } from "./model";
+import { scenarios } from "./scenarios";
 import { ProcessCard, type CardLabels } from "./ProcessCard";
 
 export const SLUG = "cmd-vs-entrypoint";
 
-/** The lesson's machine: four small images are built, nothing runs. */
-export const START: Host = (() => {
-  const r = simulate(BUILDS, createHost());
-  return r.states[r.states.length - 1]!;
-})();
+export { START };
 
 export const steps: DockerAction[][] = [
   [runOf("g1", "acme/greet:cmd")],
@@ -37,32 +33,6 @@ const cardLabels = (t: (x: L) => string): CardLabels => ({
   exit: "exit",
   none: t(l("Henüz container yok.", "No container yet.")),
 });
-
-/** Sandbox moves: each run gets its own name, so runs never clash. */
-export function sandboxRun(history: DockerAction[], ref: string, args: string[] = [], entrypoint?: string): DockerAction {
-  return runOf(`c${history.filter((a) => a.type === "run").length + 1}`, ref, args, entrypoint);
-}
-
-function rows(_h: Host, _lang: "tr" | "en", history: DockerAction[]): SandboxRow[] {
-  return [
-    {
-      label: "acme/greet:cmd",
-      buttons: [
-        { label: "docker run acme/greet:cmd", action: sandboxRun(history, "acme/greet:cmd"), tone: "producer" },
-        { label: "… Ada", action: sandboxRun(history, "acme/greet:cmd", ["Ada"]), tone: "producer" },
-        { label: "… echo Selam", action: sandboxRun(history, "acme/greet:cmd", ["echo", "Selam"]), tone: "producer" },
-      ],
-    },
-    {
-      label: "acme/greet:ep",
-      buttons: [
-        { label: "docker run acme/greet:ep", action: sandboxRun(history, "acme/greet:ep"), tone: "go" },
-        { label: "… Ada", action: sandboxRun(history, "acme/greet:ep", ["Ada"]), tone: "go" },
-        { label: "--entrypoint ls … /", action: sandboxRun(history, "acme/greet:ep", ["/"], "ls"), tone: "go" },
-      ],
-    },
-  ];
-}
 
 export const scene = makeDockerScene({
   slug: SLUG,
@@ -90,5 +60,5 @@ export const scene = makeDockerScene({
       { label: "exit 127", value: cs.filter((x) => x.exitCode === 127).length, tone: cs.some((x) => x.exitCode === 127) ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: () => START, rows, missions },
+  sandbox: { start: () => START, scenarios },
 });

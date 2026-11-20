@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const volumes: Lesson = {
@@ -14,7 +14,7 @@ export const volumes: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Container'a yazılan verinin container'la birlikte gittiğini görmek", "See data written in a container go away with it"), step: 1 },
     { text: l("Named volume ile verinin container'dan uzun yaşadığını görmek", "See a named volume outlive the container"), step: 3 },
@@ -299,13 +299,16 @@ export const volumes: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `nginx:1.27` var, hiçbir şey çalışmıyor. `app`'i volume'lu ya da volume'suz başlatabilir, içine not yazabilir, `cat` ile okuyabilir, silebilir ve `data` volume'unu kaldırabilirsin.",
-          "This machine has `nginx:1.27` and nothing running. You can start `app` with or without a volume, write a note, read it with `cat`, remove it, and delete the `data` volume.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: container'ı yenilerken notları korumak, postgres verisini kalıcı yapmak, klasörü canlı göstermek, kullanımdaki bir volume'u silmek ve isimsiz volume'ları temizlemek. Komutları terminale **kendin yaz**; sahne verinin nerede durduğunu gösterir.",
+          "Your turn. Below are **5 scenarios** from real work: keeping notes while recreating a container, making postgres data last, serving a folder live, removing a volume in use and clearing nameless volumes. **Type the commands yourself** in the terminal; the scene shows where the data lives.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker volume ls` volume'ları, `docker exec <ad> cat <dosya>` bir container'ın içindeki dosyayı gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker volume ls` lists volumes, and `docker exec <name> cat <file>` shows a file inside a container. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

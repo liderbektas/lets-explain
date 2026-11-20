@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const NODE_DOCKERFILE = `FROM node:22-slim
@@ -31,7 +31,7 @@ export const dockerfileBasics: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Her Dockerfile'ın bir FROM ile başladığını bilmek", "Know that every Dockerfile starts with FROM"), step: 0 },
     { text: l("COPY ve RUN'ın image'a layer eklediğini görmek", "See COPY and RUN add layers to the image"), step: 2 },
@@ -303,10 +303,13 @@ export const dockerfileBasics: Lesson = {
       title: l("Şimdi sen yaz", "Now you write one"),
       body: [
         l(
-          "Boş bir Dockerfile ile başlıyorsun. `+` düğmeleri satırları sırayla dosyaya ekler, `build` düğmesi de dosyayı o haliyle build eder. Proje klasöründe `package.json`, `package-lock.json` ve `server.js` var.",
-          "You start with an empty Dockerfile. The `+` buttons add lines in order, and `build` builds the file as it stands. The project folder holds `package.json`, `package-lock.json` and `server.js`.",
+          "Sıra sende. Proje klasöründe `package.json`, `package-lock.json` ve `server.js` var. Aşağıda gerçek işten **5 senaryo** var: Dockerfile'ı `nano Dockerfile` ile **kendin yaz**, `docker build -t my-app .` ile build et; sahne her satırın ne yaptığını gösterir.",
+          "Your turn. The project folder holds `package.json`, `package-lock.json` and `server.js`. Below are **5 scenarios** from real work: **write the Dockerfile yourself** with `nano Dockerfile` and build it with `docker build -t my-app .`; the scene shows what each line does.",
         ),
-        l("Sahnenin altında **3 görev** var. Gereksiz satır eklemeden bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Finish without extra lines for 3 stars."),
+        l(
+          "`cat Dockerfile` dosyanın son halini, `docker images` image'ların boyutunu gösterir. Editörü kaydetmek bir komut sayılır; ipuçları adım adım açılır, az komutla bitirirsen 3 yıldız alırsın.",
+          "`cat Dockerfile` shows the file as it is, `docker images` shows image sizes. Saving the editor counts as one command; hints open one at a time, and few commands earn 3 stars.",
+        ),
       ],
     },
   ],

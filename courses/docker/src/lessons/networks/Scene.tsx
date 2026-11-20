@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
+import { createHost, type DockerAction, type Host } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
-import { missions } from "./missions";
+import { scenarios, BRIDGE } from "./scenarios";
 
 export const SLUG = "networks";
 
@@ -28,39 +28,6 @@ export const steps: DockerAction[][] = [
 
 export const EXPECTED_ERRORS: Record<number, number> = {};
 
-/** The sandbox: `web` and `cache` run on the default bridge, so they cannot find each other by name. */
-const sandboxStart = (): Host => simulate([run("web", "nginx:1.27"), run("cache", "redis:7"), { type: "tick" }], createHost({ pulled: ["nginx:1.27", "redis:7"] })).states[3]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const shop = Boolean(h.networks.shop);
-  const on = (name: string) => findContainer(h, name)?.networks.includes("shop") ?? false;
-  const worker = findContainer(h, "worker");
-  return [
-    {
-      label: "Network",
-      buttons: [
-        { label: "network create shop", action: { type: "networkCreate", name: "shop" }, tone: "producer", disabled: shop },
-        { label: "network connect shop web", action: { type: "networkConnect", network: "shop", container: "web" }, disabled: !shop || on("web") },
-        { label: "network connect shop cache", action: { type: "networkConnect", network: "shop", container: "cache" }, disabled: !shop || on("cache") },
-      ],
-    },
-    {
-      label: tr ? "Container" : "Containers",
-      buttons: [
-        { label: "run --name worker --network shop nginx", action: run("worker", "nginx:1.27", { network: "shop" }), tone: "producer", disabled: !shop || Boolean(worker) },
-      ],
-    },
-    {
-      label: tr ? "Dene" : "Try",
-      buttons: [
-        { label: "exec web ping cache", action: exec("web", "ping cache"), tone: "go" },
-        { label: "exec worker ping cache", action: exec("worker", "ping cache"), tone: "go", disabled: !worker },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -76,5 +43,5 @@ export const scene = makeDockerScene({
       { label: t(l("Yayınlanan port", "Published ports")), value: last.flatMap((c) => c.ports).length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  sandbox: { start: () => BRIDGE, scenarios },
 });

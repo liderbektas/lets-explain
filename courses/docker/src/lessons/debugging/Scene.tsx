@@ -2,8 +2,8 @@ import { l } from "@lets-explain/core/i18n";
 import { createHost, findContainer, simulate, type Container, type DockerAction, type DockerEvent, type Host, type Instruction } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
 import { API_BUILD, labels } from "../run-flags/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { scenarios, MACHINE } from "./scenarios";
 import { TerminalPanel, type TermLine } from "./TerminalPanel";
 
 export const SLUG = "debugging";
@@ -98,40 +98,7 @@ export function terminalLines(h: Host, last: DockerEvent[], fallback?: string): 
 
 const recent = (h: Host, n = 3) => Object.values(h.containers).map((c) => c.name).slice(-n);
 
-/** The sandbox: three broken things to fix. */
-const sandboxStart = (): Host =>
   simulate([{ type: "run", image: "acme/api:1.0", detach: true, name: "api" }, { type: "run", image: "acme/uploader:1.0", detach: true, name: "uploader" }, nginx("site", "8080:80")], START).states[3]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const has = (n: string) => Boolean(findContainer(h, n));
-  void lang;
-  return [
-    {
-      label: "api",
-      buttons: [
-        { label: "rm api", action: { type: "rm", container: "api", force: true }, tone: "danger", disabled: !has("api") },
-        { label: "run -d --name api -e DATABASE_URL=…", action: api(true), tone: "producer", disabled: has("api") },
-      ],
-    },
-    {
-      label: "uploader",
-      buttons: [
-        { label: "rm uploader", action: { type: "rm", container: "uploader", force: true }, tone: "danger", disabled: !has("uploader") },
-        { label: "run --name uploader acme/uploader:1.1", action: { type: "run", image: "acme/uploader:1.1", detach: true, name: "uploader" }, tone: "producer", disabled: has("uploader") },
-        { label: "run --user root … uploader:1.0", action: { type: "run", image: "acme/uploader:1.0", detach: true, name: "uploader", user: "root" }, tone: "producer", disabled: has("uploader") },
-      ],
-    },
-    {
-      label: "site2",
-      buttons: [
-        { label: "run -d --name site2 -p 8080:80", action: nginx("site2", "8080:80"), tone: "producer", disabled: has("site2") },
-        { label: "run -d --name site2 -p 8081:80", action: nginx("site2", "8081:80"), tone: "producer", disabled: has("site2") },
-        { label: "rm -f site2", action: { type: "rm", container: "site2", force: true }, tone: "danger", disabled: !has("site2") },
-        { label: "curl localhost:8081", action: { type: "curl", port: 8081 }, tone: "go" },
-      ],
-    },
-  ];
-}
 
 export const scene = makeDockerScene({
   slug: SLUG,
@@ -139,8 +106,8 @@ export const scene = makeDockerScene({
   steps,
   label: l("Kapanan, çöken ve çakışan container'lar, altta terminal çıktısı", "Containers that stop, crash and clash, with terminal output underneath"),
   view: (h, info) => {
-    const { lines, focus } = terminalLines(h, info.last, info.sandbox ? "api" : undefined);
-    const names = info.sandbox ? ["api", "uploader", "site2"].filter((n) => findContainer(h, n)) : recent(h);
+    const { lines, focus } = terminalLines(h, info.last);
+    const names = recent(h);
     return (
       <g>
         <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages containers={names} />
@@ -167,5 +134,5 @@ export const scene = makeDockerScene({
       { label: t(l("Başlayamayan", "Never started")), value: all.filter((c) => c.state === "created").length, tone: all.some((c) => c.state === "created") ? "warn" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  sandbox: { start: () => MACHINE, scenarios },
 });

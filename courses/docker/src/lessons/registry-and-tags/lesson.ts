@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const registryAndTags: Lesson = {
@@ -14,7 +14,7 @@ export const registryAndTags: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir image adının parçalarını okumak: registry/sahip/repo:tag", "Read the parts of an image name: registry/owner/repo:tag"), step: 1 },
     { text: l("`tag` ve `push` ile kendi image'ını yayınlamak", "Publish your own image with `tag` and `push`"), step: 2 },
@@ -295,13 +295,16 @@ export const registryAndTags: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `shop:dev` var, registry boş. Image'a ad ver, push ve pull yap, bir takım arkadaşının `:latest` yayınlamasını tetikle, bir etiketi sil.",
-          "This machine has `shop:dev` and the registry is empty. Name the image, push and pull, let a teammate publish `:latest`, remove a tag.",
+          "Sıra sende. Bu makinede uygulamanın `shop:dev` image'ı var; registry GitHub Container Registry (`ghcr.io/ada/shop`), token'ın `GITHUB_TOKEN` değişkeninde. Aşağıda gerçek işten **5 senaryo** var: komutları terminale **kendin yaz**, sahne yerel tag'leri ve registry'yi gösterir.",
+          "Your turn. This machine has the app's `shop:dev` image; the registry is GitHub Container Registry (`ghcr.io/ada/shop`), and your token is in `GITHUB_TOKEN`. Below are **5 scenarios** from real work: **type the commands yourself**; the scene shows the local tags and the registry.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `docker images` yaz: aynı IMAGE ID aynı image demek. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `docker images`: the same IMAGE ID means the same image. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

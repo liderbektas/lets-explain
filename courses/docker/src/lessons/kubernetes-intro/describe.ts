@@ -34,7 +34,11 @@ export function describeKube(e: KubeEvent, lang: Lang): Line {
     case "served":
       return { text: tr ? `curl web → ${e.pod} cevap verdi (${e.version})` : `curl web → answered by ${e.pod} (${e.version})`, tone: "read" };
     case "curlFailed":
+      if (e.why === "no-forward")
+        return { text: tr ? "curl başarısız: o port cluster'a açık değil (port-forward yok)" : "curl failed: that port isn't open to the cluster (no port-forward)", tone: "bad" };
       return { text: tr ? `curl web başarısız: ${e.why === "no-service" ? "Service yok" : "çalışan pod yok"}` : `curl web failed: ${e.why === "no-service" ? "no Service" : "no running pods"}`, tone: "bad" };
+    case "forwarding":
+      return { text: tr ? `port-forward: localhost:${e.port} → Service web` : `port-forward: localhost:${e.port} → Service web`, tone: "read" };
     case "error":
       return { text: `Error: ${e.message}`, tone: "bad" };
   }

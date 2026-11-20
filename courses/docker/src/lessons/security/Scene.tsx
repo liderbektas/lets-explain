@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, imageFor, simulate, type Container, type DockerAction, type DockerEvent, type Files, type Host, type Instruction } from "../../engine/docker";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { createHost, findContainer, imageFor, type Container, type DockerAction, type DockerEvent, type Files, type Host, type Instruction } from "../../engine/docker";
+import { makeDockerScene } from "../shared/DockerScene";
+import { ROOT_DOCKERFILE, running, scenarios } from "./scenarios";
 import { hasSecret, SecurityPanel } from "./SecurityPanel";
 
 export const SLUG = "security";
@@ -35,7 +35,8 @@ export const DOCKERFILES = {
     { op: "FROM", image: "gcr.io/distroless/nodejs22-debian12" },
     { op: "WORKDIR", path: "/app" },
     { op: "COPY", from: "build", src: ["/app"], dest: "/app" },
-    { op: "CMD", args: ["node", "server.js"], program: APP },
+    // distroless's ENTRYPOINT already is node: CMD only names the script.
+    { op: "CMD", args: ["server.js"], program: APP },
   ] satisfies Instruction[],
 };
 
@@ -80,35 +81,8 @@ function shown(h: Host, sandbox: boolean, last: DockerEvent[]) {
   return { c, tag, image };
 }
 
-/** The sandbox: `acme/api:dev` was built with the secret inside, and `api` runs it as root. */
+/** The image the try-it step is about. */
 const DEV = "acme/api:dev";
-const sandboxStart = (): Host => simulate([build(DEV, DOCKERFILES.leaky, []), run("api", DEV)], createHost()).states[2]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const api = findContainer(h, "api");
-  const up = api?.state === "running";
-  return [
-    {
-      label: "build",
-      buttons: [
-        { label: tr ? "USER node, .env içeride" : "USER node, .env inside", action: build(DEV, DOCKERFILES.user, []), tone: "producer" },
-        { label: tr ? "root, .dockerignore" : "root, .dockerignore", action: build(DEV, DOCKERFILES.root), tone: "producer" },
-        { label: tr ? "USER node, .dockerignore" : "USER node, .dockerignore", action: build(DEV, DOCKERFILES.user), tone: "producer" },
-        { label: "distroless, .dockerignore", action: build(DEV, DOCKERFILES.distroless), tone: "producer" },
-      ],
-    },
-    {
-      label: "api",
-      buttons: [
-        { label: "rm -f api", action: { type: "rm", container: "api", force: true }, tone: "danger", disabled: !api },
-        { label: "run -d --name api -e API_KEY=…", action: run("api", DEV, { API_KEY: "sk_live_51Hx_example" }), tone: "go", disabled: Boolean(api) },
-        { label: "exec api whoami", action: exec("api", "whoami"), disabled: !up },
-        { label: "exec api sh", action: exec("api", "sh"), disabled: !up },
-      ],
-    },
-  ];
-}
 
 export const scene = makeDockerScene({
   slug: SLUG,
@@ -128,5 +102,6 @@ export const scene = makeDockerScene({
       { label: t(l("Kabuk", "Shell")), value: img?.config.binaries.includes("sh") ? t(l("var", "yes")) : t(l("yok", "none")) },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the root Dockerfile and no .dockerignore: the key is inside and `api` runs as root.
+  sandbox: { start: () => running(ROOT_DOCKERFILE), scenarios },
 });

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const cmdVsEntrypoint: Lesson = {
@@ -14,7 +14,7 @@ export const cmdVsEntrypoint: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("CMD'nin varsayılan komut olduğunu ve `docker run`'da ezildiğini görmek", "See that CMD is a default and is replaced on `docker run`"), step: 1 },
     { text: l("ENTRYPOINT'in sabit kaldığını, argümanların ona eklendiğini görmek", "See that ENTRYPOINT stays and arguments are appended to it"), step: 4 },
@@ -258,13 +258,16 @@ export const cmdVsEntrypoint: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "İki image var: CMD'li `acme/greet:cmd` ve ENTRYPOINT'li `acme/greet:ep`. Her düğme bir `docker run` komutu. Sahne her seferinde son container'ın Dockerfile'ını, yazdığın komutu ve gerçekten çalışanı gösterir.",
-          "There are two images: `acme/greet:cmd` with a CMD and `acme/greet:ep` with an ENTRYPOINT. Each button is a `docker run` command. The stage shows the last container's Dockerfile, what you typed and what really ran.",
+          "Sıra sende. Makinede CMD'li `acme/greet:cmd` ve ENTRYPOINT'li `acme/greet:ep` var. Aşağıda gerçek işten **4 senaryo** var: `docker run` komutlarını, gerekirse Dockerfile'ı (`nano Dockerfile`) **kendin yaz**. Sahne her seferinde son container'ın Dockerfile'ını, yazdığın komutu ve gerçekten çalışanı gösterir.",
+          "Your turn. The machine has `acme/greet:cmd` with a CMD and `acme/greet:ep` with an ENTRYPOINT. Below are **4 scenarios** from real work: **type the `docker run` commands yourself**, and the Dockerfile too when needed (`nano Dockerfile`). The stage shows the last container's Dockerfile, what you typed and what really ran.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker inspect acme/greet:ep` bir image'ın `Entrypoint` ve `Cmd` ayarlarını gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker inspect acme/greet:ep` shows an image's `Entrypoint` and `Cmd`. Hints open one at a time; few commands earn 3 stars.",
+        ),
       ],
     },
   ],

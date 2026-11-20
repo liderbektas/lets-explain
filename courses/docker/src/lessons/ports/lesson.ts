@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const ports: Lesson = {
@@ -14,7 +14,7 @@ export const ports: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`-p host:container` sırasını okumak", "Read the `-p host:container` order"), step: 0 },
     { text: l("Yanlış container portunun belirtisini tanımak", "Recognise the sign of a wrong container port"), step: 1 },
@@ -245,13 +245,16 @@ export const ports: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `old` adlı bir nginx zaten 8080'i tutuyor. `web`'i farklı portlarla başlatabilir, container'ları silebilir ve iki portu `curl` ile deneyebilirsin.",
-          "On this machine an nginx called `old` already holds 8080. You can start `web` with different ports, remove containers and try both ports with `curl`.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: yanlış container portu, 8080'i kimin tuttuğunu bulmak, portu Docker'a seçtirmek ve bilinmeyen bir image'ın portunu bulmak. Komutları terminale **kendin yaz**; sahne hangi kapının nereye açıldığını gösterir.",
+          "Your turn. Below are **4 scenarios** from real work: a wrong container port, finding who holds 8080, letting Docker pick the port and finding an unknown image's port. **Type the commands yourself** in the terminal; the scene shows which door opens where.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`curl localhost:<port>` portu dener, `docker ps` PORTS sütununu gösterir, `docker port <ad>` bir container'ın portlarını listeler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`curl localhost:<port>` tries a port, `docker ps` shows the PORTS column, and `docker port <name>` lists one container's ports. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

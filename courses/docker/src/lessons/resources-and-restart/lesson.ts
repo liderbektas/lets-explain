@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const resourcesAndRestart: Lesson = {
@@ -14,7 +14,7 @@ export const resourcesAndRestart: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bellek sınırının aşılınca OOM ile öldürmeye yol açtığını görmek", "See that going over the memory limit means an OOM kill"), step: 2 },
     { text: l("CPU sınırının öldürmediğini, yavaşlattığını bilmek", "Know that a CPU limit slows down instead of killing"), step: 4 },
@@ -258,13 +258,16 @@ export const resourcesAndRestart: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `acme/api:2.0` (yaklaşık 120 MB kullanır) ve sürekli çöken `acme/flaky:1.0` var. Container'ları farklı sınır ve policy'lerle başlatabilir, büyük bir istek gönderebilir ve zamanı ilerletebilirsin.",
-          "This machine has `acme/api:2.0` (uses about 120 MB) and `acme/flaky:1.0`, which keeps crashing. Start them with different limits and policies, send a big request, and move time forward.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: bellek yüzünden 137 ile kapanan bir API, çöktükçe kendini toparlayan bir worker, sonsuza kadar tekrar başlayan bir yedek ve bakımda kalması gereken bir site. Komutları terminale **kendin yaz**; alttaki tablo bellek kullanımını ve sınırları gösterir.",
+          "Your turn. Below are **4 scenarios** from real work: an API that exits with 137 for memory, a worker that recovers when it crashes, a backup that restarts forever and a site that must stay down for maintenance. **Type the commands yourself** in the terminal; the table underneath shows memory use and limits.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker ps -a` exit code'u, `docker stats --no-stream` belleği gösterir; `sleep 3` zamanı ilerletir, böylece restart'ları görürsün. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker ps -a` shows exit codes, `docker stats --no-stream` shows memory, and `sleep 3` moves time forward so you see restarts. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

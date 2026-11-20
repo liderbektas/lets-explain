@@ -1,7 +1,7 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createHost, simulate, type DockerAction, type Host } from "../../engine/docker";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { LAPTOP, scenarios } from "./scenarios";
 import { RegistryStage, type RegistryLabels } from "./RegistryStage";
 
 export const SLUG = "registry-and-tags";
@@ -57,37 +57,6 @@ export const registryLabels = (t: (x: L) => string): RegistryLabels => ({
 const showLocal = (ref: string) => !ref.startsWith("node:");
 const showRemote = (ref: string) => ref.startsWith("ghcr.io/") || ref === "nginx:1.27";
 
-const sandboxStart = (): Host => simulate([SHOP_BUILD], createHost()).states[1]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  return [
-    {
-      label: "docker tag",
-      buttons: [
-        { label: "shop:dev → :1.0.0", action: tag(V1), tone: "plain", disabled: h.tags[V1] === h.tags["shop:dev"] && Boolean(h.tags[V1]) },
-        { label: "shop:dev → :latest", action: tag(LATEST), tone: "plain", disabled: h.tags[LATEST] === h.tags["shop:dev"] && Boolean(h.tags[LATEST]) },
-      ],
-    },
-    {
-      label: "push / pull",
-      buttons: [
-        { label: "push :1.0.0", action: push(V1), tone: "producer", disabled: !h.tags[V1] },
-        { label: "push :latest", action: push(LATEST), tone: "producer", disabled: !h.tags[LATEST] },
-        { label: "pull :1.0.0", action: pull(V1), tone: "go", disabled: !h.registry.tags[V1] },
-        { label: "pull :latest", action: pull(LATEST), tone: "go", disabled: !h.registry.tags[LATEST] },
-      ],
-    },
-    {
-      label: tr ? "Diğer" : "Other",
-      buttons: [
-        { label: tr ? "takım arkadaşı :latest yayınladı" : "a teammate pushed :latest", action: release("node:22-alpine", "teammate build"), tone: "danger" },
-        { label: "rmi :latest", action: rmi(LATEST), tone: "danger", disabled: !h.tags[LATEST] },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -102,5 +71,6 @@ export const scene = makeDockerScene({
       { label: t(l(":latest ve :1.0.0", ":latest vs :1.0.0")), value: same, tone: same === "—" ? "plain" : h.tags[LATEST] === h.tags[V1] ? "ok" : "danger" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the laptop with shop:dev built; each scenario brings its own state.
+  sandbox: { start: () => LAPTOP, scenarios },
 });

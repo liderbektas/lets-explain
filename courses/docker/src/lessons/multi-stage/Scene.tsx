@@ -1,10 +1,11 @@
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, type L } from "@lets-explain/core/i18n";
-import { createHost, findContainer, imageFor, imageSize, instructionText, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
+import { createHost, imageFor, imageSize, instructionText, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
+import { parseDockerfile } from "../../engine/files";
 import { BuildStage } from "../../iso/BuildStage";
 import { buildLabels } from "../dockerfile-basics/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { project, SINGLE, scenarios } from "./scenarios";
 import { SizeBars } from "./SizeBars";
 
 export const SLUG = "multi-stage";
@@ -71,49 +72,13 @@ export const steps: DockerAction[][] = [
 
 /* --------------------------------------------------------- the sandbox */
 
+/** The Dockerfile in your project folder. */
 export const DF = "/home/ada/project/Dockerfile";
-/** The Dockerfile's shape, kept in the folder as "single|node:22" or "multi|node:22-alpine". */
-export const shapeOf = (h: Host) => {
-  const [mode, base] = (h.hostFiles[DF] ?? "single|node:22").split("|") as [string, string];
-  return { multi: mode === "multi", base };
-};
-const write = (isMulti: boolean, base: string): DockerAction => ({ type: "editHost", path: DF, content: `${isMulti ? "multi" : "single"}|${base}` });
 
-export const sandboxStart = (): Host => createHost({ pulled: ["node:22"], hostFiles: { [DF]: "single|node:22" } });
-
-export function buildNow(h: Host): DockerAction {
-  const s = shapeOf(h);
-  return b("shop", s.multi ? multi(s.base) : single(s.base));
-}
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const s = shapeOf(h);
-  const app = findContainer(h, "app");
-  return [
-    {
-      label: "Dockerfile",
-      buttons: s.multi
-        ? [{ label: tr ? "Tek stage'e dön" : "Back to one stage", action: write(false, s.base === DISTROLESS ? "node:22" : s.base) }]
-        : [{ label: tr ? "Multi-stage yap" : "Make it multi-stage", action: write(true, s.base), tone: "ok" }],
-    },
-    {
-      label: tr ? "Son image'ın tabanı" : "Final base",
-      buttons: BASES.map((base) => ({
-        label: SHORT[base]!,
-        action: write(s.multi, base),
-        disabled: base === s.base || (base === DISTROLESS && !s.multi),
-      })),
-    },
-    {
-      label: "docker",
-      buttons: [
-        { label: "build -t shop .", action: buildNow(h), tone: "go" },
-        { label: "run -d --name app shop", action: { type: "run", image: "shop", name: "app", detach: true }, tone: "producer", disabled: !imageFor(h, "shop") || Boolean(app) },
-        { label: "exec -it app sh", action: { type: "exec", container: "app", cmd: "sh" }, disabled: app?.state !== "running" },
-      ],
-    },
-  ];
+/** The Dockerfile as written: its instruction lines, and the base of each stage. */
+export function writtenDockerfile(h: Host) {
+  const ins = parseDockerfile(h.hostFiles[DF] ?? "").instructions;
+  return { lines: ins.map(instructionText), bases: ins.flatMap((i) => (i.op === "FROM" ? [i.image] : [])) };
 }
 
 function metrics(h: Host, t: (x: L) => string, info: { sandbox: boolean }): Metric[] {
@@ -136,8 +101,7 @@ export const scene = makeDockerScene({
   view: (h, info) => {
     const last = h.lastBuild;
     // In the try-it step, show the Dockerfile as it stands until it is built that way.
-    const shape = shapeOf(h);
-    const pending = (shape.multi ? multi(shape.base) : single(shape.base)).map(instructionText);
+    const pending = writtenDockerfile(h).lines;
     const stale = info.sandbox && (!last || last.steps.map((x) => x.text).join("|") !== pending.join("|"));
     return (
       <g>
@@ -161,11 +125,12 @@ export const scene = makeDockerScene({
     );
   },
   metrics: (h, t, info) => metrics(h, t, info),
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the single-stage Dockerfile, built once.
+  sandbox: { start: () => project(SINGLE, true), scenarios },
 });
 
 function SandboxShape({ host, t, last }: { host: Host; t: (x: L) => string; last: import("../../engine/docker").DockerEvent[] }) {
-  const s = shapeOf(host);
+  const bases = writtenDockerfile(host).bases.map((b) => SHORT[b] ?? b);
   return (
     <g>
       <g transform="translate(640 30)">
@@ -173,7 +138,7 @@ function SandboxShape({ host, t, last }: { host: Host; t: (x: L) => string; last
           Dockerfile
         </text>
         <text x={0} y={24} style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, fill: "var(--ink-2)" }}>
-          {s.multi ? `build: node:22 → ${SHORT[s.base]}` : `${t(l("tek stage", "one stage"))}: ${SHORT[s.base]}`}
+          {bases.length > 1 ? `${bases[0]} → ${bases[bases.length - 1]}` : `${t(l("tek stage", "one stage"))}: ${bases[0] ?? "—"}`}
         </text>
       </g>
       <SizeBars host={host} title={t(l("Image boyutu", "Image size"))} last={last} y={90} />

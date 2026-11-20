@@ -1,10 +1,10 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
 import { LifecycleStrip, phaseOf } from "./LifecycleStrip";
-import { missions } from "./missions";
+import { scenarios, MACHINE } from "./scenarios";
 
 export const SLUG = "lifecycle";
 export const NOTE = "/notes.txt";
@@ -41,43 +41,6 @@ export const EXPECTED_ERRORS: Record<number, number> = { 4: 1 };
 /** Which container the strip follows on each step. */
 const tracked = (step: number) => (step === 6 ? "hello" : "web");
 
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const c = findContainer(h, "web");
-  const s = c?.state;
-  return [
-    {
-      label: tr ? "Oluştur" : "Create",
-      buttons: [
-        { label: "docker create --name web nginx", action: create, tone: "producer", disabled: Boolean(c) },
-        { label: "docker run -d --name web nginx", action: run, tone: "producer", disabled: Boolean(c) },
-      ],
-    },
-    {
-      label: tr ? "Durum" : "State",
-      buttons: [
-        { label: "docker start web", action: start, tone: "go", disabled: s !== "created" && s !== "exited" },
-        { label: "docker stop web", action: stop, disabled: s !== "running" },
-        { label: "docker kill web", action: kill, tone: "danger", disabled: s !== "running" },
-      ],
-    },
-    {
-      label: tr ? "Sil" : "Remove",
-      buttons: [
-        { label: "docker rm web", action: rm, disabled: !c || s === "running" },
-        { label: "docker rm -f web", action: rmForce, tone: "danger", disabled: s !== "running" },
-      ],
-    },
-    {
-      label: tr ? "İçeride" : "Inside",
-      buttons: [
-        { label: tr ? "not yaz" : "write a note", action: writeNote, disabled: s !== "running" },
-        { label: `cat ${NOTE}`, action: readNote, disabled: s !== "running" },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -113,5 +76,5 @@ export const scene = makeDockerScene({
       { label: "docker ps -a", value: all.length },
     ];
   },
-  sandbox: { start: () => START, rows, missions },
+  sandbox: { start: () => MACHINE, scenarios },
 });

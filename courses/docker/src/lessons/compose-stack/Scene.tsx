@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, findContainer, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
-import { missions } from "./missions";
+import { PATIENT, scenarios } from "./scenarios";
 
 export const SLUG = "compose-stack";
 export const PROJECT = "shop";
@@ -84,39 +84,6 @@ export const steps: DockerAction[][] = [
 /** Steps where a Docker error is the point of the step (none here: crashes show as exit codes). */
 export const EXPECTED_ERRORS: Record<number, number> = {};
 
-const sandboxStart = (): Host => createHost();
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const mine = Object.values(h.containers).filter((c) => c.project === PROJECT);
-  const dbUp = findContainer(h, "shop-db-1")?.state === "running";
-  const hasVolume = Object.values(h.volumes).some((v) => v.project === PROJECT);
-  return [
-    {
-      label: "compose up",
-      buttons: [
-        { label: tr ? "up -d (kısa depends_on)" : "up -d (short depends_on)", action: up(fileEager), tone: "producer" },
-        { label: "up -d (service_healthy)", action: up(filePatient), tone: "producer" },
-      ],
-    },
-    {
-      label: "compose down",
-      buttons: [
-        { label: "down", action: down(), tone: "danger", disabled: mine.length === 0 },
-        { label: "down -v", action: down(true), tone: "danger", disabled: mine.length === 0 && !hasVolume },
-      ],
-    },
-    {
-      label: tr ? "Dene" : "Try",
-      buttons: [
-        { label: tr ? "zaman geçsin" : "let time pass", action: tick(), tone: "plain" },
-        { label: "curl localhost:3000", action: { type: "curl", port: 3000 }, tone: "go" },
-        { label: tr ? "db'ye sipariş yaz" : "write an order to db", action: writeOrder, tone: "go", disabled: !dbUp },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -133,5 +100,6 @@ export const scene = makeDockerScene({
       { label: t(l("app yeniden başlama", "app restarts")), value: app?.restarts ?? 0, tone: app && app.restarts > 0 ? "warn" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the project with healthchecks; each scenario brings its own state.
+  sandbox: { start: () => PATIENT, scenarios },
 });

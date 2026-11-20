@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const debugging: Lesson = {
@@ -14,7 +14,7 @@ export const debugging: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kapanan bir container'ın logunu okuyup sebebi bulmak", "Read an exited container's logs to find the reason"), step: 1 },
     { text: l("Exit code'lardan ne olduğunu anlamak: 0, 1, 127, 137, 143", "Tell what happened from exit codes: 0, 1, 127, 137, 143"), step: 3 },
@@ -268,13 +268,16 @@ export const debugging: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede üç sorun var: `api` kapanmış, `uploader` izin hatası vermiş ve 8080'i `site` tutuyor. Terminal, son dokunduğun container'ı gösterir.",
-          "There are three problems on this machine: `api` has stopped, `uploader` hit a permission error and `site` holds 8080. The terminal shows the container you touched last.",
+          "Sıra sende. Aşağıda gece nöbetinden **4 senaryo** var: 127 ile kapanan bir proxy, izin hatası veren bir yükleyici, hiç başlamamış bir site ve her seferinde 137 ile biten bir rapor. Komutları terminale **kendin yaz**; önce ipucunu bul, sonra düzelt.",
+          "Your turn. Below are **4 scenarios** from a night on call: a proxy that exits with 127, an uploader with a permission error, a site that never started and a report that ends with 137 every time. **Type the commands yourself** in the terminal; find the clue first, then fix it.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Sıra hep aynı: `docker ps -a` (durum ve exit code), `docker logs <ad>` (sebep), gerekirse `docker inspect`. Sahnenin altındaki panel exit code'un ne demek olduğunu yazar. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "The order is always the same: `docker ps -a` (state and exit code), `docker logs <name>` (the reason), `docker inspect` if needed. The panel under the scene says what the exit code means. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

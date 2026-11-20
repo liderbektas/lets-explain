@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const networks: Lesson = {
@@ -14,7 +14,7 @@ export const networks: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Varsayılan bridge'de isimle bulmanın çalışmadığını görmek", "See that name lookup fails on the default bridge"), step: 1 },
     { text: l("Kendi network'ünü kurup container'ları bağlamak", "Create your own network and connect containers"), step: 2 },
@@ -266,13 +266,16 @@ export const networks: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`web` ve `cache` varsayılan bridge'de çalışıyor ve birbirini isimle bulamıyor. Bir `shop` ağı kurabilir, container'ları bağlayabilir, `worker` başlatabilir ve `ping` ile deneyebilirsin.",
-          "`web` and `cache` run on the default bridge and cannot find each other by name. You can create a `shop` network, connect containers, start a `worker`, and test with `ping`.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: container'ları isimle buluşturmak, birini ağın dışında tutmak, port açmadan iç servis ve geçici bir kontrol container'ı. Komutları terminale **kendin yaz**; sahne hangi container'ın hangi ağda olduğunu gösterir.",
+          "Your turn. Below are **4 scenarios** from real work: letting containers find each other by name, keeping one off a network, an internal service with no open port, and a throwaway check container. **Type the commands yourself** in the terminal; the scene shows which container is on which network.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker network ls` ağları listeler; `docker exec <ad> ping <isim>` bir ismin bulunup bulunmadığını gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker network ls` lists networks; `docker exec <name> ping <host>` shows whether a name is found. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

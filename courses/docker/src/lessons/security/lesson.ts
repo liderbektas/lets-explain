@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const security: Lesson = {
@@ -14,7 +14,7 @@ export const security: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`USER` ile container'ı root olmadan çalıştırmak", "Run a container without root using `USER`"), step: 1 },
     { text: l("Image'a giren bir sırrın neden silinemediğini görmek", "See why a secret that entered an image cannot be deleted"), step: 3 },
@@ -272,13 +272,16 @@ export const security: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`acme/api:dev` sır içeren bir Dockerfile ile kurulmuş ve `api` onu root olarak çalıştırıyor. Farklı Dockerfile'larla yeniden build edebilir, container'ı silip yeniden başlatabilir ve içine komut gönderebilirsin.",
-          "`acme/api:dev` was built from a Dockerfile that includes a secret, and `api` runs it as root. You can rebuild with different Dockerfiles, remove and restart the container, and send it commands.",
+          "Sıra sende. `acme/api:dev` bir API; anahtarı proje klasöründeki `.env`'de duruyor ve `api` container'ı onu root olarak çalıştırıyor. Aşağıda gerçek işten **4 senaryo** var: Dockerfile'ı `nano Dockerfile` ile, `.dockerignore`'u `echo` ile **kendin düzenle**, yeniden build et ve container'ı yeniden başlat.",
+          "Your turn. `acme/api:dev` is an API; its key sits in `.env` in the project folder, and the `api` container runs it as root. Below are **4 scenarios** from real work: **edit the Dockerfile yourself** with `nano Dockerfile` and `.dockerignore` with `echo`, rebuild, and restart the container.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker exec api whoami` kullanıcıyı, `docker run --rm acme/api:dev cat .env` image'da sır kalıp kalmadığını gösterir. Sahne image'ın katmanlarını ve sır taşıyanları kırmızıyla gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker exec api whoami` shows the user, and `docker run --rm acme/api:dev cat .env` shows whether a secret is left in the image. The scene shows the image's layers, with any that carry a secret in red. Hints open one at a time; few commands earn 3 stars.",
+        ),
       ],
     },
   ],

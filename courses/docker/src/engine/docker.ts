@@ -97,6 +97,8 @@ export interface Container {
   cmd: string[];
   project?: string;
   service?: string;
+  /** Compose: a digest of the service's settings, so `up` recreates a container whose settings changed. */
+  composeHash?: string;
 }
 
 export interface Volume {
@@ -167,6 +169,8 @@ interface BaseSpec {
   user?: string;
   program: Program;
   cmd: string[];
+  /** The image's own ENTRYPOINT, e.g. distroless runs node itself. */
+  entrypoint?: string[];
   exposed?: number[];
   dataDir?: string;
   healthcheck?: boolean;
@@ -185,7 +189,7 @@ export const BASE_IMAGES: BaseSpec[] = [
   { ref: "node:22", size: 1100, binaries: [...SHELL, "node", "npm", "bash"], cmd: ["node"], program: { kind: "job", output: [] }, owners: { "/home/node": "node" } },
   { ref: "node:22-slim", size: 240, binaries: [...SHELL, "node", "npm"], cmd: ["node"], program: { kind: "job", output: [] }, owners: { "/home/node": "node" } },
   { ref: "node:22-alpine", size: 160, binaries: [...SHELL, "node", "npm"], cmd: ["node"], program: { kind: "job", output: [] }, owners: { "/home/node": "node" } },
-  { ref: "gcr.io/distroless/nodejs22-debian12", size: 130, binaries: ["node"], cmd: [], program: { kind: "job", output: [] }, user: "nonroot" },
+  { ref: "gcr.io/distroless/nodejs22-debian12", size: 130, binaries: ["node"], cmd: [], entrypoint: ["/nodejs/bin/node"], program: { kind: "job", output: [] }, user: "nonroot" },
   { ref: "python:3.12", size: 1000, binaries: [...SHELL, "python", "pip", "bash"], cmd: ["python3"], program: { kind: "job", output: [] } },
   { ref: "python:3.12-slim", size: 150, binaries: [...SHELL, "python", "pip"], cmd: ["python3"], program: { kind: "job", output: [] } },
   { ref: "postgres:17", size: 430, binaries: [...SHELL, "postgres", "psql"], cmd: ["postgres"], exposed: [5432], healthcheck: true, program: { kind: "db", listens: 5432, dataDir: "/var/lib/postgresql/data", memory: 60, startTicks: 2 }, env: { POSTGRES_PASSWORD: "" } },
@@ -200,7 +204,7 @@ function baseImage(spec: BaseSpec): Image {
     layers: [layer],
     config: {
       cmd: spec.cmd,
-      entrypoint: [],
+      entrypoint: spec.entrypoint ?? [],
       env: { ...spec.env },
       workdir: spec.workdir ?? "/",
       exposed: spec.exposed ?? [],
@@ -310,11 +314,22 @@ export function ignoredBy(patterns: string[], path: string): boolean {
   });
 }
 
+/** Does a COPY source (a path, a directory, or a pattern like `package*.json`) take this file? */
+export function copySourceMatches(src: string, path: string): boolean {
+  if (src === "." || src === "./") return true;
+  if (/[*?]/.test(src)) {
+    const re = new RegExp(`^${src.replace(/^\.\//, "").replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]")}$`);
+    return re.test(path);
+  }
+  const s = src.replace(/^\.\//, "");
+  return path === s || path.startsWith(`${s.replace(/\/$/, "")}/`);
+}
+
 function pick(context: Files, src: string[], ignore: string[]): Files {
   const out: Files = {};
   for (const [path, content] of Object.entries(context)) {
     if (ignoredBy(ignore, path)) continue;
-    if (src.includes(".") || src.some((s) => path === s || path.startsWith(`${s.replace(/\/$/, "")}/`))) out[path] = content;
+    if (src.some((s) => copySourceMatches(s, path))) out[path] = content;
   }
   return out;
 }
@@ -356,7 +371,9 @@ export interface RunOptions {
 
 export interface ComposeService {
   image?: string;
-  build?: { dockerfile: Instruction[]; context: Files; ignore?: string[] };
+  build?: { dockerfile: Instruction[]; context: Files; ignore?: string[]; target?: string };
+  /** Started only when one of these profiles is asked for (`--profile`). */
+  profiles?: string[];
   ports?: string[];
   environment?: Record<string, string>;
   depends_on?: string[] | Record<string, { condition: "service_started" | "service_healthy" }>;
@@ -369,6 +386,8 @@ export interface ComposeService {
 }
 
 export interface ComposeFile {
+  /** The top-level `name:`: the project name, instead of the folder's. */
+  name?: string;
   services: Record<string, ComposeService>;
   volumes?: string[];
   networks?: string[];
@@ -379,7 +398,8 @@ export type DockerAction =
   | { type: "push"; ref: string }
   | { type: "tag"; source: string; target: string }
   | { type: "rmi"; ref: string; force?: boolean }
-  | { type: "build"; tag: string; dockerfile: Instruction[]; context: Files; ignore?: string[]; args?: Record<string, string>; target?: string }
+  /** `noCache`: `docker build --no-cache`, every step runs again (the new layers still fill the cache). */
+  | { type: "build"; tag: string; dockerfile: Instruction[]; context: Files; ignore?: string[]; args?: Record<string, string>; target?: string; noCache?: boolean }
   | ({ type: "run" } & RunOptions)
   | ({ type: "create" } & RunOptions)
   | { type: "start"; container: string }
@@ -390,17 +410,20 @@ export type DockerAction =
   | { type: "exec"; container: string; cmd: string }
   | { type: "write"; container: string; path: string; content: string }
   | { type: "editHost"; path: string; content: string }
+  /** `rm file` on the host. */
+  | { type: "removeHost"; path: string }
   | { type: "curl"; port: number }
   | { type: "volumeCreate"; name: string }
   | { type: "volumeRm"; name: string }
   | { type: "networkCreate"; name: string }
   | { type: "networkConnect"; network: string; container: string }
-  | { type: "prune"; volumes?: boolean; all?: boolean }
+  /** `only: "images"` is `docker image prune`: images only, containers and the rest stay. */
+  | { type: "prune"; volumes?: boolean; all?: boolean; only?: "images" }
   | { type: "load"; container: string; memory: number }
   | { type: "tick"; count?: number }
   | { type: "daemonRestart" }
   | { type: "upstreamRelease"; ref: string; from: string; note: string }
-  | { type: "composeUp"; project: string; file: ComposeFile; env?: Record<string, string>; build?: boolean }
+  | { type: "composeUp"; project: string; file: ComposeFile; env?: Record<string, string>; build?: boolean; profiles?: string[]; wait?: boolean; force?: boolean }
   | { type: "composeDown"; project: string; volumes?: boolean };
 
 export type DockerEvent =
@@ -419,7 +442,7 @@ export type DockerEvent =
   | { type: "restarting"; name: string; count: number }
   | { type: "execOutput"; name: string; cmd: string; output: string[]; code: number }
   | { type: "wrote"; name: string; path: string; where: "layer" | "volume" | "bind"; source?: string }
-  | { type: "hostEdited"; path: string }
+  | { type: "hostEdited"; path: string; removed?: boolean }
   | { type: "curlResult"; port: number; ok: boolean; body: string }
   | { type: "volumeCreated"; name: string }
   | { type: "volumeRemoved"; name: string }
@@ -603,7 +626,7 @@ export function apply(prev: Host, action: DockerAction): StepResult {
       const c = findContainer(h, action.container);
       if (!c) return fail(`Error: No such container: ${action.container}`);
       if (c.state !== "running") return fail(`Error response from daemon: container ${c.name} is not running`);
-      events.push(execIn(h, c, action.cmd));
+      events.push(execIn(h, c, action.cmd, events));
       break;
     }
 
@@ -618,6 +641,13 @@ export function apply(prev: Host, action: DockerAction): StepResult {
     case "editHost": {
       h.hostFiles[action.path] = action.content;
       events.push({ type: "hostEdited", path: action.path });
+      break;
+    }
+
+    case "removeHost": {
+      if (h.hostFiles[action.path] === undefined) return fail(`rm: cannot remove '${action.path.split("/").pop()}': No such file or directory`);
+      delete h.hostFiles[action.path];
+      events.push({ type: "hostEdited", path: action.path, removed: true });
       break;
     }
 
@@ -684,7 +714,7 @@ export function apply(prev: Host, action: DockerAction): StepResult {
     }
 
     case "prune": {
-      const containers = Object.values(h.containers).filter((c) => c.state !== "running");
+      const containers = action.only === "images" ? [] : Object.values(h.containers).filter((c) => c.state !== "running");
       for (const c of containers) removeContainer(h, c, false, []);
       const used = new Set(Object.values(h.containers).map((c) => c.image));
       const tagged = new Set(Object.values(h.tags));
@@ -697,7 +727,7 @@ export function apply(prev: Host, action: DockerAction): StepResult {
       const volumes = action.volumes ? Object.values(h.volumes).filter((v) => !mounted.has(v.name) && (v.anonymous || action.all)).map((v) => v.name) : [];
       for (const v of volumes) delete h.volumes[v];
       const inUse = new Set(Object.values(h.containers).flatMap((c) => c.networks));
-      const networks = Object.values(h.networks).filter((n) => !n.builtin && !inUse.has(n.name)).map((n) => n.name);
+      const networks = action.only === "images" ? [] : Object.values(h.networks).filter((n) => !n.builtin && !inUse.has(n.name)).map((n) => n.name);
       for (const n of networks) delete h.networks[n];
       events.push({ type: "pruned", containers: containers.map((c) => c.name), images, volumes, networks });
       break;
@@ -836,7 +866,12 @@ function build(h: Host, a: Extract<DockerAction, { type: "build" }>, events: Doc
         stages.push({ name: ins.as, layers: [...fromStage.layers], config: { ...fromStage.config }, files: { ...fromStage.files } });
       } else {
         const base = ensureImage(h, ins.image, events);
-        if (typeof base === "string") return base;
+        // BuildKit's wording when a base image can't be pulled.
+        if (typeof base === "string") {
+          const ref = normalize(ins.image);
+          const full = ref.split("/")[0]!.includes(".") ? ref : ref.includes("/") ? `docker.io/${ref}` : `docker.io/library/${ref}`;
+          return `failed to solve: ${ins.image}: failed to resolve source metadata for ${full}: pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed`;
+        }
         const files: Files = {};
         for (const l of base.layers) Object.assign(files, l.files);
         stages.push({ name: ins.as, layers: [...base.layers], config: structuredClone(base.config), files });
@@ -886,7 +921,7 @@ function build(h: Host, a: Extract<DockerAction, { type: "build" }>, events: Doc
     // An ARG's value takes part in the key of every later RUN.
     const argKey = ins.op === "RUN" ? JSON.stringify(args) : "";
     const key = shortHash(`${parent}|${cfgKey}|${instructionText(ins)}|${contentKey}|${argKey}`);
-    const hit = h.cache[key];
+    const hit = a.noCache ? undefined : h.cache[key];
 
     switch (ins.op) {
       case "WORKDIR":
@@ -907,6 +942,11 @@ function build(h: Host, a: Extract<DockerAction, { type: "build" }>, events: Doc
       case "CMD":
         st.config.cmd = ins.args;
         if (ins.program) st.config.program = ins.program;
+        // An image whose ENTRYPOINT already is node (distroless) runs `node node server.js` for
+        // CMD ["node", "server.js"]: node then looks for a script called "node" and stops.
+        if (st.config.entrypoint[0]?.split("/").pop() === "node" && ins.args[0] === "node") {
+          st.config.program = { kind: "job", output: [`Error: Cannot find module '${st.config.workdir.replace(/\/$/, "")}/node'`], exitCode: 1 };
+        }
         break;
       case "ENTRYPOINT":
         st.config.entrypoint = ins.args;
@@ -1076,6 +1116,14 @@ function startContainer(h: Host, c: Container, events: DockerEvent[]) {
     return;
   }
 
+  // A command given on `docker run` (echo, sh -c "…") runs instead of the image's program.
+  const own = commandRun(h, c, img, events);
+  if (own) {
+    for (const line of own.output) log(c, line, events);
+    exit(h, c, own.code, own.code === 0 ? "done" : "error", events);
+    return;
+  }
+
   switch (prog.kind) {
     case "job":
       for (const line of prog.output) log(c, line, events);
@@ -1175,8 +1223,89 @@ function writeIn(h: Host, c: Container, path: string, content: string): DockerEv
   return { type: "wrote", name: c.name, path, where: "bind", source: mount.source };
 }
 
-function execIn(h: Host, c: Container, cmd: string): DockerEvent {
+/** Plain shell utilities a container can run as its main process. */
+const SHELL_COMMANDS = ["echo", "printf", "sh", "bash", "cat", "ls", "env", "whoami", "true", "false", "hostname", "pwd", "ping", "curl", "wget"];
+
+/**
+ * When `docker run image <command>` replaces the image's command with a plain shell command,
+ * that command runs, prints and exits like it would in a real container. Null otherwise: the
+ * image's own program runs.
+ */
+function commandRun(h: Host, c: Container, img: Image, events: DockerEvent[]): { output: string[]; code: number } | null {
+  const own = [...img.config.entrypoint, ...img.config.cmd];
+  const isOwn = c.cmd.length === own.length && c.cmd.every((w, i) => w === own[i]);
+  // The image's own command runs as its program, unless it is a plain shell command (an
+  // `ENTRYPOINT ["echo", …]` written in a Dockerfile) and the program knows no output of its own.
+  const plainJob = img.config.program.kind === "job" && img.config.program.output.length === 0 && img.config.program.exitCode === undefined;
+  if (c.cmd.length === 0 || (isOwn && !plainJob)) return null;
+  const bin = c.cmd[0]!.split("/").pop()!;
+  if (!SHELL_COMMANDS.includes(bin)) return null;
+  if (bin === "sh" || bin === "bash") {
+    const at = c.cmd.indexOf("-c");
+    // A shell with no script and no terminal (no -it) has nothing to read and exits at once.
+    if (at === -1) return { output: [], code: 0 };
+    return script(h, c, c.cmd[at + 1] ?? "", events);
+  }
+  return script(h, c, c.cmd.join(" "), events);
+}
+
+/** Runs a small shell script: commands joined by `&&` or `;`, with `echo … > file` and `exit N`. */
+function script(h: Host, c: Container, text: string, events?: DockerEvent[]): { output: string[]; code: number } {
+  const output: string[] = [];
+  const parts = text.split(/(&&|;)/).map((x) => x.trim());
+  let code = 0;
+  for (let i = 0; i < parts.length; i += 2) {
+    const piece = parts[i]!;
+    if (!piece) continue;
+    if (i > 0 && parts[i - 1] === "&&" && code !== 0) break;
+    const exitMatch = /^exit\s+(\d+)$/.exec(piece);
+    if (exitMatch) return { output, code: Number(exitMatch[1]) };
+    const redirect = /^(echo|printf)\s+(.*?)\s*(>>?)\s*(\S+)$/.exec(piece);
+    if (redirect) {
+      const value = unquote(redirect[2]!);
+      const path = redirect[4]!;
+      const old = containerFiles(h, c)[path];
+      const wrote = writeIn(h, c, path, redirect[3] === ">>" && old ? `${old}\n${value}` : value);
+      events?.push(wrote);
+      code = 0;
+      continue;
+    }
+    if (/^mkdir(\s|$)/.test(piece)) {
+      code = 0;
+      continue;
+    }
+    const [bin, ...rest] = piece.split(/\s+/);
+    if (bin === "echo" || bin === "printf") {
+      output.push(unquote(rest.join(" ")).replace(/\\n$/, ""));
+      code = 0;
+    } else if (bin === "true") code = 0;
+    else if (bin === "false") code = 1;
+    else if (bin === "hostname") {
+      output.push(c.id);
+      code = 0;
+    } else if (bin === "pwd") {
+      output.push(h.images[c.image]!.config.workdir);
+      code = 0;
+    } else {
+      const ev = execIn(h, c, piece);
+      if (ev.type === "execOutput") {
+        output.push(...ev.output);
+        code = ev.code;
+      }
+    }
+  }
+  return { output, code };
+}
+
+const unquote = (x: string) => x.trim().replace(/^(["'])(.*)\1$/, "$2");
+
+function execIn(h: Host, c: Container, cmd: string, events?: DockerEvent[]): DockerEvent {
   const img = h.images[c.image]!;
+  // A little script (`echo hi > /data/note.txt`, `a && b`) runs piece by piece.
+  if (/[>;]|&&/.test(cmd) || /^(echo|printf|true|false|hostname|pwd|mkdir)(\s|$)/.test(cmd)) {
+    const r = script(h, c, cmd, events);
+    return { type: "execOutput", name: c.name, cmd, output: r.output, code: r.code };
+  }
   const [bin, ...rest] = cmd.split(" ");
   const arg = rest.join(" ");
   const out = (output: string[], code = 0): DockerEvent => ({ type: "execOutput", name: c.name, cmd, output, code });
@@ -1186,19 +1315,27 @@ function execIn(h: Host, c: Container, cmd: string): DockerEvent {
     case "ls": {
       const dir = (arg || img.config.workdir).replace(/\/$/, "");
       const names = new Set(Object.keys(files).filter((p) => p.startsWith(`${dir}/`)).map((p) => p.slice(dir.length + 1).split("/")[0]!));
+      // The root of every Linux image holds the usual folders, even when no layer wrote a file there.
+      if (dir === "") for (const d of ["bin", "dev", "etc", "home", "lib", "proc", "root", "sys", "tmp", "usr", "var"]) names.add(d);
       return out([...names].sort());
     }
-    case "cat":
-      return files[arg] !== undefined ? out([files[arg]!]) : out([`cat: ${arg}: No such file or directory`], 1);
+    case "cat": {
+      // A relative path is read from the container's working directory, like a real shell.
+      const path = arg.startsWith("/") ? arg : `${img.config.workdir.replace(/\/$/, "")}/${arg.replace(/^\.\//, "")}`;
+      return files[path] !== undefined ? out([files[path]!]) : out([`cat: ${arg}: No such file or directory`], 1);
+    }
     case "env":
       return out(Object.entries(c.env).map(([k, v]) => `${k}=${v}`));
     case "whoami":
       return out([c.user]);
     case "ping":
+    case "wget":
     case "curl": {
-      const host = arg.replace(/^https?:\/\//, "").split(/[:/]/)[0]!;
+      // The target is the last word that is not a flag or a flag's number (`ping -c 1 cache`).
+      const target = rest.filter((w) => !w.startsWith("-") && !/^\d+$/.test(w)).pop() ?? "";
+      const host = target.replace(/^https?:\/\//, "").split(/[:/]/)[0]!;
       const peer = resolves(h, c, host);
-      if (!peer) return out([bin === "ping" ? `ping: bad address '${host}'` : `curl: (6) Could not resolve host: ${host}`], 1);
+      if (!peer) return out([bin === "ping" ? `ping: bad address '${host}'` : bin === "wget" ? `wget: bad address '${host}'` : `curl: (6) Could not resolve host: ${host}`], 1);
       return out([bin === "ping" ? `PING ${host}: 64 bytes from ${peer.name}` : `${peer.name} says hello`]);
     }
     default:
@@ -1236,14 +1373,25 @@ function composeUp(h: Host, a: Extract<DockerAction, { type: "composeUp" }>, eve
     for (const d of dependsList(a.file.services[name]!)) visit(d.name, seen);
     order.push(name);
   };
-  for (const name of Object.keys(a.file.services)) visit(name, new Set());
+  // A service with profiles starts only when one of them is asked for (or another service needs it).
+  const active = (name: string) => {
+    const p = a.file.services[name]!.profiles;
+    return !p || p.length === 0 || p.some((x) => (a.profiles ?? []).includes(x));
+  };
+  for (const name of Object.keys(a.file.services)) if (active(name)) visit(name, new Set());
 
   for (const name of order) {
     const svc = a.file.services[name]!;
     const cname = `${project}-${name}-1`;
     const existing = Object.values(h.containers).find((c) => c.name === cname);
-    if (existing && existing.state === "running") continue;
-    if (existing) removeContainer(h, existing, false, []);
+    // Like Compose: a running container whose settings did not change is left alone.
+    const resolvedEnv = Object.fromEntries(Object.entries(svc.environment ?? {}).map(([k, v]) => [k, interpolate(v, env)]));
+    const hash = shortHash(JSON.stringify({ ...svc, environment: resolvedEnv, depends_on: undefined, build: svc.build ? { dockerfile: svc.build.dockerfile, context: svc.build.context, target: svc.build.target } : undefined }));
+    if (existing && existing.state === "running" && existing.composeHash === hash && !(a.build && svc.build) && !a.force) continue;
+    if (existing) {
+      if (existing.state === "running") exit(h, existing, 0, "stopped", [], false);
+      removeContainer(h, existing, false, []);
+    }
     for (const d of dependsList(svc)) {
       if (!d.healthy) continue;
       const dep = Object.values(h.containers).find((c) => c.project === project && c.service === d.name);
@@ -1261,9 +1409,10 @@ function composeUp(h: Host, a: Extract<DockerAction, { type: "composeUp" }>, eve
     }
     let image = svc.image;
     if (svc.build) {
-      const built = build(h, { type: "build", tag: `${project}-${name}:latest`, dockerfile: svc.build.dockerfile, context: svc.build.context, ignore: svc.build.ignore }, events);
+      const tag = svc.image ?? `${project}-${name}:latest`;
+      const built = build(h, { type: "build", tag, dockerfile: svc.build.dockerfile, context: svc.build.context, ignore: svc.build.ignore, ...(svc.build.target ? { target: svc.build.target } : {}) }, events);
       if (typeof built === "string") return built;
-      image = `${project}-${name}:latest`;
+      image = tag;
     }
     if (!image) return `service "${name}" has neither an image nor a build context specified`;
     const volumes = (svc.volumes ?? []).map((v) => {
@@ -1289,7 +1438,22 @@ function composeUp(h: Host, a: Extract<DockerAction, { type: "composeUp" }>, eve
       events,
     );
     if (typeof c === "string") return c;
+    c.composeHash = hash;
     startContainer(h, c, events);
+  }
+  // `up --wait`: time passes until every service with a healthcheck is healthy (or stops).
+  if (a.wait) {
+    let guard = 0;
+    const pending = () => Object.values(h.containers).filter((c) => c.project === project && c.state === "running" && c.health === "starting");
+    while (pending().length && guard++ < 10) {
+      h.time += 1;
+      for (const c of pending()) {
+        if (c.healthyAt !== null && h.time >= c.healthyAt) {
+          c.health = "healthy";
+          events.push({ type: "healthy", name: c.name });
+        }
+      }
+    }
   }
   events.push({ type: "composeUp", project, services: order });
   return true;

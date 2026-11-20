@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
+import { createHost, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
-import { missions } from "./missions";
+import { CHECKOUT, scenarios } from "./scenarios";
 
 export const SLUG = "compose-basics";
 export const PROJECT = "shop";
@@ -64,38 +64,6 @@ export const steps: DockerAction[][] = [
 /** Steps where a Docker error is the point of the step (none here: failures show as exit codes). */
 export const EXPECTED_ERRORS: Record<number, number> = {};
 
-const sandboxStart = (): Host => createHost();
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const mine = Object.values(h.containers).filter((c) => c.project === PROJECT);
-  const web = findContainer(h, "shop-web-1");
-  const hasVolume = Object.values(h.volumes).some((v) => v.project === PROJECT);
-  return [
-    {
-      label: "compose up",
-      buttons: [
-        { label: "up -d", action: up(fileFull), tone: "producer" },
-        { label: tr ? "up -d (.env yok)" : "up -d (no .env)", action: up(fileFull, {}), tone: "producer" },
-      ],
-    },
-    {
-      label: "compose down",
-      buttons: [
-        { label: "down", action: down(), tone: "danger", disabled: mine.length === 0 },
-        { label: "down -v", action: down(true), tone: "danger", disabled: mine.length === 0 && !hasVolume },
-      ],
-    },
-    {
-      label: tr ? "Dene" : "Try",
-      buttons: [
-        { label: "curl localhost:8080", action: { type: "curl", port: 8080 }, tone: "go" },
-        { label: "exec web ping db", action: { type: "exec", container: "shop-web-1", cmd: "ping db" }, tone: "go", disabled: web?.state !== "running" },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -111,5 +79,6 @@ export const scene = makeDockerScene({
       { label: "Volume", value: Object.values(h.volumes).filter((v) => v.project === PROJECT).length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the checked-out project; each scenario brings its own state.
+  sandbox: { start: () => CHECKOUT, scenarios },
 });

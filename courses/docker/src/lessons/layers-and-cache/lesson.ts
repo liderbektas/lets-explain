@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const SMART_DOCKERFILE = `FROM node:22-slim
@@ -32,7 +32,7 @@ export const layersAndCache: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Değişmeyen satırların cache'ten geldiğini görmek", "See unchanged lines come from the cache"), step: 1 },
     { text: l("Bir cache kaçağının sonraki her satırı yeniden çalıştırdığını görmek", "See that one cache miss reruns every line after it"), step: 2 },
@@ -235,13 +235,16 @@ export const layersAndCache: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Proje klasöründe kötü sıralı bir Dockerfile var, `.dockerignore` yok ve bir kez build edilmiş. Dockerfile'ın sırasını değiştirebilir, `.dockerignore` ekleyip silebilir, dosyaları değiştirebilir ve build edebilirsin.",
-          "The project folder has a badly ordered Dockerfile, no `.dockerignore`, and it was built once. You can change the Dockerfile's order, add or delete `.dockerignore`, edit files and build.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var; her birinde proje klasörü bir Dockerfile ile ve bir kez build edilmiş halde başlar. Dockerfile'ı `nano Dockerfile` ile, `.dockerignore`'u `echo` ile **kendin düzenle**, `docker build -t shop .` ile build et; sahne hangi satırın cache'ten geldiğini gösterir.",
+          "Your turn. Below are **4 scenarios** from real work; in each the project folder starts with a Dockerfile, built once. **Edit it yourself**: the Dockerfile with `nano Dockerfile`, `.dockerignore` with `echo`, and build with `docker build -t shop .`; the scene shows which lines came from the cache.",
         ),
-        l("Üstteki sayaçlar her build'in süresini ve image boyutunu gösterir. **3 görev** var.", "The counters on top show each build's time and image size. There are **3 missions**."),
+        l(
+          "Sayaçlar her build'in süresini ve image boyutunu gösterir; `cat Dockerfile` ve `cat .dockerignore` dosyaların son halini yazar. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "The counters show each build's time and the image size; `cat Dockerfile` and `cat .dockerignore` print the files as they are. Hints open one at a time; few commands earn 3 stars.",
+        ),
       ],
     },
   ],

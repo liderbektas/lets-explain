@@ -74,6 +74,7 @@ export function describeDocker(e: DockerEvent, lang: Lang): Line {
         tone: e.where === "layer" ? "plain" : "ok",
       };
     case "hostEdited":
+      if (e.removed) return { text: tr ? `Host'ta ${e.path} silindi` : `Deleted ${e.path} on the host`, tone: "plain" };
       return { text: tr ? `Host'ta ${e.path} değiştirildi` : `Edited ${e.path} on the host`, tone: "plain" };
     case "curlResult":
       return { text: `curl localhost:${e.port} → ${e.body}`, tone: e.ok ? "ok" : "bad" };

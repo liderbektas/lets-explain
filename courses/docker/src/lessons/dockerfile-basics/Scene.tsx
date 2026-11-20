@@ -1,9 +1,10 @@
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, type L } from "@lets-explain/core/i18n";
-import { createHost, imageFor, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
+import { createHost, imageFor, instructionText, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
+import { parseDockerfile } from "../../engine/files";
 import { BuildStage, type BuildLabels } from "../../iso/BuildStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { laptop, scenarios } from "./scenarios";
 
 export const SLUG = "dockerfile-basics";
 export const TAG = "my-app";
@@ -76,46 +77,23 @@ export const steps: DockerAction[][] = [
 
 /* --------------------------------------------------------- the sandbox */
 
-/** The Dockerfile you are writing lives in your project folder, one instruction key per line. */
+/** The Dockerfile you are writing, in your project folder. */
 export const DF = "/home/ada/project/Dockerfile";
-export const ORDER = ["from", "workdir", "copyPkg", "npm", "copyAll", "expose", "cmd"];
-const LABELS: Record<string, string> = {
-  from: "FROM node:22-slim",
-  workdir: "WORKDIR /app",
-  copyPkg: "COPY package*.json ./",
-  npm: "RUN npm ci",
-  copyAll: "COPY . .",
-  expose: "EXPOSE 3000",
-  cmd: 'CMD ["node","server.js"]',
-};
 
-export const linesOf = (h: Host): string[] => (h.hostFiles[DF] ? h.hostFiles[DF]!.split("\n").filter(Boolean) : []);
+/** The Dockerfile's instruction lines as they are written now. */
+export const linesOf = (h: Host): string[] =>
+  (h.hostFiles[DF] ?? "")
+    .replace(/\\\n/g, " ")
+    .split("\n")
+    .map((x) => x.trim())
+    .filter((x) => x && !x.startsWith("#"));
 
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const lines = linesOf(h);
-  const add = (k: string) => ({
-    label: `+ ${LABELS[k]}`,
-    action: { type: "editHost", path: DF, content: [...lines, k].join("\n") } as DockerAction,
-    tone: "producer" as const,
-    disabled: lines.includes(k) || (k !== "from" && !lines.includes("from")),
-  });
-  return [
-    { label: tr ? "Temel" : "Base", buttons: [add("from"), add("workdir")] },
-    { label: tr ? "Dosyalar" : "Files", buttons: [add("copyPkg"), add("npm"), add("copyAll")] },
-    { label: tr ? "Ayar" : "Settings", buttons: [add("expose"), add("cmd")] },
-    {
-      label: "docker",
-      buttons: [
-        {
-          label: `build -t ${TAG} .`,
-          action: { type: "build", tag: TAG, context: PROJECT, dockerfile: lines.map((k) => INS[k]!) },
-          tone: "go",
-          disabled: !lines.includes("from"),
-        },
-      ],
-    },
-  ];
+/** Has the Dockerfile changed since the last build? Then the scene shows it as written, not built. */
+export function unbuilt(h: Host): boolean {
+  const b = h.lastBuild;
+  if (!b) return true;
+  const parsed = parseDockerfile(h.hostFiles[DF] ?? "").instructions.map(instructionText);
+  return parsed.join("\n") !== b.steps.map((x) => x.text).join("\n");
 }
 
 function metrics(h: Host, t: (x: L) => string): Metric[] {
@@ -136,9 +114,9 @@ export const scene = makeDockerScene({
   label: l("Bir Dockerfile satır satır build ediliyor: her satırın sonucu ve image'ın layer'ları", "A Dockerfile built line by line: what each line did and the image's layers"),
   view: (h, info) => {
     const b = h.lastBuild;
-    const pending = info.sandbox ? linesOf(h).map((k) => LABELS[k]!) : undefined;
-    // In the try-it step, show the Dockerfile being written until it is built as it stands.
-    const fresh = info.sandbox && b && linesOf(h).length !== b.steps.length;
+    // In the try-it step, show the Dockerfile as written until it is built as it stands.
+    const pending = info.sandbox ? linesOf(h) : undefined;
+    const fresh = info.sandbox && unbuilt(h);
     return (
       // BuildStage's layer labels run past the right edge at full size, so draw it a little smaller.
       <g transform="translate(25 20) scale(0.9)">
@@ -155,6 +133,7 @@ export const scene = makeDockerScene({
     );
   },
   metrics,
-  sandbox: { start: () => createHost({ pulled: ["node:22-slim"] }), rows, missions },
+  // Free play: the project folder with no Dockerfile yet; each scenario brings its own.
+  sandbox: { start: () => laptop(), scenarios },
 });
 

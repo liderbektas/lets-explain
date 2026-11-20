@@ -1,23 +1,13 @@
 import { l, type L } from "@lets-explain/core/i18n";
-import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
+import { createHost, simulate, type DockerAction, type Host } from "../../engine/docker";
+import { API_BUILD } from "./model";
 import { HostStage, type HostLabels } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { LAPTOP, scenarios } from "./scenarios";
 
 export const SLUG = "run-flags";
 
-/** An API image that refuses to start without DATABASE_URL, built into the host beforehand. */
-export const API_BUILD: DockerAction = {
-  type: "build",
-  tag: "acme/api:1.0",
-  context: { "server.js": "app" },
-  dockerfile: [
-    { op: "FROM", image: "node:22-slim" },
-    { op: "WORKDIR", path: "/app" },
-    { op: "COPY", src: ["server.js"], dest: "." },
-    { op: "CMD", args: ["node", "server.js"], program: { kind: "app", listens: 3000, needsEnv: ["DATABASE_URL"] } },
-  ],
-};
+export { API_BUILD } from "./model";
 
 /** The lesson's machine: Docker is installed and the API image is already here; nothing runs yet. */
 export const START: Host = simulate([API_BUILD], createHost()).states[1]!;
@@ -51,34 +41,6 @@ export const labels = (t: (x: L) => string): HostLabels => ({
   noImages: t(l("Henüz image yok", "No images yet")),
 });
 
-/** The sandbox: nginx and the API image are here, nothing runs. */
-const sandboxStart = (): Host => simulate([API_BUILD, { type: "pull", ref: "nginx:1.27" }], createHost()).states[2]!;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const w = findContainer(h, "web");
-  const api = findContainer(h, "api");
-  return [
-    {
-      label: "nginx",
-      buttons: [
-        { label: "run -d --name web", action: web(), tone: "producer" },
-        { label: "run -d --name web -p 8080:80", action: web({ ports: ["8080:80"] }), tone: "producer" },
-        { label: "rm -f web", action: { type: "rm", container: "web", force: true }, tone: "danger", disabled: !w },
-      ],
-    },
-    {
-      label: "api",
-      buttons: [
-        { label: "run -d --name api", action: { type: "run", image: "acme/api:1.0", detach: true, name: "api" }, tone: "producer" },
-        { label: "run -d --name api -e DATABASE_URL=…", action: { type: "run", image: "acme/api:1.0", detach: true, name: "api", env: { DATABASE_URL: "postgres://db/shop" } }, tone: "producer" },
-        { label: "rm -f api", action: { type: "rm", container: "api", force: true }, tone: "danger", disabled: !api },
-      ],
-    },
-    { label: tr ? "Dene" : "Try", buttons: [{ label: "curl localhost:8080", action: { type: "curl", port: 8080 }, tone: "go" }] },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -94,5 +56,6 @@ export const scene = makeDockerScene({
       { label: "Image", value: Object.keys(h.images).length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts on the laptop; each scenario brings its own state.
+  sandbox: { start: () => LAPTOP, scenarios },
 });

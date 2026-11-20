@@ -1,12 +1,12 @@
 import { l, type L } from "@lets-explain/core/i18n";
-import { apply, findContainer, imageFor, imageSize, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
+import { apply, imageFor, imageSize, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { BuildStage, type BuildLabels } from "../../iso/BuildStage";
 import { HostStage } from "../../iso/HostStage";
 import { contextOf, freshHost, IGNORE, PROJECT, versionOf } from "../dockerize-your-app/project";
 import { labels } from "../run-flags/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { CiPanel } from "./CiPanel";
-import { missions } from "./missions";
+import { LAPTOP, scenarios } from "./scenarios";
 
 export const SLUG = "dev-prod-and-ci";
 export const REPO = "ghcr.io/ada/shop";
@@ -78,37 +78,6 @@ const buildLabels = (t: (x: L) => string): BuildLabels => ({
   waiting: t(l("Henüz build yok", "Nothing built yet")),
 });
 
-/** The sandbox: dev is up on :3000 with v1 and the folder mounted; nothing is built for prod. */
-const sandboxStart = (): Host => {
-  let h = freshHost();
-  h = apply(h, buildTarget(h, "dev", "shop:dev")).state;
-  return apply(h, devUp).state;
-};
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const v = versionOf(h);
-  const prod = findContainer(h, "prod");
-  return [
-    { label: tr ? "Kod" : "Code", buttons: [{ label: `index.html → v${v + 1}`, action: edit(v + 1), tone: "producer", disabled: v >= 5 }] },
-    {
-      label: "Prod",
-      buttons: [
-        { label: "build --target prod -t shop:prod", action: buildTarget(h, "prod", "shop:prod"), tone: "ok" },
-        { label: "run -d --name prod -p 8080:3000", action: runProd("shop:prod"), tone: "producer", disabled: Boolean(prod) || !imageFor(h, "shop:prod") },
-        { label: "rm -f prod", action: { type: "rm", container: "prod", force: true }, tone: "danger", disabled: !prod },
-      ],
-    },
-    {
-      label: tr ? "Dene" : "Try",
-      buttons: [
-        { label: tr ? "curl :3000 (dev)" : "curl :3000 (dev)", action: curl(3000), tone: "go" },
-        { label: tr ? "curl :8080 (prod)" : "curl :8080 (prod)", action: curl(8080), tone: "go" },
-      ],
-    },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -147,5 +116,6 @@ export const scene = makeDockerScene({
       { label: t(l("Registry'deki tag", "Tags pushed")), value: Object.keys(h.registry.tags).filter((x) => x.startsWith(`${REPO}:`)).length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the checked-out project; each scenario brings its own state.
+  sandbox: { start: () => LAPTOP, scenarios },
 });

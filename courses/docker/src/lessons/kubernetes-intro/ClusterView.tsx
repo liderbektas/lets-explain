@@ -89,7 +89,7 @@ export function ClusterView({ cluster, labels, last }: { cluster: Cluster; label
         <g transform="translate(700 50)">
           <rect x={-130} y={-15} width={260} height={30} rx={15} style={{ fill: served ? "var(--mint)" : "var(--red-soft)", stroke: "var(--ink)", strokeWidth: 2 }} />
           <text y={5} textAnchor="middle" style={text(12.5)}>
-            {served ? `curl web → ${served.pod} (${served.version})` : failed!.why === "no-service" ? "curl web → no Service" : "curl web → no pods"}
+            {served ? `curl web → ${served.pod} (${served.version})` : failed!.why === "no-service" ? "curl web → no Service" : failed!.why === "no-forward" ? "curl → no port-forward" : "curl web → no pods"}
           </text>
         </g>
       )}

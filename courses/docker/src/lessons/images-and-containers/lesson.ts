@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const imagesAndContainers: Lesson = {
@@ -14,7 +14,7 @@ export const imagesAndContainers: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Image'ın salt okunur bir paket olduğunu bilmek", "Know that an image is a read-only package"), step: 0 },
     { text: l("Container'ın image'ın üstünde kendi katmanıyla çalıştığını görmek", "See a container run on top of an image with its own layer"), step: 3 },
@@ -278,13 +278,16 @@ export const imagesAndContainers: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makine boş. nginx'i indirebilir, ona yeni bir isim verebilir, ondan container başlatabilir, `curl` ile deneyebilir ve container'ı ya da image'ı silebilirsin.",
-          "This machine is empty. You can pull nginx, give it another name, start a container from it, try it with `curl`, and remove the container or the image.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: image indirmek, container'ın kendi katmanı, kullanımdaki bir image'ı silmek, yeni bir isim ve kendi image'ını yapmak. Komutları terminale **kendin yaz**; sahne her komutta ne olduğunu gösterir.",
+          "Your turn. Below are **5 scenarios** from real work: pulling images, a container's own layer, removing an image in use, a new name and building your own image. **Type the commands yourself** in the terminal; the scene shows what each one does.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker images` image'ları, `docker ps -a` container'ları gösterir; ikisi ayrı şeyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker images` lists images and `docker ps -a` lists containers; they are different things. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

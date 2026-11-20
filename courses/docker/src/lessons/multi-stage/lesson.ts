@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const NODE_MULTI = `# --- 1. build: full tools, never shipped ---
@@ -57,7 +57,7 @@ export const multiStage: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Tek stage'li image'da neyin gereksiz taşındığını görmek", "See what a single-stage image carries for nothing"), step: 1 },
     { text: l("`COPY --from` ile sadece çıktıyı son image'a almak", "Take only the output into the final image with `COPY --from`"), step: 2 },
@@ -247,10 +247,13 @@ export const multiStage: Lesson = {
       title: l("Şimdi sen küçült", "Now you shrink it"),
       body: [
         l(
-          "Dockerfile şu an tek stage ve `node:22` üstünde. Multi-stage'e çevirebilir, son image'ın tabanını seçebilir, build edip container başlatabilir ve içine `sh` ile girmeyi deneyebilirsin.",
-          "The Dockerfile is single-stage on `node:22`. You can make it multi-stage, pick the final base, build, start a container and try to get in with `sh`.",
+          "Sıra sende. Proje bir TypeScript servisi; Dockerfile şu an tek stage ve `node:22` üstünde. Aşağıda gerçek işten **4 senaryo** var: Dockerfile'ı `nano Dockerfile` ile **kendin düzenle**, `docker build -t shop .` ile build et; sahne her stage'in layer'larını ve image'ın boyutunu gösterir.",
+          "Your turn. The project is a TypeScript service; the Dockerfile is single-stage on `node:22`. Below are **4 scenarios** from real work: **edit the Dockerfile yourself** with `nano Dockerfile` and build it with `docker build -t shop .`; the scene shows each stage's layers and the image's size.",
         ),
-        l("distroless'ı sadece multi-stage'de seçebilirsin: içinde `npm` çalıştıracak shell yok. **3 görev** var.", "distroless is only available in multi-stage: it has no shell to run `npm` in. There are **3 missions**."),
+        l(
+          "`docker images` boyutları listeler. distroless'ın ENTRYPOINT'i zaten `node`; CMD'ye sadece betiğin yolu yazılır. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker images` lists the sizes. distroless's ENTRYPOINT already is `node`; CMD only gets the script's path. Hints open one at a time; few commands earn 3 stars.",
+        ),
       ],
     },
   ],

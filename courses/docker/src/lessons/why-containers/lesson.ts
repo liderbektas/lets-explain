@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const whyContainers: Lesson = {
@@ -14,7 +14,7 @@ export const whyContainers: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Container'ın hangi sorunu çözdüğünü anlamak", "Understand the problem containers solve"), step: 1 },
     { text: l("Sanal makine ile container farkını bilmek", "Know how a virtual machine differs from a container"), step: 3 },
@@ -280,13 +280,16 @@ export const whyContainers: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede `nginx:1.27` image'ı var. `box1`, `box2` ve `box3` adlı container'lar başlatabilir, box1'e not yazabilir, notu arayabilir ve box1'i silebilirsin.",
-          "This machine has the `nginx:1.27` image. You can start containers called `box1`, `box2` and `box3`, write a note into box1, look for the note, and remove box1.",
+          "Sıra sende. Bu makinede `nginx:1.27` image'ı var. Aşağıda gerçek işten **4 senaryo** var: komutları terminale **kendin yaz**, sahne her komutta ne olduğunu gösterir.",
+          "Your turn. This machine has the `nginx:1.27` image. Below are **4 scenarios** from real work: **type the commands yourself** in the terminal, and the scene shows what each one does.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker ps` neyin çalıştığını, `docker exec <ad> <komut>` bir container'ın içinde ne olduğunu gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker ps` shows what runs, and `docker exec <name> <command>` looks inside a container. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

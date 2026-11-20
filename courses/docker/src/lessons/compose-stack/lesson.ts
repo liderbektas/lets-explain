@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const YAML_EAGER = `services:
@@ -77,7 +77,7 @@ export const composeStack: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kısa `depends_on`'un hazır olmayı beklemediğini görmek", "See that short `depends_on` does not wait for readiness"), step: 1 },
     { text: l("Healthcheck ve `condition: service_healthy` yazmak", "Write a healthcheck and `condition: service_healthy`"), step: 3 },
@@ -298,13 +298,16 @@ export const composeStack: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Aynı yığın senin elinde: projeyi kısa `depends_on` ya da `service_healthy` ile ayağa kaldır, zamanı ilerlet, veritabanına sipariş yaz, `down` ve `down -v` ile kapat.",
-          "The same stack is yours: start it with the short `depends_on` or with `service_healthy`, let time pass, write an order to the database, take it down with `down` or `down -v`.",
+          "Sıra sende. Klasörde `app`, `db` (Postgres) ve `cache` (Redis) olan bir proje var. Aşağıda gerçek işten **5 senaryo** var: komutları terminale **kendin yaz**, `compose.yaml`'ı `nano` ile düzenle; sahne her komutta ne olduğunu gösterir.",
+          "Your turn. The folder holds a project with `app`, `db` (Postgres) and `cache` (Redis). Below are **5 scenarios** from real work: **type the commands yourself** and edit `compose.yaml` with `nano`; the scene shows what each command does.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `docker compose ps` (durum ve `(healthy)`) ve `docker compose logs app` yaz. `sleep 3` birkaç saniye geçirir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `docker compose ps` (status and `(healthy)`) and `docker compose logs app`. `sleep 3` lets a few seconds pass. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

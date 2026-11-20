@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const inspectAndClean: Lesson = {
@@ -14,7 +14,7 @@ export const inspectAndClean: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`ps` ile `ps -a` farkını bilmek", "Know `ps` versus `ps -a`"), step: 1 },
     { text: l("Kapanmış bir container'ın neden kapandığını loglardan okumak", "Read from the logs why a container stopped"), step: 3 },
@@ -302,13 +302,16 @@ export const inspectAndClean: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Makine dersin başındaki halinde: `web` çalışıyor, `hello` ve `broken` kapanmış, bir de sahipsiz image var. Terminal her düğmeden sonra `docker ps -a`'yı ve son komutun çıktısını gösterir.",
-          "The machine is as it was at the start: `web` running, `hello` and `broken` exited, and a dangling image. After each button the terminal shows `docker ps -a` and the last command's output.",
+          "Sıra sende. Bu makinede birkaç günlük iş birikmiş: çalışan `web`, kapanmış `hello` ve `broken`, kullanılmayan ve sahipsiz image'lar. Aşağıda **4 senaryo** var: yer açmak, sadece sahipsizleri silmek, bir servisi taşımak ve temizlik tuzağından kaçmak. Komutları alttaki terminale **kendin yaz**.",
+          "Your turn. A few days of work have piled up on this machine: a running `web`, stopped `hello` and `broken`, unused and dangling images. Below are **4 scenarios**: making room, removing only the dangling images, moving a service out and dodging the cleanup trap. **Type the commands yourself** in the terminal below.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Sahnedeki pencere sürekli `docker ps -a` gösterir; sağdaki özet de container ve image'ları. Silmeden önce `docker ps -a` ve `docker images` ile bak. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "The window in the scene keeps showing `docker ps -a`, and the summary on the right lists containers and images. Look with `docker ps -a` and `docker images` before you remove anything. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

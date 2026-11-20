@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const DOCKERFILE = `FROM node:22-slim AS base
@@ -91,7 +91,7 @@ export const devProdAndCi: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Dev'de bind mount ile build yapmadan değişikliği görmek", "See changes in dev through a bind mount, with no build"), step: 2 },
     { text: l("Aynı Dockerfile'dan `--target` ile dev ve prod image'ı çıkarmak", "Get dev and prod images from one Dockerfile with `--target`"), step: 3 },
@@ -334,13 +334,16 @@ export const devProdAndCi: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Dev ortamı `localhost:3000`'de v1 ile çalışıyor, klasör container'a bağlı. Prod için henüz image yok. Kodu değiştirebilir, prod image'ı build edip `8080`'de başlatabilir ve iki portu da deneyebilirsin.",
-          "Dev runs on `localhost:3000` with v1, the folder mounted into it. There is no prod image yet. You can change the code, build the prod image, start it on `8080`, and try both ports.",
+          "Sıra sende. Projede `dev` ve `prod` aşamalı bir Dockerfile, bir `compose.yaml`, otomatik okunan `compose.override.yaml` (dev) ve `compose.prod.yaml` var; GHCR token'ın `GITHUB_TOKEN`'da. Aşağıda gerçek işten **5 senaryo** var: komutları terminale **kendin yaz**; sahne her komutta ne olduğunu gösterir.",
+          "Your turn. The project has a Dockerfile with `dev` and `prod` stages, a `compose.yaml`, an automatically read `compose.override.yaml` (dev) and a `compose.prod.yaml`; your GHCR token is in `GITHUB_TOKEN`. Below are **5 scenarios** from real work: **type the commands yourself**; the scene shows what each one does.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Takılırsan `cat` ile dosyalara bak; `docker compose config` birleşmiş son hali gösterir, `curl localhost:3000` dev'i, `curl localhost:8080` prod'u dener. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, look at the files with `cat`; `docker compose config` shows the merged result, `curl localhost:3000` tries dev and `curl localhost:8080` prod. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

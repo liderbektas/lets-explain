@@ -1,4 +1,4 @@
-import { imageSize, memoryUse, type Container, type DockerEvent, type Host } from "../../engine/docker";
+import { imageSize, memoryUse, type Container, type DockerEvent, type Host } from "./docker";
 
 /**
  * What the Docker CLI would print for this host, built from the model: `docker ps`,

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const architecture: Lesson = {
@@ -14,7 +14,7 @@ export const architecture: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("CLI ile daemon'ın ayrı parçalar olduğunu bilmek", "Know that the CLI and the daemon are separate parts"), step: 0 },
     { text: l("Image'ı kimin indirdiğini görmek", "See who actually downloads an image"), step: 2 },
@@ -281,13 +281,16 @@ export const architecture: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu makinede henüz hiç image yok. nginx ve redis çalıştırabilir, image çekebilir, daemon'ı yeniden başlatabilir ve kapanan container'ı `docker start` ile geri getirebilirsin.",
-          "This machine has no images yet. You can run nginx and redis, pull an image, restart the daemon, and bring an exited container back with `docker start`.",
+          "Sıra sende. Aşağıda gerçek bir sunucudan **4 senaryo** var: daemon'ın image'ı kendisi indirmesi, başka bir registry'den image, gece yeniden başlayan daemon ve kapanan container'ı geri getirmek. Komutları terminale **kendin yaz**; sahne CLI'ın daemon'a ne dediğini gösterir.",
+          "Your turn. Below are **4 scenarios** from a real server: the daemon pulling images itself, an image from another registry, a daemon that restarts at night and bringing a stopped container back. **Type the commands yourself** in the terminal; the scene shows what the CLI asks the daemon.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker ps -a` kapanmış container'ları da gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`docker ps -a` shows stopped containers too. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

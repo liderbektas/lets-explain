@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, type DockerAction, type Host } from "../../engine/docker";
+import { createHost, type DockerAction, type Host } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
+import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
-import { missions } from "./missions";
+import { scenarios, MACHINE } from "./scenarios";
 
 export const SLUG = "volumes";
 
@@ -34,36 +34,6 @@ export const steps: DockerAction[][] = [
 
 export const EXPECTED_ERRORS: Record<number, number> = {};
 
-/** The sandbox: nginx is here, nothing runs, no volumes yet. */
-const sandboxStart = (): Host => createHost({ pulled: ["nginx:1.27"] });
-
-const sandNote = (n: number): DockerAction => ({ type: "write", container: "app", path: "/data/note.txt", content: `not ${n}` });
-
-function rows(h: Host, lang: "tr" | "en", history: DockerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const a = findContainer(h, "app");
-  const running = a?.state === "running";
-  const written = history.filter((x) => x.type === "write").length;
-  return [
-    {
-      label: tr ? "Başlat" : "Start",
-      buttons: [
-        { label: "run -d --name app nginx", action: app(), tone: "producer", disabled: Boolean(a) },
-        { label: "run -d --name app -v data:/data nginx", action: app(["data:/data"]), tone: "producer", disabled: Boolean(a) },
-      ],
-    },
-    {
-      label: "app",
-      buttons: [
-        { label: tr ? "Not yaz" : "Write a note", action: sandNote(written + 1), tone: "go", disabled: !running },
-        { label: "exec cat /data/note.txt", action: { type: "exec", container: "app", cmd: "cat /data/note.txt" }, disabled: !running },
-        { label: "rm -f app", action: rmf("app"), tone: "danger", disabled: !a },
-      ],
-    },
-    { label: "Volume", buttons: [{ label: "volume rm data", action: { type: "volumeRm", name: "data" }, tone: "danger", disabled: !h.volumes.data }] },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
@@ -78,5 +48,5 @@ export const scene = makeDockerScene({
       { label: t(l("Anonim volume", "Anonymous volumes")), value: vols.filter((v) => v.anonymous).length, tone: vols.some((v) => v.anonymous) ? "warn" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  sandbox: { start: () => MACHINE, scenarios },
 });

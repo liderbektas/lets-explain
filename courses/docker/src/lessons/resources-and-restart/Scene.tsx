@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { createHost, findContainer, simulate, type Container, type DockerAction, type Host, type Program } from "../../engine/docker";
+import { createHost, simulate, type Container, type DockerAction, type Host, type Program } from "../../engine/docker";
 import { HostStage } from "../../iso/HostStage";
 import { labels } from "../run-flags/Scene";
-import { makeDockerScene, type SandboxRow } from "../shared/DockerScene";
-import { missions } from "./missions";
+import { makeDockerScene } from "../shared/DockerScene";
+import { scenarios, IMAGES } from "./scenarios";
 import { StatsPanel } from "./StatsPanel";
 
 export const SLUG = "resources-and-restart";
@@ -56,42 +56,14 @@ export const steps: DockerAction[][] = [
 
 const recent = (h: Host, n = 3): Container[] => Object.values(h.containers).slice(-n);
 
-/** The sandbox: images only; you decide how to run them. */
-const sandboxStart = (): Host => START;
-
-function rows(h: Host, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const a = findContainer(h, "api");
-  const f = findContainer(h, "flaky");
-  return [
-    {
-      label: "api",
-      buttons: [
-        { label: "run --memory 64m", action: api("api", { memory: 64 }), tone: "producer", disabled: Boolean(a) },
-        { label: "run --memory 512m", action: api("api", { memory: 512 }), tone: "producer", disabled: Boolean(a) },
-        { label: "rm -f api", action: { type: "rm", container: "api", force: true }, tone: "danger", disabled: !a },
-        { label: tr ? "istek: 300 MB" : "request: 300 MB", action: { type: "load", container: "api", memory: 300 }, tone: "go", disabled: a?.state !== "running" },
-      ],
-    },
-    {
-      label: "flaky",
-      buttons: [
-        { label: "run flaky", action: { type: "run", image: "acme/flaky:1.0", detach: true, name: "flaky" }, tone: "producer", disabled: Boolean(f) },
-        { label: "run --restart on-failure", action: { type: "run", image: "acme/flaky:1.0", detach: true, name: "flaky", restart: "on-failure" }, tone: "producer", disabled: Boolean(f) },
-        { label: "rm -f flaky", action: { type: "rm", container: "flaky", force: true }, tone: "danger", disabled: !f },
-      ],
-    },
-    { label: tr ? "Zaman" : "Time", buttons: [{ label: tr ? "bekle (+1)" : "wait (+1)", action: { type: "tick" } }] },
-  ];
-}
-
 export const scene = makeDockerScene({
   slug: SLUG,
   start: START,
   steps,
   label: l("Bellek ve CPU sınırlarıyla container'lar, altta docker stats", "Containers with memory and CPU limits, with docker stats underneath"),
   view: (h, info) => {
-    const shown = info.sandbox ? (["api", "flaky"].map((n) => findContainer(h, n)).filter(Boolean) as Container[]) : recent(h);
+    // The newest few containers, in the lesson and in the scenarios alike.
+    const shown = recent(h);
     return (
       <g>
         <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages containers={shown.map((c) => c.name)} />
@@ -108,5 +80,5 @@ export const scene = makeDockerScene({
       { label: t(l("Yeniden başlatma", "Restarts")), value: all.reduce((n, c) => n + c.restarts, 0), tone: all.some((c) => c.restarts) ? "warn" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  sandbox: { start: () => IMAGES, scenarios },
 });
