@@ -1,47 +1,34 @@
 import { AnimatePresence } from "motion/react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import type { ReactNode } from "react";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
+import { kafkaShell, replayShell, type KafkaBox, type ShellAction } from "../../engine/cli";
 import { groupStats } from "../../engine/cluster";
 import type { Partition } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { rel } from "@lets-explain/core/iso/geometry";
 import { NameTag, PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
 import { Belt, CommitSeal, Parcel, Person, Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import { describeEvents } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions, missionView } from "./missions";
+import { kafkaCtx } from "../shared/TopicLessonScene";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
+import { FREE, scenarios } from "./scenarios";
 import {
-  ack,
   ANALYTICS,
   base,
   BILLING,
-  canDo,
-  crash,
   inQueue,
   kafkaPosition,
   kafkaSeen,
-  kCommit,
-  kRead,
-  kRewind,
   orderNo,
   P,
-  restart,
-  run,
   SANDBOX_STEP,
-  sandboxStart,
   stepActions,
-  take,
   TOPIC,
   viewFor,
-  write,
   type GroupRef,
   type QEvent,
-  type VAction,
   type View,
   type VState,
   type Worker,
@@ -74,7 +61,6 @@ const text = {
   lag: l("lag", "lag"),
   partitions: l("Partition", "Partitions"),
   members: l("Group üyesi", "Group members"),
-  yours: l("(senin)", "(yours)"),
   legendMsg: l("mesaj / kayıt (üstünde numara)", "message / record (number on top)"),
   legendHeld: l("tik = bir worker'ın elinde", "tick = held by a worker"),
   legendFlagQ: l("bayrak = worker'ın elindeki mesaj", "flag = the message a worker holds"),
@@ -83,20 +69,7 @@ const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  view: l("Görünüm", "View"),
-  viewQueue: l("Kuyruk", "Queue"),
-  viewKafka: l("Kafka", "Kafka"),
-  write: l("Sipariş yaz (ikisine de)", "Write order (to both)"),
-  takeBtn: l("Al", "Take"),
-  ackBtn: l("Onayla (ack)", "Ack"),
-  crashBtn: l("Çökert", "Crash"),
-  startBtn: l("Başlat", "Start"),
-  readBtn: l("Oku", "Read"),
-  commitBtn: l("Commit", "Commit"),
-  rewindBtn: l("Başa sar", "Rewind"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
+  nothing: l("Bir komut yaz; Kafka'da ne olduğunu burada sade bir dille gör.", "Type a command; see what happened in Kafka here, in plain words."),
   pBilling0: l("Fatura-1 → partition 0", "Billing-1 → partition 0"),
   pBilling1: l("Fatura-2 → partition 1", "Billing-2 → partition 1"),
   idle: l("Fatura-3: boşta, partition yok", "Billing-3: idle, no partition"),
@@ -123,6 +96,18 @@ function queuePartition(s: VState): Partition {
 }
 
 const kafkaPartition = (s: VState) => s.kafka.topics[TOPIC]!.partitions[0]!;
+
+/** Where a group reads next: the lesson's own reader, else whichever console consumer is in it, else its commit. */
+function positionOf(s: VState, g: GroupRef): number | undefined {
+  const own = kafkaPosition(s, g);
+  if (own !== undefined) return own;
+  const group = s.kafka.groups[g.group];
+  if (!group) return undefined;
+  return group.members[0]?.positions[P] ?? group.committed[P];
+}
+
+/** The end of the lesson; in the try-it step only its Kafka part is replaced by the terminal's. */
+const LESSON_END = base.run.states[base.ends[SANDBOX_STEP]!]!;
 
 /* ----------------------------------------------------------------- events */
 
@@ -194,29 +179,32 @@ function describe(events: QEvent[], lang: Lang, t: (x: L) => string): Line[] {
 export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<VAction[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
+  const box = useTypedSandbox({
+    slug: SLUG,
+    active: sandbox,
+    scenarios,
+    freeStart: FREE,
+    shell: kafkaShell,
+    replay: (start: KafkaBox, actions: ShellAction[]) => replayShell(start, actions),
+    final: (r) => r.boxes[r.boxes.length - 1]!,
+    context: (start, _actions, r) => kafkaCtx(start, r),
   });
-  const [sandboxView, setSandboxView] = useState<"queue" | "kafka">(() => missionView[missions[missionIndex ?? 0]?.id ?? ""] ?? "queue");
-  const view: View = sandbox ? sandboxView : viewFor(step);
+  // The try-it step is typed in the Kafka world: the queue has no command line to type into.
+  const view: View = sandbox ? "kafka" : viewFor(step);
 
   const stepCount = sandbox ? 0 : stepActions[step]!.length;
   // The groups picture has no simulation; it plays two phases instead (a member joins, then rebalances).
   const phases = view === "groups" ? 2 : 0;
   const cursor = usePlayback(stepCount + phases, paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? run(extra, sandboxStart) : null), [sandbox, extra]);
 
   let state: VState;
   let lastEvents: QEvent[];
   let shown: QEvent[];
-  if (sandboxRun) {
-    state = sandboxRun.states[sandboxRun.states.length - 1]!;
-    lastEvents = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
-    shown = sandboxRun.events.flat();
+  if (box.run) {
+    state = { ...LESSON_END, kafka: box.run.boxes[box.run.boxes.length - 1]!.cluster };
+    const withEvents = box.run.events.filter((e) => e.length > 0);
+    lastEvents = withEvents.length ? [{ type: "kafka", events: withEvents[withEvents.length - 1]! }] : [];
+    shown = withEvents.map((events) => ({ type: "kafka", events }));
   } else {
     const start = base.startOf(step);
     const c = Math.min(cursor, stepCount);
@@ -225,31 +213,13 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
     shown = base.run.events.slice(start, start + c).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-    const v = i === null ? null : missionView[missions[i]!.id];
-    if (v) setSandboxView(v);
-  };
-  const act = (a: VAction) => {
-    if (!locked) setExtra((xs) => [...xs, a]);
-  };
-
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = box.run ? box.run.events.length : cursor;
   const q = state.queue;
 
   /* ---- drawing per view */
   let drawing: ReactNode = null;
   let metrics: Metric[] = [];
   const legend: LegendItem[] = [{ swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendMsg) }];
-  const yours = sandbox ? ` ${t(text.yours)}` : "";
 
   if (view === "queue") {
     const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
@@ -284,14 +254,13 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
         labels={{ next: t(text.queueNext), retention: t(text.shredder) }}
       />
     );
-    const startQ = sandbox ? sandboxStart.queue : null;
-    const deleted = Object.keys(q.acked).length - (startQ ? Object.keys(startQ.acked).length : 0);
+    // The queue is only drawn while the lesson plays, never in the typed try-it step.
+    const deleted = Object.keys(q.acked).length;
     const again = q.deliveries.filter((d, i) => q.deliveries.findIndex((x) => x.id === d.id) !== i).length;
-    const againStart = startQ ? startQ.deliveries.filter((d, i) => startQ.deliveries.findIndex((x) => x.id === d.id) !== i).length : 0;
     metrics = [
       { label: t(text.waitingMetric), value: inQueue(q).length },
-      { label: `${t(text.deletedMetric)}${yours}`, value: deleted },
-      { label: `${t(text.againMetric)}${yours}`, value: again - againStart, tone: again - againStart > 0 ? "warn" : "plain" },
+      { label: t(text.deletedMetric), value: deleted },
+      { label: t(text.againMetric), value: again, tone: again > 0 ? "warn" : "plain" },
     ];
     legend.push(
       { swatch: <circle r={6} cy={-3} className="ink" style={{ fill: TINTS.coral.body }} />, label: t(text.legendHeld) },
@@ -311,7 +280,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
         id: g.group,
         name: t(g === BILLING ? text.billing : text.analytics),
         tint: GROUP_TINT[g.group]!,
-        position: kafkaPosition(state, g),
+        position: positionOf(state, g),
         committed: state.kafka.groups[g.group]!.committed[P],
         pulse,
         state: readNow ? "hop" : "idle",
@@ -322,7 +291,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
         partition={part}
         readers={readers}
         producerName={t(text.producer)}
-        producerState={lastEvents.some((e) => e.type === "written") ? "hop" : "idle"}
+        producerState={lastEvents.some((e) => e.type === "written" || (e.type === "kafka" && e.events.some((x) => x.type === "produced"))) ? "hop" : "idle"}
         producerPulse={pulse}
         marks={marks}
         kindOf={() => "order"}
@@ -377,68 +346,10 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
     </div>
   );
 
-  const btn = (a: VAction, label: L, cls = "") => (
-    <button key={`${JSON.stringify(a)}`} className={`chip-btn ${cls}`} disabled={locked || !canDo(state, a)} onClick={() => act(a)}>
-      {t(label)}
-    </button>
-  );
-  const workerRow = (w: Worker) => (
-    <div className="control-row" key={w}>
-      <span className="control-name">
-        <i style={{ background: WORKER_TINT[w].body }} />
-        {t(text.worker[w])}
-      </span>
-      {btn(take(w), text.takeBtn)}
-      {btn(ack(w), text.ackBtn, "is-ok")}
-      {q.alive[w] ? btn(crash(w), text.crashBtn, "is-danger toggle-btn") : btn(restart(w), text.startBtn, "is-ok toggle-btn")}
-    </div>
-  );
-  const groupRow = (g: GroupRef) => (
-    <div className="control-row" key={g.group}>
-      <span className="control-name">
-        <i style={{ background: GROUP_TINT[g.group]!.body }} />
-        {t(g === BILLING ? text.billing : text.analytics)}
-      </span>
-      {btn(kRead(g), text.readBtn)}
-      {btn(kCommit(g), text.commitBtn, "is-ok")}
-      {g === BILLING && btn(kRewind(g), text.rewindBtn)}
-    </div>
-  );
-
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={extra.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">{t(text.view)}</span>
-          <button className={`chip-btn ${sandboxView === "queue" ? "is-producer" : ""}`} aria-pressed={sandboxView === "queue"} onClick={() => setSandboxView("queue")}>
-            {t(text.viewQueue)}
-          </button>
-          <button className={`chip-btn ${sandboxView === "kafka" ? "is-producer" : ""}`} aria-pressed={sandboxView === "kafka"} onClick={() => setSandboxView("kafka")}>
-            {t(text.viewKafka)}
-          </button>
-          {btn(write, text.write, "is-producer")}
-        </div>
-        {sandboxView === "queue" ? (
-          <>
-            {workerRow("a")}
-            {workerRow("b")}
-          </>
-        ) : (
-          <>
-            {groupRow(BILLING)}
-            {groupRow(ANALYTICS)}
-          </>
-        )}
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {box.panel}
+      {box.terminal}
       {eventList}
     </div>
   ) : null;

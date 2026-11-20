@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, KafkaStreamsScene } from "./Scene";
 
 export const kafkaStreams: Lesson = {
@@ -14,7 +14,7 @@ export const kafkaStreams: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: KafkaStreamsScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kafka Streams'in bir kütüphane olduğunu anlamak", "Understand that Kafka Streams is a library"), step: 1 },
     { text: l("KStream ile KTable'ı ayırt etmek", "Tell a KStream from a KTable"), step: 3 },
@@ -349,27 +349,23 @@ export const kafkaStreams: Lesson = {
     {
       short: l("Sıra sende", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Temiz bir başlangıç: iki sipariş sayılmış ve commit edilmiş, garanti **at_least_once**.",
-          "A clean start: two orders counted and committed, the guarantee is **at_least_once**.",
+          "Sıra sende. Aşağıda şehir başına sipariş sayan Kafka Streams uygulamasının projesi var. Ayarları `streams.properties`'te (`processing.guarantee`); `./run-app.sh` uygulamayı başlatır, bekleyen siparişleri sayar ve commit eder. `./place-order.sh İzmir` sipariş ekler.",
+          "Your turn. Below is the project of the Kafka Streams app that counts orders per city. Its settings are in `streams.properties` (`processing.guarantee`); `./run-app.sh` starts it, counts the waiting orders and commits. `./place-order.sh İzmir` adds an order.",
         ),
         l(
-          "Sipariş ekleyebilir, uygulamaya tek tek işletebilir, commit ettirebilir, çökertip başlatabilir ve garantiyi değiştirebilirsin. Her çökmede yerel disk kaybolur.",
-          "You can add orders, process them one at a time, commit, crash and restart the app, and switch the guarantee. Every crash loses the local disk.",
-        ),
-        l(
-          "Sahnenin altında **3 görev** var. Ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın. Görevsiz oynamak için **Serbest**'i seç.",
-          "There are **3 missions** under the scene. The fewer moves you use, the more stars you get. To play without a mission, choose **Free play**.",
+          "Çıktıyı `kafka-console-consumer.sh` ile `orders-per-city` topic'inden okursun; durmuş bir uygulamayı `kafka-streams-application-reset.sh` başa sarar. Planlanan arıza gizli `.chaos` dosyasında (`ls -a`). **4 senaryo** var; az komutla bitirirsen 3 yıldız.",
+          "Read the output from the `orders-per-city` topic with `kafka-console-consumer.sh`; `kafka-streams-application-reset.sh` rewinds a stopped app. The planned failure is in the hidden `.chaos` file (`ls -a`). There are **4 scenarios**; few commands earn 3 stars.",
         ),
       ],
       callouts: [
         {
-          kind: "reality",
+          kind: "insight",
           text: l(
-            "Burada garantiyi bir düğmeyle değiştiriyorsun. Gerçekte `processing.guarantee` bir ayardır ve uygulama yeniden başlatılarak değiştirilir.",
-            "Here you switch the guarantee with a button. In reality `processing.guarantee` is a setting, changed by restarting the app.",
+            "Burada her çöküş yerel diski de götürür, store hep changelog'dan kurulur. Gerçekte disk kalırsa Kafka Streams yerel store'u kullanır ve sadece aradaki farkı okur.",
+            "Here every crash takes the local disk too, so the store is always rebuilt from the changelog. In real life, if the disk survives, Kafka Streams reuses the local store and only reads what it missed.",
           ),
         },
       ],

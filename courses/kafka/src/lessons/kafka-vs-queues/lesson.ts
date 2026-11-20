@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, KafkaVsQueuesScene } from "./Scene";
 
 export const kafkaVsQueues: Lesson = {
@@ -14,7 +14,7 @@ export const kafkaVsQueues: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: KafkaVsQueuesScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kuyrukta onaylanan mesajın silindiğini görmek", "See that an acknowledged message is deleted from a queue"), step: 1 },
     { text: l("Kuyruğa sonradan bağlanan servisin neden geçmişi göremediğini görmek", "See why a service that joins a queue late sees no history"), step: 3 },
@@ -333,23 +333,23 @@ export const kafkaVsQueues: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Kuyrukta bir sipariş bekliyor. Üstteki **Görünüm** düğmeleriyle kuyruk ve Kafka arasında geçebilirsin; \"Sipariş yaz\" ikisine birden yazar.",
-          "One order is waiting in the queue. Use the **View** buttons to switch between the queue and Kafka; \"Write order\" writes to both.",
+          "Sıra sende. Kuyruğun bir komut satırı yok ama Kafka'nın var: aşağıda tek partition'lı `orders` topic'i ve gerçek işten **4 senaryo** var. Her biri bir kuyruğun yapacağı şeyle başlıyor (onaylananı silmek, mesajı tek worker'a vermek) ve Kafka'nın bunun yerine ne yaptığını **kendin yazarak** görmeni istiyor.",
+          "Your turn. A queue has no command line, but Kafka does: below is the one-partition `orders` topic and **4 scenarios** from real work. Each starts from what a queue would do (delete what's acked, hand a message to one worker) and asks you to see what Kafka does instead, **by typing it yourself**.",
         ),
         l(
-          "Sahnenin altında **3 görev** var: bir mesajı yeniden teslim ettirmek, aynı siparişi iki dünyada izlemek ve Kafka'da geçmişi yeniden okumak.",
-          "There are **3 missions** under the scene: get a message redelivered, follow one order through both worlds, and replay history in Kafka.",
+          "`kafka-console-consumer.sh --group billing` bir group olarak okur ve commit eder, `kafka-consumer-groups.sh` group'ların nerede durduğunu gösterir ve taşır. Takılırsan `help` yaz; ipuçları adım adım açılır.",
+          "`kafka-console-consumer.sh --group billing` reads and commits as a group, and `kafka-consumer-groups.sh` shows and moves where groups stand. If you're stuck, type `help`; hints open one at a time.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Bir görev seçince sahne o görevin dünyasına geçer. Olay listesindeki \"Kafka ·\" satırları Kafka tarafında olanları gösterir.",
-            "Picking a mission switches the stage to its world. Lines starting with \"Kafka ·\" in the event list are what happened on the Kafka side.",
+            "Olay listesindeki \"Kafka ·\" satırları her komuttan sonra Kafka'da olanları sade bir dille yazar.",
+            "The lines starting with \"Kafka ·\" in the event list say what happened in Kafka after each command, in plain words.",
           ),
         },
       ],

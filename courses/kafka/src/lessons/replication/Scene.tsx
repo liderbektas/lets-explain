@@ -4,10 +4,11 @@ import { l, useLang } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage } from "../../iso/ClusterStage";
 import { Pill } from "@lets-explain/core/iso/shapes";
 import { describeReplicated } from "../cluster-kit/describe";
-import { clusterLabels, replicatedChanges, Sandbox, toStage, useSceneState } from "../cluster-kit/kit";
+import { clusterLabels, replicatedChanges, toStage, TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import { controls, model, run, SANDBOX_STEP, SLUG, stepActions, writtenIn } from "./model";
+import { rCtx, replayR, replicationShell } from "../../engine/replicationCli";
+import { model, run, SANDBOX_STEP, SLUG, stepActions } from "./model";
+import { FREE, scenarios } from "./scenarios";
 
 const text = {
   label: l(
@@ -30,7 +31,10 @@ const text = {
 
 export function ReplicationScene({ step, paused, replayKey, controls: frameControls }: SceneProps) {
   const { t, lang } = useLang();
-  const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  const lesson = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  // The try-it step is typed: the terminal's state replaces the lesson's.
+  const typed = useTypedKit({ slug: SLUG, active: step === SANDBOX_STEP, scenarios, freeStart: FREE, shell: replicationShell, replay: replayR, context: rCtx, stateOf: (b) => b.state });
+  const view = typed ? { ...lesson, ...typed, sandbox: true } : { ...lesson, start: null as RState | null };
   const s = view.state;
   const p = s.partitions[0]!;
   const replicated = p.replicas.length > 1;
@@ -38,7 +42,7 @@ export function ReplicationScene({ step, paused, replayKey, controls: frameContr
 
   const writing = view.lastEvents.some((e) => e.type === "produced" || e.type === "rejected");
   const stats = sendStats(s);
-  const before = view.ctx ? sendStats(view.ctx.start) : { lost: 0 };
+  const before = view.start ? sendStats(view.start) : { lost: 0 };
 
   const metrics: Metric[] = [
     { label: t(text.leader), value: p.leader === null ? t(text.none) : `B${p.leader}`, tone: p.leader === null ? "danger" : "plain" },
@@ -56,10 +60,7 @@ export function ReplicationScene({ step, paused, replayKey, controls: frameContr
   ];
 
   const lines = describeReplicated(view.shownEvents, lang);
-  const footer =
-    view.sandbox && view.ctx ? (
-      <Sandbox slug={SLUG} missions={missions} ctx={view.ctx} rows={controls(s, writtenIn(view.extra))} extra={view.extra} setExtra={view.setExtra} lines={lines} />
-    ) : null;
+  const footer = typed ? <TypedFooter view={typed} lines={lines} /> : null;
 
   return (
     <SceneFrame

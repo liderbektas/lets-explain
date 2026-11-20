@@ -135,6 +135,16 @@ export function describeTopicEvents(events: SimEvent[], lang: Lang, names: Names
         });
         break;
 
+      case "offsetsReset": {
+        const parts = Object.entries(e.offsets)
+          .map(([p, o]) => `${pName(p)} ${o.from ?? "–"} → ${o.to}`)
+          .join(", ");
+        lines.push({
+          text: tr ? `${e.group} group'unun commit'li offset'leri değişti: ${parts}` : `Group ${e.group}'s committed offsets moved: ${parts}`,
+          tone: "plain",
+        });
+        break;
+      }
       case "partitionsAdded":
         lines.push({
           tone: "ok",

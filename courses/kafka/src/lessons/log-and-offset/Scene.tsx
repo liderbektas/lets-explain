@@ -1,35 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
-import { groupStats, simulate } from "../../engine/cluster";
-import type { Action, ClusterState, SimEvent } from "../../engine/types";
+import { kafkaShell, replayShell, type KafkaBox, type ShellAction } from "../../engine/cli";
+import { groupStats } from "../../engine/cluster";
+import type { ClusterState, SimEvent } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
 import { CommitSeal, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import { describeEvents } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import {
-  base,
-  commit,
-  consumers,
-  crash,
-  deleteOldest,
-  join,
-  nextOrder,
-  poll,
-  produce,
-  readerFor,
-  SANDBOX_STEP,
-  sandboxStart,
-  seek,
-  stepActions,
-  TOPIC,
-} from "./model";
+import { kafkaCtx } from "../shared/TopicLessonScene";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
+import { FREE, scenarios } from "./scenarios";
+import { base, consumers, P, readerFor, SANDBOX_STEP, stepActions, TOPIC, type ConsumerDef } from "./model";
 
 const SLUG = "log-and-offset";
 
@@ -45,22 +27,11 @@ const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothing: l("Bir komut yaz; log'da ne olduğunu burada sade bir dille gör.", "Type a command; see what happened on the log here, in plain words."),
   legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
   legendCancel: l("iptal event'i", "cancel event"),
   legendFlag: l("bayrak = sıradaki okunacak offset", "flag = next offset to read"),
   legendSeal: l("mühür = commit edilen offset", "seal = committed offset"),
-  log: l("Log", "Log"),
-  write: l("Sipariş yaz", "Write order"),
-  retentionBtn: l("Eski 2 kaydı sil", "Delete oldest 2"),
-  readOne: l("1 oku", "Read 1"),
-  readAll: l("Hepsini oku", "Read all"),
-  doCommit: l("Commit", "Commit"),
-  doCrash: l("Çökert", "Crash"),
-  doStart: l("Başlat", "Start"),
-  rewind: l("Başa sar", "Rewind"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
   yours: l("(senin)", "(yours)"),
 };
 
@@ -77,27 +48,28 @@ function valueText(value: string, lang: Lang) {
 export function LogAndOffsetScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<Action[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  // Open the first mission not yet finished, so a returning reader picks up where they were.
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
+  const box = useTypedSandbox({
+    slug: SLUG,
+    active: sandbox,
+    scenarios,
+    freeStart: FREE,
+    shell: kafkaShell,
+    replay: (start: KafkaBox, actions: ShellAction[]) => replayShell(start, actions),
+    final: (r) => r.boxes[r.boxes.length - 1]!,
+    context: (start, _actions, r) => kafkaCtx(start, r),
   });
 
   const count = sandbox ? 0 : stepActions[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
 
-  const sandboxRun = useMemo(() => (sandbox ? simulate(extra, sandboxStart) : null), [sandbox, extra, sandboxStart]);
-
   let state: ClusterState;
   let lastEvents: SimEvent[];
   let shownEvents: SimEvent[];
-  if (sandboxRun) {
-    state = sandboxRun.states[sandboxRun.states.length - 1]!;
-    lastEvents = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
-    shownEvents = sandboxRun.events.flat();
+  if (box.run) {
+    state = box.run.boxes[box.run.boxes.length - 1]!.cluster;
+    const withEvents = box.run.events.filter((e) => e.length > 0);
+    lastEvents = withEvents[withEvents.length - 1] ?? [];
+    shownEvents = box.run.events.flat();
   } else {
     const start = base.startOf(step);
     state = base.run.states[start + cursor]!;
@@ -107,22 +79,7 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
 
   const partition = state.topics[TOPIC]!.partitions[0]!;
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(
-    mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }),
-  );
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  // A finished mission freezes the buttons, so the move count on the stars stays honest.
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-  };
-
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = box.run ? box.run.events.length : cursor;
 
   // Highlights for this moment: parcels just read (or read again).
   const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
@@ -133,7 +90,7 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
   }
 
   const readers: Reader[] = consumers.flatMap((c) => {
-    const r = readerFor(state, c);
+    const r = sandbox ? typedReader(state, c, shownEvents) : readerFor(state, c);
     if (!r) return [];
     const readNow = lastEvents.some((e) => e.type === "delivered" && e.group === c.group);
     const committedNow = lastEvents.some((e) => e.type === "committed" && e.group === c.group);
@@ -145,13 +102,13 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
         position: r.position,
         committed: r.committed,
         pulse,
-        state: !r.alive ? "crashed" : readNow ? "hop" : committedNow ? "happy" : "idle",
+        state: !r.alive ? ("crashed" in r && !r.crashed ? "idle" : "crashed") : readNow ? "hop" : committedNow ? "happy" : "idle",
       } satisfies Reader,
     ];
   });
 
   const produced = lastEvents.some((e) => e.type === "produced");
-  const before = sandbox ? sandboxStart : null;
+  const before = sandbox ? box.start.cluster : null;
   const statsOf = (group: string) => {
     const now = groupStats(state, group);
     if (!before) return now;
@@ -210,11 +167,6 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
   };
   const lines = describeEvents(shownEvents, lang, names);
 
-  const act = (action: Action) => {
-    if (!locked) setExtra((xs) => [...xs, action]);
-  };
-  const orderCount = extra.filter((a) => a.type === "produce").length;
-
   const eventList = (
     <div className={`events ${sandbox ? "" : "is-short"}`} aria-live="polite">
       <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
@@ -235,73 +187,8 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
 
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel
-        missions={missions}
-        active={missionIndex}
-        onSelect={selectMission}
-        moves={extra.length}
-        won={won}
-        best={best}
-      />
-      <div className={`sandbox-controls ${locked ? "is-locked" : ""}`} title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.log)}
-          </span>
-          <button className="chip-btn is-producer" disabled={locked} onClick={() => act(produce(nextOrder(orderCount)))}>
-            {t(text.write)}
-          </button>
-          <button
-            className="chip-btn"
-            disabled={locked || partition.logStartOffset >= partition.logEndOffset}
-            onClick={() => act(deleteOldest(state))}
-          >
-            {t(text.retentionBtn)}
-          </button>
-        </div>
-        {consumers.map((c) => {
-          const alive = Boolean(state.groups[c.group]?.members.some((m) => m.id === c.member)) && !locked;
-          return (
-            <div className="control-row" key={c.group}>
-              <span className="control-name">
-                <i style={{ background: c.tint.body }} />
-                {t(c.name)}
-              </span>
-              {/* Same buttons in the same places whether up or down, so nothing jumps. */}
-              <button className="chip-btn" disabled={!alive} onClick={() => act(poll(c, 1))}>
-                {t(text.readOne)}
-              </button>
-              <button className="chip-btn" disabled={!alive} onClick={() => act(poll(c))}>
-                {t(text.readAll)}
-              </button>
-              <button className="chip-btn is-ok" disabled={!alive} onClick={() => act(commit(c))}>
-                {t(text.doCommit)}
-              </button>
-              <button className="chip-btn" disabled={!alive} onClick={() => act(seek(c, partition.logStartOffset))}>
-                {t(text.rewind)}
-              </button>
-              {alive || locked ? (
-                <button className="chip-btn is-danger toggle-btn" disabled={!alive} onClick={() => act(crash(c))}>
-                  {t(text.doCrash)}
-                </button>
-              ) : (
-                <button className="chip-btn is-ok toggle-btn" onClick={() => act(join(c))}>
-                  {t(text.doStart)}
-                </button>
-              )}
-            </div>
-          );
-        })}
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {box.panel}
+      {box.terminal}
       {eventList}
     </div>
   ) : null;
@@ -329,6 +216,23 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
       />
     </SceneFrame>
   );
+}
+
+/**
+ * A reader in the terminal is whichever console consumer is in its group right now. When none
+ * is, the group still has its committed offset: drawn at rest, or crashed if `kill -9` ended it.
+ */
+function typedReader(state: ClusterState, c: ConsumerDef, events: SimEvent[]) {
+  const group = state.groups[c.group];
+  if (!group) return null;
+  const member = group.members[0];
+  const left = [...events].reverse().find((e) => e.type === "memberLeft" && e.group === c.group);
+  return {
+    alive: Boolean(member),
+    crashed: !member && Boolean(left && left.type === "memberLeft" && left.crashed),
+    position: member ? (member.positions[P] ?? group.committed[P]) : group.committed[P],
+    committed: group.committed[P],
+  };
 }
 
 function MiniCube({ fill }: { fill: string }) {

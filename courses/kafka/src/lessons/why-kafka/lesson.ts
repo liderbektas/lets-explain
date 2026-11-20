@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { WhyKafkaScene } from "./Scene";
 
 export const whyKafka: Lesson = {
@@ -13,7 +13,7 @@ export const whyKafka: Lesson = {
   minutes: 8,
   level: l("Başlangıç", "Beginner"),
   Scene: WhyKafkaScene,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Servisler doğrudan bağlanınca neyin bozulduğunu görmek", "See what breaks when services call each other directly"), step: 2 },
     { text: l("Bir servis çökünce zincirin nasıl etkilendiğini görmek", "See how one crash ripples through the chain"), step: 3 },
@@ -357,29 +357,16 @@ export const whyKafka: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu sahnede sistemi sen kuruyorsun: servisleri **doğrudan** birbirine bağlayabilir ya da araya **Kafka** koyabilirsin. Servis ekleyebilir, sipariş verebilir ve e-posta servisini çökertip yeniden başlatabilirsin.",
-          "Here you build the system yourself: wire services **directly** to each other or put **Kafka** in the middle. You can add services, place orders, and crash and restart the email service.",
+          "Sıra sende. Aşağıda mağazanın servisleri docker compose ile çalışıyor. Sipariş servisinin diğerlerine nasıl haber verdiği `order-service.env`'de yazılı: `NOTIFY_MODE=http` her servisi tek tek çağırır, `NOTIFY_MODE=kafka` `orders` topic'ine tek bir olay yazar. Ayarı `docker compose up -d order-service` uygular.",
+          "Your turn. Below, the shop's services run in docker compose. How the order service tells the others is written in `order-service.env`: `NOTIFY_MODE=http` calls each service one by one, `NOTIFY_MODE=kafka` writes one event to the `orders` topic. `docker compose up -d order-service` applies it.",
         ),
         l(
-          "Sayaçlar her düğmeden sonra ne olduğunu gösterir: kaç bağlantı var, kaç e-posta gitti, kaçı kayboldu, kaçı log'da bekliyor.",
-          "The counters show what happened after every button: how many connections, emails sent, emails lost, and events waiting in the log.",
+          "`./place-order.sh` sipariş verir; `docker stop` / `docker start email-service` e-posta servisini kapatıp açar. **4 senaryo** var: dünkü olayı tekrarlamak, bir bakım penceresi, geride kalan bir servis ve yeni bir ekip. Az komutla bitirirsen 3 yıldız.",
+          "`./place-order.sh` places an order; `docker stop` / `docker start email-service` takes the email service down and back. There are **4 scenarios**: reproducing last night's incident, a maintenance window, a service that fell behind, and a new team. Few commands earn 3 stars.",
         ),
-        l(
-          "Sahnenin altında **3 görev** var. Ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın. Görevsiz oynamak istersen **Serbest**'i seç.",
-          "Under the scene there are **3 missions**. The fewer moves you use, the more stars you get. To play without a mission, choose **Free play**.",
-        ),
-      ],
-      callouts: [
-        {
-          kind: "reality",
-          text: l(
-            "Gerçek sistemlerde doğrudan çağrılar çoğu zaman tekrar dener (retry) ve bazı e-postaları kurtarır. Ama servis uzun süre kapalı kalırsa ya da çağıran taraf da yeniden başlarsa mesajlar yine kaybolabilir. Kafka bu yükü tek bir yere, kalıcı log'a taşır.",
-            "Real direct calls often retry and save some emails. But if the service stays down long enough, or the caller restarts too, messages can still be lost. Kafka moves that burden into one place: a durable log.",
-          ),
-        },
       ],
     },
   ],

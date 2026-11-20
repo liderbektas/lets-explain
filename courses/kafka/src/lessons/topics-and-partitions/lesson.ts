@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, TopicsAndPartitionsScene } from "./Scene";
 
 export const topicsAndPartitions: Lesson = {
@@ -14,7 +14,7 @@ export const topicsAndPartitions: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: TopicsAndPartitionsScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Topic ile partition arasındaki farkı görmek", "See the difference between a topic and a partition"), step: 0 },
     { text: l("Tek partition'ın neden darboğaz olduğunu anlamak", "Understand why one partition is a bottleneck"), step: 1 },
@@ -330,27 +330,23 @@ export const topicsAndPartitions: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu sefer topic tek partition'la ve tek okuyucuyla başlıyor. P0'da henüz okunmamış 4 sipariş var.",
-          "This time the topic starts with one partition and one reader. P0 holds 4 orders nobody has read yet.",
+          "Sıra sende. Aşağıda 3 broker'lı bir cluster ve gerçek işten **5 senaryo** var. Topic'i Kafka'nın kendi aracıyla, `kafka-topics.sh` ile **kendin** aç ve büyüt; fatura okuyucularını `kafka-console-consumer.sh --group billing &` ile başlat (sondaki `&` okuyucuyu arka planda çalışır tutar).",
+          "Your turn. Below is a 3-broker cluster and **5 scenarios** from real work. Create and grow the topic **yourself** with Kafka's own tool, `kafka-topics.sh`; start billing readers with `kafka-console-consumer.sh --group billing &` (the `&` at the end keeps a reader running in the background).",
         ),
         l(
-          "Düğmelerle key'siz sipariş yazabilir, partition ekleyebilir (en fazla 4), Fatura group'una okuyucu ekleyip çıkarabilir ve **\"Herkes 1 okusun\"** ile bir tur okutabilirsin. Bir turda her okuyucu en fazla bir kayıt okur ve commit eder.",
-          "With the buttons you can write keyless orders, add partitions (up to 4), add and remove billing readers, and run a round with **\"Everyone reads 1\"**. In one round each reader reads at most one record and commits.",
-        ),
-        l(
-          "Sahnenin altında **3 görev** var. Ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın.",
-          "There are **3 missions** under the scene. The fewer moves you use, the more stars you get.",
+          "`kafka-topics.sh --describe` topic'i, `kafka-consumer-groups.sh --describe --group billing --members` kimin kaç partition aldığını gösterir. Her komutta sahne de değişir. Takılırsan `help` yaz; ipuçları adım adım açılır.",
+          "`kafka-topics.sh --describe` shows the topic, and `kafka-consumer-groups.sh --describe --group billing --members` shows who owns how many partitions. The scene changes with every command too. If you're stuck, type `help`; hints open one at a time.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Sağ alttaki olay listesi her düğmeden sonra hangi kaydın hangi partition'a gittiğini ve rebalance'ta kimin neyi aldığını yazar.",
-            "The event list at the bottom right shows which partition each record went to and who got what in each rebalance.",
+            "Sağ alttaki olay listesi her komuttan sonra hangi kaydın hangi partition'a gittiğini ve rebalance'ta kimin neyi aldığını yazar.",
+            "After every command, the event list at the bottom right shows which partition each record went to and who got what in each rebalance.",
           ),
         },
       ],

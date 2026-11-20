@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, ConsumerLagScene } from "./Scene";
 
 export const consumerLag: Lesson = {
@@ -14,7 +14,7 @@ export const consumerLag: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: ConsumerLagScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Lag'i log-end offset ve committed offset'ten hesaplamak", "Compute lag from the log-end and committed offsets"), step: 0 },
     { text: l("Lag'in neden büyüdüğünü görmek", "See why lag grows"), step: 2 },
@@ -345,19 +345,15 @@ export const consumerLag: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sahnenin altındaki düğmelerle zamanı saniye saniye ilerletebilir, group'a consumer ekleyip çıkarabilir, sıcak key'i açıp kapatabilir ve consumer kodunu hızlandırabilirsin.",
-          "With the buttons under the scene you can move time on a second at a time, add and remove consumers, turn the hot key on and off, and speed up the consumer code.",
+          "Sıra sende. Aşağıda `clicks` topic'i, `analytics` group'u ve gerçek işten **4 senaryo** var. Lag'le uğraşan birinin yazdığı komutları **kendin** yaz: `./run-analytics.sh &` bir analitik instance'ı başlatır, `jobs` ve `kill %1` onları yönetir, `kafka-consumer-groups.sh --describe --group analytics` LAG'i gösterir.",
+          "Your turn. Below are the `clicks` topic, the `analytics` group and **4 scenarios** from real work. Type **yourself** the commands someone dealing with lag types: `./run-analytics.sh &` starts an analytics instance, `jobs` and `kill %1` manage them, and `kafka-consumer-groups.sh --describe --group analytics` shows the LAG.",
         ),
         l(
-          "Her saniye: normalde her partition'a 1 kayıt gelir (sıcak key açıkken 3 kayıt partition 2'ye gider), her consumer 2 kayıt işler (hızlıyken 4), retention da her partition'da en yeni 8 kaydı tutar.",
-          "Each second: normally every partition gets 1 record (with the hot key on, 3 go to partition 2), every consumer handles 2 (4 when fast), and retention keeps the newest 8 per partition.",
-        ),
-        l(
-          "**3 görev** var: lag'i sıfırlamak, sıcak partition'ı eritmek ve retention'a kayıt kaybettirmek. Az hamleyle bitirirsen 3 yıldız alırsın.",
-          "There are **3 missions**: clear the lag, work off a hot partition, and get retention to lose a record. Few moves earn 3 stars.",
+          "Zaman kendiliğinden akmaz: `sleep 3` üç saniye geçirir. Her saniye normalde her partition'a 1 kayıt gelir, her thread 2 kayıt işler ve retention her partition'da en yeni 8 kaydı tutar. Ayarlar `analytics.properties` ve `clicks-producer.properties` dosyalarında; `nano` ile açabilirsin.",
+          "Time doesn't move by itself: `sleep 3` lets three seconds pass. Each second every partition normally gets 1 record, every thread handles 2, and retention keeps the newest 8 per partition. The settings live in `analytics.properties` and `clicks-producer.properties`; open them with `nano`.",
         ),
       ],
       callouts: [

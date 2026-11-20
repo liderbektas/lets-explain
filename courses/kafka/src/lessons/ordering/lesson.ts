@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, OrderingScene } from "./Scene";
 
 export const ordering: Lesson = {
@@ -14,7 +14,7 @@ export const ordering: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: OrderingScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Key'siz olayların partition'lara dağıldığını görmek", "See events without a key spread over partitions"), step: 1 },
     { text: l("Partition'lar arasında neden sıra garantisi olmadığını anlamak", "Understand why there is no order across partitions"), step: 2 },
@@ -340,27 +340,23 @@ export const ordering: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sahnenin altındaki düğmelerle 1042 ve 1043'ün olaylarını **key ile** ya da **key'siz** yazabilir, topic'e partition ekleyebilir ve her Kargo consumer'ına bir olay okutabilirsin.",
-          "With the buttons under the scene you can write events for 1042 and 1043 **with** or **without a key**, add a partition to the topic, and have each shipping consumer read one event.",
+          "Sıra sende. Aşağıda 3 partition'lı `orders` topic'i, arka planda çalışan üç kargo instance'ı (`%1`, `%2`, `%3`) ve gerçek işten **4 senaryo** var. Olayları `kafka-console-producer.sh` ile **kendin** yaz: `1043:created` gibi satırlar, `--property parse.key=true --property key.separator=:` ile key'li.",
+          "Your turn. Below are the 3-partition `orders` topic, three shipping instances running in the background (`%1`, `%2`, `%3`) and **4 scenarios** from real work. Write the events **yourself** with `kafka-console-producer.sh`: lines like `1043:created`, keyed with `--property parse.key=true --property key.separator=:`.",
         ),
         l(
-          "Sağdaki \"İşlenme sırası\" kartı her siparişin olaylarının hangi sırayla işlendiğini gösterir. Kırmızı daire, kendinden önceki olaydan önce işlenmiş bir olay demek.",
-          "The \"Order handled\" card on the right shows in which order each order's events were handled. A red circle means an event handled before an earlier one.",
-        ),
-        l(
-          "**3 görev** var: sırayı bozmak, key'le bile bozmak ve partition eklerken bozmamak. Az hamleyle bitirirsen 3 yıldız alırsın.",
-          "There are **3 missions**: break the order, break it even with a key, and grow the topic without breaking it. Few moves earn 3 stars.",
+          "Zaman kendiliğinden akmaz: `sleep 1` her çalışan instance'a bir olay işletir. Yavaş ya da takılmış bir consumer'ı `kill -STOP %1` taklit eder, `kill -CONT %1` devam ettirir. Sağdaki \"İşlenme sırası\" kartında kırmızı daire, kendinden önceki olaydan önce işlenmiş bir olay demek.",
+          "Time doesn't move by itself: `sleep 1` has every running instance handle one event. `kill -STOP %1` acts out a slow or stuck consumer, and `kill -CONT %1` resumes it. In the \"Order handled\" card on the right, a red circle means an event handled before an earlier one.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Okumada her consumer o an ilgilendiği partition'dan bir sonraki olayı alır. Birden çok partition'ı olan consumer, partition'larını sırayla dolaşır.",
-            "Each read takes the next event from the partition the consumer is on. A consumer with several partitions takes them in turn.",
+            "Her instance o an ilgilendiği partition'dan bir sonraki olayı alır; birden çok partition'ı olan instance, partition'larını sırayla dolaşır.",
+            "Each instance takes the next event from the partition it is on; an instance with several partitions takes them in turn.",
           ),
         },
       ],

@@ -4,17 +4,16 @@ import { Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { describeTopicEvents } from "../shared/describeTopic";
 import { topicChanges } from "../shared/topicChanges";
 import { lanesOf } from "../shared/topicSim";
-import { MiniCube, TopicLessonScene, type SandboxApi, type SceneView } from "../shared/TopicLessonScene";
+import { MiniCube, TopicLessonScene, type SceneView } from "../shared/TopicLessonScene";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios, FREE } from "./scenarios";
 import {
   base,
   CUSTOMERS,
   customerOf,
   GROUP,
-  MAX_PARTITIONS,
+  READERS,
   readerDef,
-  sandboxMoves,
   sandboxStart,
   SANDBOX_STEP,
   stepActions,
@@ -33,10 +32,6 @@ const text = {
   perPartition: l("Kayıt / partition", "Records / partition"),
   lag: l("Kargo lag", "Shipping lag"),
   keyless: l("key'siz kayıt", "record without a key"),
-  write: l("Yaz", "Write"),
-  keylessBtn: l("Key'siz yaz", "Write without key"),
-  grow: l("Partition ekle", "Add partition"),
-  topic: l("Topic", "Topic"),
   scattered: l("Ali'nin 3 olayı 3 ayrı partition'da", "Ali's 3 events in 3 different partitions"),
   together: l("key = ali → üçü de P0'da, sırayla", "key = ali → all three in P0, in order"),
   formula: l("partition = murmur2(key) % 3", "partition = murmur2(key) % 3"),
@@ -54,6 +49,8 @@ const kindText: Record<string, { tr: string; en: string }> = {
 };
 
 export function valueText(value: string, lang: Lang) {
+  // Typed in the terminal: the key names the customer and the value is the event alone.
+  if (!value.includes(":")) return kindText[value]?.[lang] ?? value;
   const [who, what] = value.split(":");
   const c = customerOf(value);
   if (!c) return `${lang === "tr" ? "sipariş" : "order"} ${what ?? who}`;
@@ -63,8 +60,9 @@ export function valueText(value: string, lang: Lang) {
 function readersOf(view: SceneView) {
   const group = view.state.groups[GROUP];
   if (!group) return [];
-  return group.members.map((m) => {
-    const def = readerDef(m.id);
+  return group.members.map((m, i) => {
+    const known = READERS.some((r) => r.id === m.id);
+    const def = known ? readerDef(m.id) : { name: l(m.id.replace("console-consumer-", "consumer "), m.id.replace("console-consumer-", "consumer ")), tint: READERS[i % READERS.length]!.tint };
     const readNow = view.last.some((e) => e.type === "delivered" && e.member === m.id);
     return {
       id: m.id,
@@ -72,7 +70,7 @@ function readersOf(view: SceneView) {
       tint: def.tint,
       pulse: view.pulse,
       state: readNow ? ("hop" as const) : ("idle" as const),
-      lanes: lanesOf(view.state, GROUP, m.id, TOPIC),
+      lanes: lanesOf(view.state, GROUP, m.id, view.topic),
     };
   });
 }
@@ -84,21 +82,23 @@ const config = {
   stepActions,
   sandboxStep: SANDBOX_STEP,
   sandboxStart,
-  missions,
+  missions: [],
+  scenarios,
+  freeStart: FREE,
   label: text.label,
   producerName: text.producer,
   readers: readersOf,
   tintOf: (_g: string, member: string) => readerDef(member).tint,
-  look: (record: { value: string }) => {
-    const c = customerOf(record.value);
+  look: (record: { value: string; key: string | null }) => {
+    const c = customerOf(record.value) ?? CUSTOMERS.find((x) => x.key === record.key);
     return c ? { shades: c.shades } : {};
   },
   metrics: (view: SceneView) => {
     const t = view.t;
-    const parts = view.state.topics[TOPIC]!.partitions;
+    const parts = view.state.topics[view.topic]?.partitions ?? [];
     const counts = parts.map((p) => p.records.length);
-    const max = Math.max(...counts);
-    const min = Math.min(...counts);
+    const max = counts.length ? Math.max(...counts) : 0;
+    const min = counts.length ? Math.min(...counts) : 0;
     return [
       { label: t(text.partitions), value: parts.length },
       { label: t(text.perPartition), value: counts.join(" · "), tone: max - min >= 5 ? ("warn" as const) : ("plain" as const) },
@@ -117,48 +117,7 @@ const config = {
       value: (v) => valueText(v, view.lang),
       key: (k) => k,
     }),
-  controls: (api: SandboxApi, view: SceneView) => {
-    const t = view.t;
-    const s = api.state;
-    const keyless = api.moves.flat().filter((a) => a.type === "produce" && a.key === null).length;
-    return (
-      <>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.write)}
-          </span>
-          {CUSTOMERS.map((c) => (
-            <button
-              key={c.key}
-              className="chip-btn"
-              style={{ background: c.shades[0] }}
-              disabled={api.locked}
-              onClick={() => api.press(sandboxMoves.customer(c.key))}
-            >
-              key = {c.key}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--mint)" }} />
-            {t(text.topic)}
-          </span>
-          <button className="chip-btn is-producer" disabled={api.locked} onClick={() => api.press(sandboxMoves.keyless(keyless))}>
-            {t(text.keylessBtn)}
-          </button>
-          <button
-            className="chip-btn"
-            disabled={api.locked || s.topics[TOPIC]!.partitions.length >= MAX_PARTITIONS}
-            onClick={() => api.press(sandboxMoves.grow(s))}
-          >
-            {t(text.grow)}
-          </button>
-        </div>
-      </>
-    );
-  },
+  controls: () => null,
   overlay: (view: SceneView) => {
     const done = view.pulse >= (stepActions[view.step]?.length ?? 0);
     if (!done || view.sandbox) return null;

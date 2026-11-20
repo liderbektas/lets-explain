@@ -1,34 +1,27 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
 import { NameTag } from "../../iso/PartitionStage";
 import { Belt, Building, Flag, GhostSlot, Parcel, Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import type { EventLine } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
 import {
   base,
   indexDuplicates,
   MASKED,
-  movesIn,
   SANDBOX_STEP,
-  sandboxStart,
-  simulate,
   topicDuplicates,
   WORKERS,
-  type Action,
   type ConnectEvent,
   type ConnectState,
   type TaskId,
   type WorkerId,
 } from "./model";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 import "./scene.css";
 
 const SLUG = "kafka-connect";
@@ -53,7 +46,6 @@ const text = {
   db: l("Veritabanı: orders", "Database: orders"),
   index: l("Arama indeksi", "Search index"),
   cluster: l("Connect cluster", "Connect cluster"),
-  worker: l("Worker", "Worker"),
   offsets: l("connect-offsets", "connect-offsets"),
   sourceSaved: l("source: kaydedilen son id", "source: last saved id"),
   inMemory: l("hafızada", "in memory"),
@@ -69,27 +61,10 @@ const text = {
   legendMasked: l("kartı maskeli kayıt", "record with masked card"),
   legendDup: l("aynı satır ikinci kez", "the same row again"),
   legendFlag: l("sink'in sıradaki offset'i", "the sink's next offset"),
-  dbRow: l("Veritabanı", "Database"),
-  insert: l("Satır ekle", "Add row"),
-  source: l("Source", "Source"),
-  copy: l("Kopyala", "Copy"),
-  flush: l("Offset'i kaydet", "Save offset"),
-  maskOn: l("Mask SMT aç", "Mask SMT on"),
-  maskOff: l("Mask SMT kapat", "Mask SMT off"),
-  sink: l("Sink", "Sink"),
-  write: l("İndekse yaz", "Write to index"),
-  commit: l("Commit", "Commit"),
-  toUpsert: l("upsert'e geç", "Switch to upsert"),
-  toInsert: l("insert'e geç", "Switch to insert"),
-  workers: l("Worker'lar", "Workers"),
-  crash: l("çökert", "crash"),
-  start: l("başlat", "start"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothing: l("Bir komut yaz; Connect, worker'lar ve indeks ne yaptı burada gör.", "Type a command; see what Connect, the workers and the index did here."),
 };
 
 const workerName = (w: WorkerId, lang: Lang) => `${lang === "tr" ? "Worker" : "Worker"} ${w === "w1" ? 1 : 2}`;
@@ -97,16 +72,10 @@ const workerName = (w: WorkerId, lang: Lang) => `${lang === "tr" ? "Worker" : "W
 export function KafkaConnectScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<Action[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
 
   const cursor = usePlayback(sandbox ? 0 : base.ends[step]! - base.startOf(step), paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? simulate(extra, sandboxStart) : null), [sandbox, extra]);
+  const sandboxRun = typed.sandboxRun;
 
   let state: ConnectState;
   let lastEvents: ConnectEvent[];
@@ -122,25 +91,7 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
     shown = base.run.events.slice(start, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(
-    mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }),
-  );
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const allowed = movesIn(state);
-  const can = (a: Action) => !locked && allowed.some((m) => JSON.stringify(m) === JSON.stringify(a));
-  const act = (a: Action) => {
-    if (can(a)) setExtra((xs) => [...xs, a]);
-  };
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-  };
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = sandbox ? (sandboxRun?.events.length ?? 0) : cursor;
 
   const tDup = topicDuplicates(state);
   const iDup = indexDuplicates(state);
@@ -208,67 +159,10 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
     </div>
   );
 
-  const btn = (a: Action, label: L, cls = "") => (
-    <button className={`chip-btn ${cls}`} disabled={!can(a)} onClick={() => act(a)}>
-      {t(label)}
-    </button>
-  );
-
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={extra.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sun)" }} />
-            {t(text.dbRow)}
-          </span>
-          {btn({ type: "insertRow" }, text.insert, "is-producer")}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.source)}
-          </span>
-          {btn({ type: "sourcePoll" }, text.copy)}
-          {btn({ type: "sourceFlush" }, text.flush, "is-ok")}
-          {btn({ type: "toggleMask" }, state.mask ? text.maskOff : text.maskOn)}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--coral)" }} />
-            {t(text.sink)}
-          </span>
-          {btn({ type: "sinkPoll" }, text.write)}
-          {btn({ type: "sinkCommit" }, text.commit, "is-ok")}
-          {btn({ type: "setSinkMode", mode: state.sinkMode === "insert" ? "upsert" : "insert" }, state.sinkMode === "insert" ? text.toUpsert : text.toInsert)}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--lilac)" }} />
-            {t(text.workers)}
-          </span>
-          {WORKERS.map((w) =>
-            state.workers[w] ? (
-              <button key={w} className="chip-btn is-danger" disabled={!can({ type: "crash", worker: w })} onClick={() => act({ type: "crash", worker: w })}>
-                {workerName(w, lang)} {t(text.crash)}
-              </button>
-            ) : (
-              <button key={w} className="chip-btn is-ok" disabled={!can({ type: "restart", worker: w })} onClick={() => act({ type: "restart", worker: w })}>
-                {workerName(w, lang)} {t(text.start)}
-              </button>
-            ),
-          )}
-        </div>
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {typed.panel}
+      {typed.terminal}
       {eventList}
     </div>
   ) : null;

@@ -1,4 +1,4 @@
-import { buildRun, type ControlRow, type Model, type SandboxCtx } from "../cluster-kit/kit";
+import { buildRun, type Model, type SandboxCtx } from "../cluster-kit/kit";
 
 /**
  * A small model of KRaft: three controllers keep the cluster's metadata log with Raft.
@@ -245,40 +245,3 @@ export const stepActions: KAction[][] = [
 export const SANDBOX_STEP = stepActions.length - 1;
 export const run = buildRun(model, START, stepActions);
 export const sandboxStart = run.states[run.ends[SANDBOX_STEP]!]!;
-
-export const topicsIn = (actions: KAction[]) => actions.filter((a) => a.type === "createTopic").length;
-
-export function controls(s: KState, made: number): ControlRow<KAction>[] {
-  return [
-    {
-      key: "controllers",
-      name: { tr: "Controller", en: "Controllers" },
-      dot: "var(--sun)",
-      buttons: s.controllers.map((c) => ({
-        key: `c${c.id}`,
-        label: c.alive ? { tr: `C${c.id} çökert`, en: `Crash C${c.id}` } : { tr: `C${c.id} başlat`, en: `Start C${c.id}` },
-        action: (c.alive ? { type: "crashController", id: c.id } : { type: "restartController", id: c.id }) as KAction,
-        tone: c.alive ? ("danger" as const) : ("ok" as const),
-      })),
-    },
-    {
-      key: "brokers",
-      name: { tr: "Broker", en: "Brokers" },
-      dot: "var(--sky)",
-      buttons: s.brokers.map((b) => ({
-        key: `b${b.id}`,
-        label: b.alive ? { tr: `B${b.id} çökert`, en: `Crash B${b.id}` } : { tr: `B${b.id} başlat`, en: `Start B${b.id}` },
-        action: (b.alive ? { type: "crashBroker", id: b.id } : { type: "restartBroker", id: b.id }) as KAction,
-        tone: b.alive ? ("danger" as const) : ("ok" as const),
-      })),
-    },
-    {
-      key: "admin",
-      name: { tr: "Yönetici", en: "Admin" },
-      dot: "var(--mint)",
-      buttons: [
-        { key: "topic", label: { tr: "Topic oluştur", en: "Create topic" }, action: { type: "createTopic", name: `topic-${made + 1}` }, tone: "producer" },
-      ],
-    },
-  ];
-}

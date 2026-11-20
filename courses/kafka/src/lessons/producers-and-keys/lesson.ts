@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, ProducersAndKeysScene } from "./Scene";
 
 export const producersAndKeys: Lesson = {
@@ -14,7 +14,7 @@ export const producersAndKeys: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: ProducersAndKeysScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir kaydın parçalarını tanımak: key, value, timestamp, headers", "Know a record's parts: key, value, timestamp, headers"), step: 0 },
     { text: l("Key'siz olayların neden sırasını kaybettiğini görmek", "See why keyless events lose their order"), step: 1 },
@@ -283,23 +283,23 @@ export const producersAndKeys: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Topic 3 boş partition'la başlıyor. Dört müşterinin her biri için key'li sipariş yazabilir, key'siz sipariş yazabilir ve partition ekleyebilirsin (en fazla 4).",
-          "The topic starts with 3 empty partitions. You can write a keyed order for each of four customers, write a keyless order, and add partitions (up to 4).",
+          "Sıra sende. Aşağıda 3 broker'lı bir cluster ve gerçek işten **5 senaryo** var. Kayıtları Kafka'nın kendi aracıyla, `kafka-console-producer.sh` ile **kendin yaz**: satırları `printf` ya da `cat` ile pipe'larsın, `--property parse.key=true --property key.separator=:` key'i satırdan ayırır.",
+          "Your turn. Below is a 3-broker cluster and **5 scenarios** from real work. Write the records **yourself** with Kafka's own tool, `kafka-console-producer.sh`: pipe lines in with `printf` or `cat`, and `--property parse.key=true --property key.separator=:` splits the key off each line.",
         ),
         l(
-          "Her yazmadan sonra olay listesi kaydın hangi partition'a ve neden gittiğini söyler. **3 görev** var; az hamleyle bitirirsen 3 yıldız alırsın.",
-          "After each write the event list says which partition the record went to and why. There are **3 missions**; finish with few moves for 3 stars.",
+          "Her komuttan sonra sahne kaydın hangi partition'a gittiğini gösterir; `kafka-topics.sh --describe` da topic'i anlatır. Takılırsan `help` yaz; ipuçları adım adım açılır.",
+          "After each command the scene shows which partition each record went to; `kafka-topics.sh --describe` tells you about the topic. If you're stuck, type `help`; hints open one at a time.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "İpucu: 3 partition'da Ali ve Can P0'a, Mehmet P1'e, Zeynep P2'ye gider. Partition sayısı değişince bu tablo da değişir.",
-            "Tip: with 3 partitions Ali and Can go to P0, Mehmet to P1, Zeynep to P2. When the partition count changes, so does this table.",
+            "3 partition'da Ali ve Can P0'a, Mehmet P1'e, Zeynep P2'ye gider. Partition sayısı değişince bu tablo da değişir.",
+            "With 3 partitions Ali and Can go to P0, Mehmet to P1, Zeynep to P2. When the partition count changes, so does this table.",
           ),
         },
       ],

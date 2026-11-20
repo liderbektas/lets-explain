@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, ReplicationScene } from "./Scene";
 
 export const replication: Lesson = {
@@ -14,7 +14,7 @@ export const replication: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: ReplicationScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("replication.factor'ün ne kopyaladığını görmek", "See what replication.factor copies"), step: 1 },
     { text: l("Leader ile follower'ın işini ayırmak", "Tell the leader's job from a follower's"), step: 2 },
@@ -328,7 +328,7 @@ export const replication: Lesson = {
         ),
         l(
           "Sıradaki adımda kendin deneyebilirsin. Görevlerden biri tam olarak bu kaybı yaşatmanı istiyor.",
-          "You can try it yourself in the next step. One of the missions asks you to cause exactly this loss.",
+          "You can try it yourself in the next step. One of the scenarios asks you to cause exactly this loss.",
         ),
       ],
       callouts: [
@@ -344,23 +344,23 @@ export const replication: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Cluster yeniden sağlıklı: broker 1 leader, ISR = [1, 2, 3]. Düğmelerle sipariş yazabilir, broker çökertip başlatabilir, follower'ları yavaşlatabilir ve zamanı ilerletebilirsin.",
-          "The cluster is healthy again: broker 1 leads, ISR = [1, 2, 3]. With the buttons you can write orders, crash and start brokers, slow followers down and let time pass.",
+          "Sıra sende. Cluster yeniden sağlıklı ve bir docker-compose geliştirme ortamında çalışıyor: broker N, `kafka-N` container'ında. Aşağıda gerçek işten **5 senaryo** var; komutları terminale **kendin yaz**.",
+          "Your turn. The cluster is healthy again and runs as a docker-compose dev setup: broker N lives in container `kafka-N`. Below are **5 scenarios** from real work; **type the commands yourself**.",
         ),
         l(
-          "**3 görev** var: leader değiştirmek, ISR'yi tek kişiye indirmek ve bilerek veri kaybettirmek. Üstteki sayaçlar ISR'yi, HW'yi ve kaybı gösterir.",
-          "There are **3 missions**: changing the leader, shrinking the ISR to one, and losing data on purpose. The counters on top show the ISR, the HW and any loss.",
+          "`docker stop` / `start` bir broker'ı kapatıp açar, `docker pause` onu dondurur (yavaş bir disk gibi kopyalamayı bırakır), `sleep 30` zamanı ilerletir. `kafka-topics.sh --describe` Leader, Replicas ve Isr'yi gösterir. Üstteki sayaçlar ISR'yi, HW'yi ve kaybı izler.",
+          "`docker stop` / `start` stop and start a broker, `docker pause` freezes it (it stops copying, like a slow disk), `sleep 30` moves the clock. `kafka-topics.sh --describe` shows Leader, Replicas and Isr. The counters on top track the ISR, the HW and any loss.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "\"30 sn geçsin\" düğmesi `replica.lag.time.max.ms` dolmuş gibi davranır: geride kalan follower'lar ISR'den çıkar.",
-            "The \"Let 30 s pass\" button acts as if `replica.lag.time.max.ms` ran out: followers that are behind leave the ISR.",
+            "`sleep 30` gerçekten 30 saniye bekletmez: `replica.lag.time.max.ms` (30 sn) dolmuş olur ve geride kalan follower'lar ISR'den çıkar.",
+            "`sleep 30` does not really make you wait: `replica.lag.time.max.ms` (30 s) runs out and followers that are behind leave the ISR.",
           ),
         },
       ],

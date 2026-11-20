@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, SegmentsScene } from "./Scene";
 
 export const segmentsAndRetention: Lesson = {
@@ -14,7 +14,7 @@ export const segmentsAndRetention: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: SegmentsScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Log'un segment dosyalarına nasıl bölündüğünü görmek", "See how the log is split into segment files"), step: 1 },
     { text: l("Bir offset'in hangi dosyada olduğunu bulmak", "Find which file holds an offset"), step: 3 },
@@ -322,19 +322,15 @@ export const segmentsAndRetention: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sandbox yeni bir partition ile başlıyor: 0. günde 4 kayıt var, yani bir kapalı ve bir aktif segment. Bir segment 3 kayıt alıyor, retention ve segment.ms 7 gün.",
-          "The sandbox starts with a fresh partition: 4 records on day 0, so one closed segment and one active. A segment holds 3 records; retention and segment.ms are 7 days.",
+          "Sıra sende. Terminal `kafka-1` broker'ının üzerinde açık: `orders` topic'inin tek partition'ı `/var/lib/kafka/data/orders-0` klasöründe. Aşağıda gerçek işten **5 senaryo** var; komutları **kendin yaz**.",
+          "Your turn. The terminal is open on broker `kafka-1`: the `orders` topic's single partition lives in `/var/lib/kafka/data/orders-0`. Below are **5 scenarios** from real work; **type the commands yourself**.",
         ),
         l(
-          "Düğmelerle kayıt yazabilir ve zamanı ilerletebilirsin. Retention, saat her ilerlediğinde kontrol eder. Üstteki sayaçlar günü, segment sayısını ve log'un nereden başladığını gösterir.",
-          "Use the buttons to write records and move the clock. Retention checks every time the clock moves. The counters show the day, the number of segments and where the log starts.",
-        ),
-        l(
-          "Sahnenin altında **3 görev** var. Ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın.",
-          "Under the scene there are **3 missions**. The fewer moves you use, the more stars you get.",
+          "Burada her sipariş 1 KiB, segment 3 KiB (`segment.bytes=3072`), retention ve `segment.ms` 7 gün. Saat sadece `sleep` ile ilerler (`sleep 3d`); retention saat her ilerlediğinde kontrol eder. Ayarlar `kafka-configs.sh` ile değişir, `ls -l` segment dosyalarını gösterir.",
+          "Here every order is 1 KiB, a segment 3 KiB (`segment.bytes=3072`), retention and `segment.ms` 7 days. The clock moves only with `sleep` (`sleep 3d`); retention checks every time it moves. Settings change with `kafka-configs.sh`, and `ls -l` shows the segment files.",
         ),
       ],
       callouts: [

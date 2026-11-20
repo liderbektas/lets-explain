@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, SchemaRegistryScene } from "./Scene";
 
 export const schemaRegistry: Lesson = {
@@ -14,7 +14,7 @@ export const schemaRegistry: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: SchemaRegistryScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kafka'nın kayıtların içine bakmadığını görmek", "See that Kafka never looks inside records"), step: 1 },
     { text: l("Schema Registry'nin ne işe yaradığını anlamak", "Understand what a Schema Registry is for"), step: 3 },
@@ -376,27 +376,23 @@ export const schemaRegistry: Lesson = {
     {
       short: l("Sıra sende", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Burada temiz bir başlangıç var: registry açık, mod BACKWARD, sadece v1 (`id, total`) kayıtlı ve Fatura güncel.",
-          "This is a clean start: the registry is on, the mode is BACKWARD, only v1 (`id, total`) is registered and billing is up to date.",
+          "Sıra sende. Proje temiz bir yerden başlıyor: registry açık, mod BACKWARD, sadece v1 (`id, total`) kayıtlı ve billing güncel. Producer'ın şeması `order.avsc`'de, billing'in kodunun kullandığı şema `billing/order.avsc`'de.",
+          "Your turn. The project starts clean: the registry is on, the mode is BACKWARD, only v1 (`id, total`) is registered, and billing is up to date. The producer's schema is in `order.avsc`; the schema billing's code uses is in `billing/order.avsc`.",
         ),
         l(
-          "Sipariş servisinin şemasını değiştirebilir, uyumluluk modunu seçebilir, Fatura'ya okutabilir ve kodunu güncelleyebilirsin. Bir şema ancak o şemayla ilk kayıt yazılırken registry'ye gider.",
-          "You can change the order service's schema, pick the compatibility mode, make billing read, and update its code. A schema goes to the registry only when the first record with it is written.",
-        ),
-        l(
-          "Sahnenin altında **3 görev** var. Ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın. Görevsiz oynamak için **Serbest**'i seç.",
-          "There are **3 missions** under the scene. The fewer moves you use, the more stars you get. To play without a mission, choose **Free play**.",
+          "Şemaları `nano` ile düzenle, `./produce-order.sh` ile sipariş yaz, `./run-billing.sh` ile billing'i (yeniden) başlat. Registry'ye `curl` ile sorarsın; bir şema ancak o şemayla ilk kayıt yazılırken registry'ye gider. **4 senaryo** var; az komutla bitirirsen 3 yıldız.",
+          "Edit the schemas with `nano`, write an order with `./produce-order.sh`, (re)start billing with `./run-billing.sh`. Ask the registry with `curl`; a schema reaches the registry only when the first record with it is written. There are **4 scenarios**; few commands earn 3 stars.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Registry kartındaki modu değiştirip aynı değişikliği tekrar dene: aynı şema bir modda kabul edilip diğerinde reddedilebilir.",
-            "Change the mode and try the same edit again: the same schema can be accepted in one mode and refused in another.",
+            "Burada sadece alan adları ve default'lar önemli; Avro tipleri gerçekte de uyumluluğu etkiler (ör. `int` → `long` serbest, `long` → `int` değil).",
+            "Only field names and defaults matter here; in real life Avro types affect compatibility too (e.g. `int` → `long` is fine, `long` → `int` is not).",
           ),
         },
       ],

@@ -16,7 +16,6 @@ export const SPEED = 2;
 export const FAST_SPEED = 4;
 /** Retention keeps this many newest records per partition. */
 export const KEEP = 8;
-export const MAX_CONSUMERS = 4;
 /** The busy key, and the partition it hashes to with three partitions. */
 export const HOT_KEY = "istanbul";
 export const HOT_PARTITION = partitionForKey(HOT_KEY, 3);
@@ -35,6 +34,11 @@ export interface LState {
   cursors: Record<string, number>;
   hot: boolean;
   fast: boolean;
+  /**
+   * Records a second per member, for instances started from the terminal: each reads its
+   * config when it starts. Members not listed run at the shared speed.
+   */
+  speeds?: Record<string, number>;
   /** Records deleted by retention before the group read them. */
   missed: number;
   /** Seconds that passed while the busy key was on. */
@@ -50,7 +54,11 @@ export type LAction =
   | { type: "toggleFast" }
   /** Scripted steps only: write or handle a set number of records. */
   | { type: "produce"; partition: number; count: number }
-  | { type: "consume"; member: string; count: number };
+  | { type: "consume"; member: string; count: number }
+  /** The terminal: an instance starts (at its speed) or stops; the producer is redeployed. */
+  | { type: "startMember"; member: string; speed: number }
+  | { type: "stopMember"; member: string }
+  | { type: "setHot"; on: boolean };
 
 export type LEvent =
   | { type: "second"; written: number[]; handled: Record<string, number[]>; deleted: number[]; missed: number }
@@ -76,6 +84,7 @@ export function assignment(state: LState): Record<string, number[]> {
 export const lagOf = (p: LPartition) => p.logEnd - p.committed;
 export const totalLag = (state: LState) => state.partitions.reduce((sum, p) => sum + lagOf(p), 0);
 export const speedOf = (state: LState) => (state.fast ? FAST_SPEED : SPEED);
+export const memberSpeed = (state: LState, member: string) => state.speeds?.[member] ?? speedOf(state);
 
 /** Records arriving per second, per partition. */
 export function inflow(state: LState): number[] {
@@ -153,7 +162,7 @@ export function apply(prev: LState, action: LAction): { state: LState; events: L
       const written = inflow(state);
       state.partitions.forEach((p, i) => (p.logEnd += written[i]!));
       const handled: Record<string, number[]> = {};
-      for (const m of state.members) handled[m] = consume(state, m, speedOf(state));
+      for (const m of state.members) handled[m] = consume(state, m, memberSpeed(state, m));
       const r = retention(state);
       state.seconds += 1;
       if (state.hot) state.hotSeconds += 1;
@@ -176,6 +185,28 @@ export function apply(prev: LState, action: LAction): { state: LState; events: L
       events.push({ type: "left", member: last, assignment: assignment(state) });
       break;
     }
+    case "startMember": {
+      if (state.members.includes(action.member)) return { state: prev, events: [] };
+      state.members.push(action.member);
+      state.speeds = { ...state.speeds, [action.member]: action.speed };
+      for (const m of state.members) state.cursors[m] = 0;
+      events.push({ type: "joined", member: action.member, assignment: assignment(state) });
+      break;
+    }
+    case "stopMember": {
+      if (!state.members.includes(action.member)) return { state: prev, events: [] };
+      state.members = state.members.filter((m) => m !== action.member);
+      delete state.cursors[action.member];
+      if (state.speeds) delete state.speeds[action.member];
+      for (const m of state.members) state.cursors[m] = 0;
+      events.push({ type: "left", member: action.member, assignment: assignment(state) });
+      break;
+    }
+    case "setHot":
+      if (state.hot === action.on) return { state: prev, events: [] };
+      state.hot = action.on;
+      events.push({ type: "hot", on: state.hot });
+      break;
     case "toggleHot":
       state.hot = !state.hot;
       events.push({ type: "hot", on: state.hot });
@@ -276,6 +307,3 @@ export const steps = (() => {
 })();
 
 export const stepActions = plans.map((p) => p.actions);
-
-/** The try-it step: three partitions with a little backlog, one consumer, normal traffic. */
-export const sandboxStart = createState({ partitions: 3, members: 1, backlog: [2, 2, 2] });

@@ -25,10 +25,6 @@ export const poll = (c: ConsumerDef, max?: number): Action => ({ type: "poll", g
 export const commit = (c: ConsumerDef): Action => ({ type: "commit", group: c.group, member: c.member });
 export const crash = (c: ConsumerDef): Action => ({ type: "crashMember", group: c.group, member: c.member });
 export const seek = (c: ConsumerDef, offset: number): Action => ({ type: "seek", group: c.group, member: c.member, tp: P, offset });
-export const deleteOldest = (state: ClusterState, count = 2): Action => {
-  const p = state.topics[TOPIC]!.partitions[0]!;
-  return { type: "deleteRecordsBefore", topic: TOPIC, partition: 0, offset: Math.min(p.logStartOffset + count, p.logEndOffset) };
-};
 
 /** The lesson starts with the topic already there, so every step has a log to draw. */
 const START = simulate([{ type: "createTopic", name: TOPIC, partitions: 1 }]).states[1]!;
@@ -63,12 +59,6 @@ export const base = (() => {
   const startOf = (step: number) => (step === 0 ? 0 : ends[step - 1]!);
   return { run, ends, startOf };
 })();
-
-/** Where the try-it step begins: the end of the lesson. */
-export const sandboxStart = base.run.states[base.ends[SANDBOX_STEP]!]!;
-
-/** The order number the sandbox writes next, given how many it has written. */
-export const nextOrder = (written: number) => `order:${1049 + written}`;
 
 export function readerFor(state: ClusterState, c: ConsumerDef) {
   const group = state.groups[c.group];

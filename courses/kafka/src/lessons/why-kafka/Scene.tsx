@@ -1,18 +1,15 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
 import { NameTag } from "../../iso/PartitionStage";
 import { Belt, Building, Parcel, Pill, TINTS, type BuildingStatus } from "@lets-explain/core/iso/shapes";
 import { useTicker } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
-import { starsFor, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import { allowed, connections as linkCount, MAX_SOURCES, MAX_TARGETS, run, type WorldAction, type WorldEvent } from "./model";
+import type { SceneProps } from "@lets-explain/core/course/types";
+import { connections as linkCount, type WorldEvent } from "./model";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 
 export const SANDBOX_STEP = 9;
 const SLUG = "why-kafka";
@@ -62,7 +59,6 @@ const text = {
   props1: l("diske yazar", "writes to disk"),
   props2: l("sırayı korur", "keeps order"),
   props3: l("çok okuyuculu", "many readers"),
-  legendService: l("servis", "service"),
   legendProducer: l("mavi çatı: olay üretir", "blue roof: produces events"),
   legendConsumer: l("turuncu çatı: olayı dinler", "coral roof: listens"),
   legendParcel: l("koli = event", "parcel = event"),
@@ -72,21 +68,8 @@ const text = {
   waitingCount: l("Log'da bekleyen", "Waiting in log"),
   lostPill: l("kayıp", "lost"),
   queuedPill: l("bekliyor", "waiting"),
-  arch: l("Mimari", "Design"),
-  direct: l("Doğrudan çağrı", "Direct calls"),
-  withKafka: l("Kafka ile", "With Kafka"),
-  servicesRow: l("Servisler", "Services"),
-  addSource: l("+ Kaynak", "+ Source"),
-  addTarget: l("+ Hedef", "+ Target"),
-  orderRow: l("Sipariş", "Orders"),
-  placeOrder: l("Sipariş ver", "Place order"),
-  emailRow: l("E-posta", "Email"),
-  crash: l("Çökert", "Crash"),
-  start: l("Başlat", "Start"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothing: l("Bir komut yaz; servislerin ne yaptığını burada gör.", "Type a command; see what the services did here."),
 };
 
 /** In the try-it step the order service comes first, then the others are added. */
@@ -155,25 +138,10 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
 
-  // The try-it step: every button press is an action replayed through the model.
-  const [moves, setMoves] = useState<WorldAction[]>([]);
-  const world = useMemo(() => run(moves), [moves]);
+  // The try-it step: every typed command is replayed through the model.
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
+  const world = typed.sandboxRun ?? { states: [FREE.model], events: [] as WorldEvent[][] };
   const ws = world.states[world.states.length - 1]!;
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission?.check({ state: ws, actions: moves, events: world.events }));
-  useEffect(() => {
-    if (won && mission) setMissionStars(SLUG, mission.id, starsFor(moves.length, mission.par));
-  }, [won, mission, moves.length, setMissionStars]);
-  const act = (a: WorldAction) => {
-    if (!won) setMoves((xs) => [...xs, a]);
-  };
-  const can = (type: WorldAction["type"]) => !won && allowed(ws).some((a) => a.type === type);
 
   const usesLog = sandbox ? ws.mode === "kafka" : step >= 5;
   const anatomy = step === 8;
@@ -240,74 +208,11 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
       footer={
         sandbox ? (
           <div className="sandbox">
-            <MissionPanel
-              missions={missions}
-              active={missionIndex}
-              onSelect={(i) => {
-                setMissionIndex(i);
-                setMoves([]);
-              }}
-              moves={moves.length}
-              won={won}
-              best={best}
-            />
-            <div className="sandbox-controls" title={won ? t(ui.locked) : undefined}>
-              <div className="control-row">
-                <span className="control-name">{t(text.arch)}</span>
-                <button
-                  className={`chip-btn ${ws.mode === "direct" ? "is-producer" : ""}`}
-                  disabled={!can("setMode") || ws.mode === "direct"}
-                  onClick={() => act({ type: "setMode", mode: "direct" })}
-                >
-                  {t(text.direct)}
-                </button>
-                <button
-                  className={`chip-btn ${ws.mode === "kafka" ? "is-ok" : ""}`}
-                  disabled={!can("setMode") || ws.mode === "kafka"}
-                  onClick={() => act({ type: "setMode", mode: "kafka" })}
-                >
-                  {t(text.withKafka)}
-                </button>
-              </div>
-              <div className="control-row">
-                <span className="control-name">{t(text.servicesRow)}</span>
-                <button className="chip-btn" disabled={!can("addSource")} onClick={() => act({ type: "addSource" })}>
-                  {t(text.addSource)} ({ws.sources}/{MAX_SOURCES})
-                </button>
-                <button className="chip-btn" disabled={!can("addTarget")} onClick={() => act({ type: "addTarget" })}>
-                  {t(text.addTarget)} ({ws.targets}/{MAX_TARGETS})
-                </button>
-              </div>
-              <div className="control-row">
-                <span className="control-name">{t(text.orderRow)}</span>
-                <button className="chip-btn is-producer" disabled={!can("order")} onClick={() => act({ type: "order" })}>
-                  {t(text.placeOrder)}
-                </button>
-              </div>
-              <div className="control-row">
-                <span className="control-name">{t(text.emailRow)}</span>
-                {ws.emailUp ? (
-                  <button className="chip-btn is-danger toggle-btn" disabled={!can("crashEmail")} onClick={() => act({ type: "crashEmail" })}>
-                    {t(text.crash)}
-                  </button>
-                ) : (
-                  <button className="chip-btn is-ok toggle-btn" disabled={!can("startEmail")} onClick={() => act({ type: "startEmail" })}>
-                    {t(text.start)}
-                  </button>
-                )}
-              </div>
-              <div className="control-row">
-                <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves((xs) => xs.slice(0, -1))}>
-                  <Icon name="undo" size={15} /> {t(text.undo)}
-                </button>
-                <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves([])}>
-                  <Icon name="reset" size={15} /> {t(text.reset)}
-                </button>
-              </div>
-            </div>
+            {typed.panel}
+            {typed.terminal}
             <div className="events" aria-live="polite">
               <h3>{t(text.latest)}</h3>
-              {moves.length === 0 ? (
+              {world.events.length === 0 ? (
                 <p>{t(text.nothing)}</p>
               ) : (
                 <ol>
@@ -316,7 +221,7 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
                     .map((e) => describe(e, lang))
                     .reverse()
                     .map((line, i) => (
-                      <li key={`${moves.length}-${i}`} className={`ev-${line.tone}`}>
+                      <li key={`${world.events.length}-${i}`} className={`ev-${line.tone}`}>
                         <span className="ev-dot" />
                         <span>{line.text}</span>
                       </li>

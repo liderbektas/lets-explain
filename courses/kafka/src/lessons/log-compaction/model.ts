@@ -88,14 +88,3 @@ export const sandboxStart: StorageLog = simulateStorage(
   [put(ALI, "İzmir"), put(ECE, "Ankara"), put(CAN, "Bursa"), put(ALI, "Ankara")],
   createLog(CONFIG),
 ).logs[4]!;
-
-export type SandboxMove = "w-ali" | "w-ece" | "w-can" | "d-ali" | "d-ece" | "d-can" | "compact" | "wait";
-export const MOVES: SandboxMove[] = ["w-ali", "w-ece", "w-can", "d-ali", "d-ece", "d-can", "compact", "wait"];
-
-/** Turns a sandbox move into an action; a write's city depends on how many moves came before. */
-export function moveAction(m: SandboxMove, index: number): StorageAction {
-  if (m === "compact") return compact;
-  if (m === "wait") return wait(2);
-  const p = personFor(m.slice(2))!;
-  return m.startsWith("w-") ? put(p, CITIES[(index + 3) % CITIES.length]!) : remove(p);
-}

@@ -65,7 +65,9 @@ export type Action =
   | { type: "enableRegistry" }
   | { type: "setMode"; mode: Mode }
   | { type: "poll" }
-  | { type: "upgradeReader" };
+  | { type: "upgradeReader" }
+  /** The consumer is rebuilt with a schema of its own (copied from the producer's .avsc). */
+  | { type: "setReader"; schema: Schema };
 
 export type SREvent =
   | { type: "produced"; offset: number; order: number; schemaId: number | null }
@@ -98,7 +100,7 @@ export function emptyState(): SRState {
   };
 }
 
-const sameSchema = (a: Schema, b: Schema) =>
+export const sameSchema = (a: Schema, b: Schema) =>
   a.length === b.length && a.every((f) => b.some((g) => g.name === f.name && g.def === f.def));
 
 /** The first reader field without a default that the writer does not have, if any. */
@@ -208,6 +210,12 @@ export function apply(prev: SRState, action: Action): { state: SRState; events: 
         s.reader.ok += 1;
         events.push({ type: "read", offset: rec.offset, schemaId: rec.schemaId });
       }
+      break;
+    }
+    case "setReader": {
+      s.reader.schema = action.schema;
+      const known = s.versions.find((v) => sameSchema(v.schema, action.schema));
+      events.push({ type: "readerUpgraded", version: known?.version ?? 0 });
       break;
     }
     case "upgradeReader": {

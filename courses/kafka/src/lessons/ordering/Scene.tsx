@@ -1,33 +1,15 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { Parcel, Pill, type PillTone } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import type { EventLine } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
 import { BeltsStage, beltsGeometry, STAGE, type BeltPartition, type BeltReader, type ParcelKind } from "./BeltsStage";
-import { missions } from "./missions";
-import {
-  base,
-  CONSUMERS,
-  MAX_PARTITIONS,
-  ownerOf,
-  RETRY_STEPS,
-  SANDBOX_STEP,
-  sandboxStart,
-  simulate,
-  STAGES,
-  stepActions,
-  violations,
-  type OAction,
-  type OEvent,
-  type OState,
-} from "./model";
+import { FREE, orderingCtx, scenarios } from "./scenarios";
+import { orderingShell, replayO, type OBox, type OShellAction } from "./shell";
+import { base, CONSUMERS, ownerOf, RETRY_STEPS, SANDBOX_STEP, stepActions, violations, type OEvent, type OState } from "./model";
 import "./scene.css";
 
 const SLUG = "ordering";
@@ -62,17 +44,8 @@ const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  producerRow: l("Yaz", "Write"),
-  nextEvent: l("sıradaki olay", "next event"),
-  allWritten: l("üç olay da yazıldı", "all three written"),
-  withKey: l("key ile", "with key"),
-  noKey: l("key'siz", "no key"),
-  addPartition: l("Partition ekle", "Add partition"),
-  readersRow: l("Oku", "Read"),
-  read: l("oku", "read"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
+  nothing: l("Bir komut yaz; `sleep 1` ile kargo instance'ları birer kayıt işlesin ve sonucu burada gör.", "Type a command; let the shipping instances handle a record each with `sleep 1` and see the result here."),
+  stopped: l("durduruldu", "stopped"),
   yours: l("(senin)", "(yours)"),
 };
 
@@ -144,8 +117,10 @@ function nextOffsetFor(state: OState, p: number) {
   return next;
 }
 
-function beltReaders(state: OState, lastEvents: OEvent[], pulse: number, lang: Lang): BeltReader[] {
+function beltReaders(state: OState, lastEvents: OEvent[], pulse: number, lang: Lang, paused: string[] = []): BeltReader[] {
   return state.consumers.map((c) => {
+    // An instance paused with kill -STOP sits still and says so.
+    if (paused.includes(c.id)) return { id: c.id, name: `${tl(lang, c.name)} · ${tl(lang, text.stopped)}`, tint: c.tint, state: "idle" as const, pulse, partitions: c.assigned };
     const done = lastEvents.find((e) => e.type === "processed" && e.by === c.id);
     const bubble =
       done && done.type === "processed"
@@ -226,46 +201,41 @@ export function OrderingScene({ step, paused, replayKey, controls }: SceneProps)
 function BeltsScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<OAction[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
+  const box = useTypedSandbox({
+    slug: SLUG,
+    active: sandbox,
+    scenarios,
+    freeStart: FREE,
+    shell: orderingShell,
+    replay: (start: OBox, actions: OShellAction[]) => replayO(start, actions),
+    final: (r) => r.boxes[r.boxes.length - 1]!,
+    context: (start, _actions, r) => orderingCtx(start, r),
   });
 
   const count = sandbox ? 0 : stepActions[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? simulate(extra, sandboxStart) : null), [sandbox, extra]);
 
   let state: OState;
   let lastEvents: OEvent[];
   let shownEvents: OEvent[];
-  if (sandboxRun) {
-    state = sandboxRun.states[sandboxRun.states.length - 1]!;
-    lastEvents = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
-    shownEvents = sandboxRun.events.flat();
+  let stopped: string[] = [];
+  if (box.run) {
+    const now = box.run.boxes[box.run.boxes.length - 1]!;
+    state = now.o;
+    stopped = now.paused;
+    const withEvents = box.run.events.filter((e) => e.length > 0);
+    lastEvents = withEvents[withEvents.length - 1] ?? [];
+    shownEvents = withEvents.flat();
   } else {
     const start = base.startOf(step);
     state = base.run.states[start + cursor]!;
     lastEvents = cursor > 0 ? base.run.events[start + cursor - 1]! : [];
     shownEvents = base.run.events.slice(start, start + cursor).flat();
   }
-  const pulse = sandbox ? extra.length : cursor;
-
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const act = (a: OAction) => {
-    if (!locked) setExtra((xs) => [...xs, a]);
-  };
+  const pulse = box.run ? box.run.events.length : cursor;
 
   const written = Object.values(state.written).reduce((a, b) => a + b, 0);
-  const broken = violations(state);
+  const broken = violations(state) - (sandbox ? violations(box.start.o) : 0);
   const metrics: Metric[] = [
     { label: t(text.partitions), value: state.partitions.length },
     { label: t(text.written), value: written },
@@ -301,76 +271,8 @@ function BeltsScene({ step, paused, replayKey, controls }: SceneProps) {
 
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel
-        missions={missions}
-        active={missionIndex}
-        onSelect={(i) => {
-          setMissionIndex(i);
-          setExtra([]);
-        }}
-        moves={extra.length}
-        won={won}
-        best={best}
-      />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        {(["1042", "1043"] as const).map((order) => {
-          const full = (state.written[order] ?? 0) >= STAGES;
-          return (
-            <div className="control-row" key={order}>
-              <span className="control-name">
-                <i className={`kind-${ORDER_KIND[order]}`} />
-                {order}
-              </span>
-              {[true, false].map((keyed) => (
-                <button
-                  key={String(keyed)}
-                  className="chip-btn is-producer"
-                  disabled={locked || full}
-                  onClick={() => act({ type: "write", order, keyed })}
-                >
-                  {t(text.producerRow)} · {t(keyed ? text.withKey : text.noKey)}
-                </button>
-              ))}
-              <span className="control-note">
-                {full ? t(text.allWritten) : `${t(text.nextEvent)}: ${(state.written[order] ?? 0) + 1} (${t(stageName[(state.written[order] ?? 0) + 1]!)})`}
-              </span>
-            </div>
-          );
-        })}
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--paper-2)" }} />
-            Topic
-          </span>
-          <button
-            className="chip-btn"
-            disabled={locked || state.partitions.length >= MAX_PARTITIONS}
-            onClick={() => act({ type: "addPartition" })}
-          >
-            {t(text.addPartition)} ({state.partitions.length} → {Math.min(state.partitions.length + 1, MAX_PARTITIONS)})
-          </button>
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--coral)" }} />
-            {t(text.readersRow)}
-          </span>
-          {state.consumers.map((c) => (
-            <button key={c.id} className="chip-btn is-ok" disabled={locked} onClick={() => act({ type: "read", consumer: c.id })}>
-              <span className="order-dot" style={{ background: c.tint.body }} />
-              {t(c.name)} {t(text.read)}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {box.panel}
+      {box.terminal}
       {eventList}
     </div>
   ) : null;
@@ -390,7 +292,7 @@ function BeltsScene({ step, paused, replayKey, controls }: SceneProps) {
     >
       <BeltsStage
         partitions={beltPartitions(state, lastEvents)}
-        readers={beltReaders(state, lastEvents, pulse, lang)}
+        readers={beltReaders(state, lastEvents, pulse, lang, stopped)}
         producer={{
           name: t(text.producer),
           state: produced ? "hop" : "idle",

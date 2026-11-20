@@ -4,22 +4,10 @@ import { Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { describeTopicEvents } from "../shared/describeTopic";
 import { topicChanges } from "../shared/topicChanges";
 import { lanesOf, waiting } from "../shared/topicSim";
-import { FlagSwatch, MiniCube, orderText, TopicLessonScene, type SandboxApi, type SceneView } from "../shared/TopicLessonScene";
+import { FlagSwatch, MiniCube, orderText, TopicLessonScene, type SceneView } from "../shared/TopicLessonScene";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import {
-  activeReaders,
-  base,
-  GROUP,
-  MAX_PARTITIONS,
-  MAX_READERS,
-  readerDef,
-  sandboxMoves,
-  sandboxStart,
-  SANDBOX_STEP,
-  stepActions,
-  TOPIC,
-} from "./model";
+import { FREE, scenarios } from "./scenarios";
+import { base, GROUP, READERS, readerDef, sandboxStart, SANDBOX_STEP, stepActions, TOPIC } from "./model";
 
 const SLUG = "topics-and-partitions";
 
@@ -37,24 +25,24 @@ const text = {
   legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
   legendFlag: l("bayrak = o partition'da sıradaki offset", "flag = next offset on that partition"),
   legendTag: l("P0, P1… = partition numarası", "P0, P1… = partition number"),
-  log: l("Topic", "Topic"),
-  group: l("Fatura group", "Billing group"),
-  write: l("Sipariş yaz (key'siz)", "Write order (no key)"),
-  grow: l("Partition ekle", "Add partition"),
-  addReader: l("Okuyucu ekle", "Add reader"),
-  removeReader: l("Okuyucu çıkar", "Remove reader"),
-  tick: l("Herkes 1 okusun", "Everyone reads 1"),
   oneLane: l("Tek şerit: okuyucu yetişemiyor", "One lane: the reader can't keep up"),
   stayed: l("Eski kayıtlar P0'da kaldı", "Old records stayed in P0"),
   noOrder: l("P2'nin yenisi, P0'nun eskisinden önce okundu", "P2's newest was read before P0's older ones"),
   bench: l("Fatura 4 boşta: partition kalmadı", "Billing 4 is idle: no partition left"),
 };
 
+/** The lesson's readers by id; readers started in the terminal are console consumers, named by pid. */
+function memberDef(id: string) {
+  if (READERS.some((r) => r.id === id)) return readerDef(id);
+  const pid = Number(id.replace("console-consumer-", ""));
+  return { name: l(`okuyucu ${pid}`, `reader ${pid}`), tint: READERS[Math.abs(pid - 4242) % READERS.length]!.tint };
+}
+
 function readersOf(view: SceneView) {
   const group = view.state.groups[GROUP];
   if (!group) return [];
   return group.members.map((m) => {
-    const def = readerDef(m.id);
+    const def = memberDef(m.id);
     const readNow = view.last.some((e) => e.type === "delivered" && e.member === m.id);
     const committedNow = view.last.some((e) => e.type === "committed" && e.member === m.id);
     return {
@@ -63,7 +51,7 @@ function readersOf(view: SceneView) {
       tint: def.tint,
       pulse: view.pulse,
       state: readNow ? ("hop" as const) : committedNow ? ("happy" as const) : ("idle" as const),
-      lanes: lanesOf(view.state, GROUP, m.id, TOPIC),
+      lanes: lanesOf(view.state, GROUP, m.id, view.topic),
     };
   });
 }
@@ -75,14 +63,16 @@ const config = {
   stepActions,
   sandboxStep: SANDBOX_STEP,
   sandboxStart,
-  missions,
+  missions: [],
+  scenarios,
+  freeStart: FREE,
   label: text.label,
   producerName: text.producer,
   readers: readersOf,
-  tintOf: (_g: string, member: string) => readerDef(member).tint,
+  tintOf: (_g: string, member: string) => memberDef(member).tint,
   metrics: (view: SceneView) => {
     const t = view.t;
-    const parts = view.state.topics[TOPIC]!.partitions;
+    const parts = view.state.topics[view.topic]?.partitions ?? [];
     const lastRead = view.last.filter((e) => e.type === "delivered").length;
     return [
       { label: t(text.partitions), value: parts.length },
@@ -90,7 +80,7 @@ const config = {
       { label: t(text.readers), value: view.state.groups[GROUP]?.members.length ?? 0, dot: TINTS.coral.body },
       {
         label: t(text.lag),
-        value: view.state.groups[GROUP] ? (view.sandbox ? waiting(view.state, GROUP, TOPIC) : groupStats(view.state, GROUP).lag) : "—",
+        value: view.state.groups[GROUP] ? (view.sandbox ? waiting(view.state, GROUP, view.topic) : groupStats(view.state, GROUP).lag) : "—",
       },
       ...(view.sandbox ? [{ label: t(text.readNow), value: lastRead, tone: lastRead >= 3 ? ("ok" as const) : ("plain" as const) }] : []),
     ];
@@ -112,53 +102,16 @@ const config = {
   ],
   describe: (events: Parameters<typeof describeTopicEvents>[0], view: SceneView) =>
     describeTopicEvents(events, view.lang, {
-      member: (_g, m) => view.t(readerDef(m).name),
+      member: (_g, m) => view.t(memberDef(m).name),
       value: (v) => orderText(v, view.lang),
     }),
   // Step 7 is about where partitions live, so their tags name the broker too.
   partitionLabel: (i: number, view: SceneView) => {
     if (view.step !== 6) return `P${i}`;
-    const leader = view.state.topics[TOPIC]!.partitions[i]!.leader;
+    const leader = view.state.topics[view.topic]?.partitions[i]?.leader;
     return `P${i}·B${leader}`;
   },
-  controls: (api: SandboxApi, view: SceneView) => {
-    const t = view.t;
-    const s = api.state;
-    const written = api.moves.flat().filter((a) => a.type === "produce").length;
-    const parts = s.topics[TOPIC]!.partitions.length;
-    const readers = activeReaders(s).length;
-    return (
-      <>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.log)}
-          </span>
-          <button className="chip-btn is-producer" disabled={api.locked} onClick={() => api.press(sandboxMoves.write(written))}>
-            {t(text.write)}
-          </button>
-          <button className="chip-btn" disabled={api.locked || parts >= MAX_PARTITIONS} onClick={() => api.press(sandboxMoves.grow(s))}>
-            {t(text.grow)}
-          </button>
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: TINTS.coral.body }} />
-            {t(text.group)}
-          </span>
-          <button className="chip-btn is-ok" disabled={api.locked || readers >= MAX_READERS} onClick={() => api.press(sandboxMoves.addReader(s))}>
-            {t(text.addReader)}
-          </button>
-          <button className="chip-btn" disabled={api.locked || readers === 0} onClick={() => api.press(sandboxMoves.removeReader(s))}>
-            {t(text.removeReader)}
-          </button>
-          <button className="chip-btn" disabled={api.locked || readers === 0} onClick={() => api.press(sandboxMoves.tick(s))}>
-            {t(text.tick)}
-          </button>
-        </div>
-      </>
-    );
-  },
+  controls: () => null,
   overlay: (view: SceneView) => {
     const done = view.pulse >= (stepActions[view.step]?.length ?? 0);
     if (!done) return null;

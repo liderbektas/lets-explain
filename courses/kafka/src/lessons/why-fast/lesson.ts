@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { WhyFastScene } from "./Scene";
 
 export const whyFast: Lesson = {
@@ -13,7 +13,7 @@ export const whyFast: Lesson = {
   minutes: 11,
   level: l("Orta", "Intermediate"),
   Scene: WhyFastScene,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Sıralı yazmanın neden hızlı olduğunu görmek", "See why sequential writes are fast"), step: 1 },
     { text: l("Page cache'in okuma ve yazmayı nasıl hızlandırdığını anlamak", "Understand how the page cache speeds up reads and writes"), step: 2 },
@@ -309,20 +309,25 @@ export const whyFast: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Her şey en yavaş hâlinde başlıyor: batch 1, sıkıştırma yok, 1 partition, 1 consumer. Düğmelerle her ayarı tek tek değiştir ve üstteki sayaçları izle.",
-          "Everything starts at its slowest: batch 1, no compression, 1 partition, 1 consumer. Change one setting at a time with the buttons and watch the counters on top.",
+          "Sıra sende. Aşağıda `events` hattının projesi var: producer ayarları `producer.properties`'te (`batch.size` bayt cinsinden, kayıtlar 1 KB; `compression.type`). Partition'ları `kafka-topics.sh --alter` ile, consumer sayısını `docker compose up -d --scale processor=N` ile değiştirirsin.",
+          "Your turn. Below is the `events` pipeline's project: the producer settings are in `producer.properties` (`batch.size` in bytes, records are 1 KB; `compression.type`). Change the partitions with `kafka-topics.sh --alter` and the number of consumers with `docker compose up -d --scale processor=N`.",
         ),
         l(
-          "Hatırla: her istek 1 ms bekler, ağ saniyede 100 MB taşır, bir consumer saniyede 25.000 kayıt işler ve bir partition'ı group'tan tek bir consumer okur.",
-          "Remember: every request waits 1 ms, the network carries 100 MB a second, one consumer handles 25,000 records a second, and only one consumer in a group reads each partition.",
+          "Ölçmek için Kafka'nın kendi aracını kullan: `kafka-producer-perf-test.sh ... --producer.config producer.properties`. Sahne son ölçtüğün düzeni gösterir. **4 senaryo** var; az komutla bitirirsen 3 yıldız.",
+          "Measure with Kafka's own tool: `kafka-producer-perf-test.sh ... --producer.config producer.properties`. The scene shows the last setup you measured. There are **4 scenarios**; few commands earn 3 stars.",
         ),
-        l(
-          "Sahnenin altında **4 görev** var. Her ayar değişikliği bir hamle sayılır.",
-          "Under the scene there are **4 missions**. Every change of a setting counts as one move.",
-        ),
+      ],
+      callouts: [
+        {
+          kind: "insight",
+          text: l(
+            "Bu bir benchmark değil, sayılar bilerek yuvarlak. Tam yükte batch'ler `linger.ms` olmadan da dolar; trafik azken `linger.ms` onların dolmasını bekler.",
+            "This is not a benchmark: the numbers are round on purpose. Under full load batches fill without `linger.ms`; with light traffic `linger.ms` waits for them to fill.",
+          ),
+        },
       ],
     },
   ],

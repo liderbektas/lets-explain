@@ -97,9 +97,7 @@ export const base = (() => {
 
 /* ------------------------------------------------------------- sandbox */
 
-export const SANDBOX_MEMBERS = ["billing-1", "billing-2", "billing-3"];
-
-/** Six orders on three partitions; billing 1 and 2 are in the group and have read nothing yet. */
+/** Where the button sandbox used to start; the typed scenarios bring their own states. */
 export const sandboxStart: ClusterState = (() => {
   order = 6000;
   return stateAfter(
@@ -107,25 +105,3 @@ export const sandboxStart: ClusterState = (() => {
     3,
   );
 })();
-
-export const isUp = (state: ClusterState, id: string) =>
-  Boolean(state.groups[memberDef(id).group]?.members.some((m) => m.id === id));
-
-export const sandboxMoves = {
-  write: (written: number): Action[] => [
-    { type: "produce", topic: TOPIC, value: `order:${6007 + written}`, producer: "orders-service" },
-  ],
-  toggle: (state: ClusterState, id: string): Action[] => [isUp(state, id) ? crash(id) : join(id)],
-  read: (id: string): Action[] => [poll(id)],
-  commit: (id: string): Action[] => [commit(id)],
-};
-
-export function enabledMoves(state: ClusterState, history: Action[][]): Action[][] {
-  const written = history.flat().filter((a) => a.type === "produce").length;
-  const out: Action[][] = [sandboxMoves.write(written)];
-  for (const id of SANDBOX_MEMBERS) {
-    out.push(sandboxMoves.toggle(state, id));
-    if (isUp(state, id)) out.push(sandboxMoves.read(id), sandboxMoves.commit(id));
-  }
-  return out;
-}

@@ -3,11 +3,12 @@ import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage, type StageBroker, type StagePartition } from "../../iso/ClusterStage";
 import { NameTag } from "../../iso/PartitionStage";
 import { Building, Pill, TINTS } from "@lets-explain/core/iso/shapes";
-import { Sandbox, useSceneState } from "../cluster-kit/kit";
+import { TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
+import { kCtx, kraftShell, replayK } from "./cli";
 import type { EventLine } from "../shared/describe";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import { controls, model, run, SANDBOX_STEP, SLUG, stepActions, stranded, topicsIn, type KEvent, type KState, type MetaRecord } from "./model";
+import { model, run, SANDBOX_STEP, SLUG, stepActions, stranded, type KEvent, type KState, type MetaRecord } from "./model";
+import { FREE, scenarios } from "./scenarios";
 
 const text = {
   label: l(
@@ -163,7 +164,10 @@ const BROKER_Y = 392;
 
 export function KraftScene({ step, paused, replayKey, controls: frameControls }: SceneProps) {
   const { t, lang } = useLang();
-  const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  const lesson = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  // The try-it step is typed: the terminal's state replaces the lesson's.
+  const typed = useTypedKit({ slug: SLUG, active: step === SANDBOX_STEP, scenarios, freeStart: FREE, shell: kraftShell, replay: replayK, context: kCtx, stateOf: (b) => b.state });
+  const view = typed ? { ...lesson, ...typed } : lesson;
   const s = view.state;
   const stage = toStage(s, t, view.before);
   const up = s.controllers.filter((c) => c.alive).length;
@@ -185,10 +189,7 @@ export function KraftScene({ step, paused, replayKey, controls: frameControls }:
   ];
 
   const lines = describeKraft(view.shownEvents, lang);
-  const footer =
-    view.sandbox && view.ctx ? (
-      <Sandbox slug={SLUG} missions={missions} ctx={view.ctx} rows={controls(s, topicsIn(view.extra))} extra={view.extra} setExtra={view.setExtra} lines={lines} />
-    ) : null;
+  const footer = typed ? <TypedFooter view={typed} lines={lines} /> : null;
 
   return (
     <SceneFrame

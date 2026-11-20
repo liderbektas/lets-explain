@@ -95,7 +95,9 @@ export type Action =
   | { type: "seek"; group: string; member: string; tp: TP; offset: number }
   | { type: "deleteRecordsBefore"; topic: string; partition: number; offset: number }
   /** Grows a topic to `count` partitions. Kafka can add partitions but never remove them. */
-  | { type: "addPartitions"; topic: string; count: number };
+  | { type: "addPartitions"; topic: string; count: number }
+  /** `kafka-consumer-groups.sh --reset-offsets --execute`: rewrites a group's committed offsets. The group must have no members. */
+  | { type: "resetOffsets"; group: string; offsets: Record<TP, number> };
 
 export type SimEvent =
   | { type: "topicCreated"; topic: string; partitions: number }
@@ -141,6 +143,7 @@ export type SimEvent =
   | { type: "seeked"; group: string; member: string; tp: TP; from: number; to: number }
   | { type: "recordsDeleted"; topic: string; partition: number; from: number; to: number }
   | { type: "partitionsAdded"; topic: string; from: number; to: number }
+  | { type: "offsetsReset"; group: string; offsets: Record<TP, { from: number | null; to: number }> }
   | { type: "error"; message: string };
 
 export interface StepResult {

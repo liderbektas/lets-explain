@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { AcksScene, changesFor } from "./Scene";
 
 export const acksAndIsr: Lesson = {
@@ -14,7 +14,7 @@ export const acksAndIsr: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: AcksScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Producer'ın neden bir cevap beklediğini anlamak", "Understand why the producer waits for an answer"), step: 0 },
     { text: l("acks=0, 1 ve all farkını görmek", "See the difference between acks=0, 1 and all"), step: 4 },
@@ -330,23 +330,23 @@ export const acksAndIsr: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bütün broker'lar ayakta, acks=all ve min.insync.replicas=2. Düğmelerle acks ve min.insync ayarını değiştirebilir, broker çökertip yavaşlatabilir ve zamanı ilerletebilirsin.",
-          "Every broker is up, with acks=all and min.insync.replicas=2. With the buttons you can change acks and min.insync, crash and slow brokers, and let time pass.",
+          "Sıra sende. Bütün broker'lar ayakta, P0'ın leader'ı `kafka-2`, `min.insync.replicas=2`. Cluster bir docker-compose geliştirme ortamı: broker N, `kafka-N` container'ında. Aşağıda gerçek işten **5 senaryo** var; komutları **kendin yaz**.",
+          "Your turn. Every broker is up, `kafka-2` leads P0, `min.insync.replicas=2`. The cluster is a docker-compose dev setup: broker N lives in container `kafka-N`. Below are **5 scenarios** from real work; **type the commands yourself**.",
         ),
         l(
-          "**4 görev** var. Producer'ın yanındaki etiket her yazmanın cevabını gösterir: onay, bekleme, hata ya da \"sandı ama kayboldu\".",
-          "There are **4 missions**. The label next to the producer shows the answer to each write: ack, waiting, error, or \"thought so, but lost\".",
+          "`acks` producer'ın ayarıdır: konsol producer'a `--producer-property acks=1` diye verirsin (varsayılan `all`). `min.insync.replicas` topic'in ayarıdır: `kafka-configs.sh` ile değişir. Producer'ın yanındaki etiket her yazmanın cevabını gösterir: onay, bekleme, hata ya da \"sandı ama kayboldu\".",
+          "`acks` is the producer's setting: give the console producer `--producer-property acks=1` (the default is `all`). `min.insync.replicas` is the topic's: change it with `kafka-configs.sh`. The label next to the producer shows the answer to each write: ack, waiting, error, or \"thought so, but lost\".",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Leader çökünce yeni leader replica listesindeki sıraya göre ISR'den seçilir. Kimin seçileceğini bilmek bazı görevlerde işine yarar.",
-            "When the leader dies, the new one is picked from the ISR in replica-list order. Knowing who is next helps in some missions.",
+            "Leader çökünce yeni leader replica listesindeki sıraya göre ISR'den seçilir. `kafka-topics.sh --describe` bu sırayı `Replicas:` sütununda gösterir.",
+            "When the leader dies, the new one is picked from the ISR in replica-list order. `kafka-topics.sh --describe` shows that order in the `Replicas:` column.",
           ),
         },
       ],

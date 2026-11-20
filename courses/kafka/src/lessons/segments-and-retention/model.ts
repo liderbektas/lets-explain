@@ -68,8 +68,3 @@ export const sandboxStart: StorageLog = (() => {
   log = simulateStorage([put(), put(), put(), put()], log).logs[4]!;
   return log;
 })();
-
-export type SandboxMove = "write" | "day1" | "day3";
-
-export const moveAction = (m: SandboxMove): StorageAction =>
-  m === "write" ? { type: "append", value: "order" } : tick(m === "day1" ? 1 : 3);

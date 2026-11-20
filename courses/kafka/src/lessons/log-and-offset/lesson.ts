@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, LogAndOffsetScene } from "./Scene";
 
 export const logAndOffset: Lesson = {
@@ -14,7 +14,7 @@ export const logAndOffset: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: LogAndOffsetScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Log'a sadece sonuna yazıldığını görmek", "See that a log is only ever appended to"), step: 1 },
     { text: l("Offset'in ne olduğunu ve neden hiç değişmediğini anlamak", "Understand offsets and why they never change"), step: 2 },
@@ -406,31 +406,23 @@ export const logAndOffset: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sahnenin altındaki düğmelerle log'a kayıt yazabilir, iki okuyucuyu okutabilir, commit ettirebilir, çökertip yeniden başlatabilir ve eski kayıtları silebilirsin.",
-          "With the buttons under the scene you can write records, make both readers read, commit, crash and restart them, and delete old records.",
+          "Sıra sende. Aşağıda tek partition'lı `orders` log'u ve gerçek işten **4 senaryo** var. Bu sefer düğme yok: Kafka'nın kendi araçlarını **kendin** yaz. `kafka-console-producer.sh` log'a yazar, `kafka-console-consumer.sh --group billing` bir group olarak okur ve commit eder, `kafka-consumer-groups.sh` group'ların nerede durduğunu gösterir ve taşır, `kafka-delete-records.sh` eski kayıtları siler.",
+          "Your turn. Below is the one-partition `orders` log and **4 scenarios** from real work. No buttons this time: type Kafka's own tools **yourself**. `kafka-console-producer.sh` writes to the log, `kafka-console-consumer.sh --group billing` reads and commits as a group, `kafka-consumer-groups.sh` shows and moves where groups stand, and `kafka-delete-records.sh` deletes old records.",
         ),
         l(
-          "Her denemenin sonucu üstteki sayaçlarda görünür: kaç kayıt **tekrar** okundu, kaçı **kaçırıldı** ve her okuyucunun kaç kaydı henüz işlenmeyi bekliyor ([[lag]]).",
-          "The counters on top show every result: how many records were read **again**, how many were **missed**, and how many each reader still has waiting ([[lag]]).",
-        ),
-        l(
-          "Sahnenin altında **4 görev** var. Her biri bu dersteki bir fikri sınıyor: tekrar okuma, commit, geri sarma ve retention.",
-          "Under the scene there are **4 missions**. Each one tests an idea from this lesson: reading again, commit, rewinding and retention.",
-        ),
-        l(
-          "Görevi ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın. Takılırsan **İpucu**'na bas. Görevsiz oynamak istersen **Serbest**'i seç.",
-          "The fewer moves you use, the more stars you get. Stuck? Press **Hint**. To play without a mission, choose **Free play**.",
+          "Her komutun sonucu sahnede ve üstteki sayaçlarda görünür: kaç kayıt **tekrar** okundu, kaçı **kaçırıldı** ve her okuyucunun [[lag]]'i. Takılırsan `help` yaz; ipuçları adım adım açılır.",
+          "Every command's result shows in the scene and in the counters on top: how many records were read **again**, how many were **missed**, and each reader's [[lag]]. If you're stuck, type `help`; hints open one at a time.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Sağ alttaki olay listesi her düğmeden sonra ne olduğunu ve nedenini yazar. Bir şeyi bozarsan **Geri al** ya da **Sıfırla**.",
-            "The event list at the bottom right says what happened after each button and why. If you break something, use **Undo** or **Reset**.",
+            "Sağ alttaki olay listesi her komuttan sonra ne olduğunu ve nedenini yazar. Bir şeyi bozarsan **Son komutu geri al** ya da **Baştan başla**.",
+            "The event list at the bottom right says what happened after each command and why. If you break something, use **Undo last command** or **Start over**.",
           ),
         },
       ],

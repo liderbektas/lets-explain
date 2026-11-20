@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Action, ClusterState, KafkaRecord, Partition, SimEvent } from "../../engine/types";
 import { l, useLang, type Lang } from "@lets-explain/core/i18n";
@@ -8,9 +9,23 @@ import { TopicStage, TOPIC_STAGE, type ParcelLook, type StageReader } from "../.
 import type { ParcelState, Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { useGame } from "@lets-explain/core/lib/storage";
-import { starsFor, type Mission, type SceneProps } from "@lets-explain/core/course/types";
+import { starsFor, type Mission, type Scenario, type SceneProps } from "@lets-explain/core/course/types";
+import { kafkaShell, replayShell, type KafkaBox, type ShellAction, type ShellRun } from "../../engine/cli";
 import type { EventLine } from "./describe";
 import { runMoves, topicCtx, type MoveRun, type TopicCtx } from "./topicSim";
+
+/** What a typed scenario's check sees: the cluster as in a mission, plus the shell around it. */
+export interface KafkaCtx extends TopicCtx {
+  startBox: KafkaBox;
+  box: KafkaBox;
+}
+
+export type KafkaScenario = Scenario<KafkaCtx, KafkaBox>;
+
+export function kafkaCtx(startBox: KafkaBox, run: ShellRun): KafkaCtx {
+  const box = run.boxes[run.boxes.length - 1]!;
+  return { start: startBox.cluster, state: box.cluster, moves: run.actions.map((a) => [a]), events: run.events, startBox, box };
+}
 
 /**
  * The scene shell shared by the multi-partition lessons. A lesson gives it the
@@ -27,6 +42,8 @@ export interface SceneView {
   t: (x: { tr: string; en: string }) => string;
   lang: Lang;
   pulse: number;
+  /** The topic on the stage: the lesson's own, or in the terminal the one the reader last worked on. */
+  topic: string;
 }
 
 export interface SandboxApi {
@@ -44,7 +61,12 @@ interface Config {
   stepActions: Action[][];
   sandboxStep: number;
   sandboxStart: ClusterState;
+  /** Button missions, for a lesson still played with buttons. */
   missions: Mission<TopicCtx>[];
+  /** Typed scenarios: they replace the buttons and missions. */
+  scenarios?: KafkaScenario[];
+  /** Where free play starts in typed mode. */
+  freeStart?: KafkaBox;
   label: { tr: string; en: string };
   readers: (view: SceneView) => StageReader[];
   /** Highlight tint for a delivered record, by member. */
@@ -64,6 +86,7 @@ const text = {
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
   nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothingTyped: l("Bir komut yaz; Kafka'da ne olduğunu burada sade bir dille gör.", "Type a command; see what happened in Kafka here, in plain words."),
   next: l("sıradaki", "next"),
   undo: l("Geri al", "Undo"),
   reset: l("Sıfırla", "Reset"),
@@ -81,6 +104,18 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
     return i < 0 ? 0 : i;
   });
 
+  const typed = Boolean(c.scenarios?.length);
+  const box = useTypedSandbox({
+    slug: c.slug,
+    active: typed && sandbox,
+    scenarios: c.scenarios ?? [],
+    freeStart: c.freeStart ?? { cluster: c.sandboxStart, jobs: [], files: {}, nextPid: 4242 },
+    shell: kafkaShell,
+    replay: (start: KafkaBox, actions: ShellAction[]) => replayShell(start, actions),
+    final: (r) => r.boxes[r.boxes.length - 1]!,
+    context: (start, _actions, r) => kafkaCtx(start, r),
+  });
+
   const count = sandbox ? 0 : (c.stepActions[step]?.length ?? 0);
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
   const sandboxRun = useMemo(() => (sandbox ? runMoves(c.sandboxStart, extra) : null), [sandbox, extra, c.sandboxStart]);
@@ -88,7 +123,12 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
   let state: ClusterState;
   let last: SimEvent[];
   let shown: SimEvent[];
-  if (sandboxRun) {
+  if (box.run) {
+    state = box.run.boxes[box.run.boxes.length - 1]!.cluster;
+    const withEvents = box.run.events.filter((e) => e.length > 0);
+    last = withEvents[withEvents.length - 1] ?? [];
+    shown = box.run.events.flat();
+  } else if (sandboxRun) {
     state = sandboxRun.states[sandboxRun.states.length - 1]!;
     last = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
     shown = sandboxRun.events.flat();
@@ -108,9 +148,10 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
   }, [won, missionId, par, extra.length, setMissionStars, c.slug]);
   const locked = won;
 
-  const pulse = sandbox ? extra.length : cursor;
-  const view: SceneView = { state, last, sandbox, step, t, lang, pulse };
-  const topic = state.topics[c.topic];
+  const pulse = box.run ? box.run.events.length : sandbox ? extra.length : cursor;
+  const shownTopic = box.run ? touchedTopic(state, box.run.events.flat(), c.topic) : c.topic;
+  const view: SceneView = { state, last, sandbox, step, t, lang, pulse, topic: shownTopic };
+  const topic = state.topics[shownTopic];
   const partitions = topic?.partitions ?? [];
 
   const marks = new Map<string, { state: ParcelState; tint?: Tint; to?: string }>();
@@ -135,7 +176,7 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
     <div className={`events ${sandbox ? "" : "is-short"}`} aria-live="polite">
       <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
       {lines.length === 0 ? (
-        <p>{t(sandbox ? text.nothing : text.waiting)}</p>
+        <p>{t(sandbox ? (typed ? text.nothingTyped : text.nothing) : text.waiting)}</p>
       ) : (
         <ol>
           {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
@@ -149,7 +190,13 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
     </div>
   );
 
-  const footer = sandbox ? (
+  const footer = sandbox && typed ? (
+    <div className="sandbox">
+      {box.panel}
+      {box.terminal}
+      {eventList}
+    </div>
+  ) : sandbox ? (
     <div className="sandbox">
       <MissionPanel
         missions={c.missions}
@@ -179,7 +226,7 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
 
   return (
     <SceneFrame
-      metrics={c.metrics(view, { start: sandbox ? c.sandboxStart : null })}
+      metrics={c.metrics(view, { start: sandbox ? (typed ? box.start.cluster : c.sandboxStart) : null })}
       controls={controls}
       legend={c.legend(view)}
       paused={paused}
@@ -225,4 +272,19 @@ export function FlagSwatch({ fill }: { fill: string }) {
 export function orderText(value: string, lang: Lang) {
   const [, id] = value.split(":");
   return `${lang === "tr" ? "sipariş" : "order"} ${id ?? value}`;
+}
+
+/**
+ * In the terminal a reader may create or use any topic. The stage shows the one they touched
+ * last, falling back to the lesson's topic, then to any topic there is.
+ */
+function touchedTopic(state: ClusterState, events: SimEvent[], fallback: string): string {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i]!;
+    const name =
+      "topic" in e && typeof e.topic === "string" ? e.topic : "tp" in e && typeof e.tp === "string" ? e.tp.slice(0, e.tp.lastIndexOf("-")) : null;
+    if (name && state.topics[name]) return name;
+  }
+  if (state.topics[fallback]) return fallback;
+  return Object.keys(state.topics)[0] ?? fallback;
 }

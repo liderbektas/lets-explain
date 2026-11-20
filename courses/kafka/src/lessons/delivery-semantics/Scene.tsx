@@ -1,38 +1,15 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Partition } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
 import { CommitSeal, Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import {
-  base,
-  canDo,
-  commit,
-  crash,
-  dedupe,
-  duplicateCount,
-  lagOf,
-  lostOffsets,
-  process,
-  produce,
-  read,
-  restart,
-  run,
-  SANDBOX_STEP,
-  sandboxStart,
-  stepActions,
-  type DAction,
-  type DEvent,
-  type DState,
-} from "./model";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { base, duplicateCount, lagOf, lostOffsets, SANDBOX_STEP, stepActions, type DEvent, type DState } from "./model";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 import "./scene.css";
 
 const SLUG = "delivery-semantics";
@@ -55,7 +32,6 @@ const text = {
   inHand: l("Elinde", "In hand"),
   empty: l("boş", "empty"),
   down: l("çöktü, bellek silindi", "down, memory wiped"),
-  ledger: l("Gönderilenler defteri", "Already-sent list"),
   ledgerShort: l("Defter", "List"),
   on: l("açık", "on"),
   off: l("kapalı", "off"),
@@ -68,18 +44,7 @@ const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  log: l("Log", "Log"),
-  write: l("Sipariş yaz", "Write order"),
-  readOne: l("1 oku", "Read 1"),
-  doProcess: l("İşle: e-posta gönder", "Process: send email"),
-  doCommit: l("Commit", "Commit"),
-  doCrash: l("Çökert", "Crash"),
-  doStart: l("Başlat", "Start"),
-  ledgerOn: l("Defteri aç", "Turn list on"),
-  ledgerOff: l("Defteri kapat", "Turn list off"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
+  nothing: l("Bir komut yaz; servisin ne yaptığını burada gör.", "Type a command; see what the service did here."),
   amo: l("at-most-once: kayıp olabilir", "at-most-once: may lose"),
   alo: l("at-least-once: tekrar olabilir", "at-least-once: may repeat"),
   eo: l("+ idempotent işleme = etkisi tek sefer", "+ idempotent processing = effect once"),
@@ -182,17 +147,12 @@ function describe(events: DEvent[], lang: Lang): Line[] {
 export function DeliverySemanticsScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<DAction[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
+  const sandboxStart = typed.startModel;
 
   const count = sandbox ? 0 : stepActions[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? run(extra, sandboxStart) : null), [sandbox, extra]);
+  const sandboxRun = typed.sandboxRun;
 
   let state: DState;
   let lastEvents: DEvent[];
@@ -208,22 +168,7 @@ export function DeliverySemanticsScene({ step, paused, replayKey, controls }: Sc
     shown = base.run.events.slice(start, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-  };
-  const act = (a: DAction) => {
-    if (!locked) setExtra((xs) => [...xs, a]);
-  };
-
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = sandbox ? (sandboxRun?.events.length ?? 0) : cursor;
   const lost = lostOffsets(state);
   const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
   for (const o of lost) marks.set(o, { state: "dim" });
@@ -294,59 +239,10 @@ export function DeliverySemanticsScene({ step, paused, replayKey, controls }: Sc
     </div>
   );
 
-  const can = (a: DAction["type"]) => !locked && canDo(state, a);
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={extra.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.log)}
-          </span>
-          <button className="chip-btn is-producer" disabled={!can("produce")} onClick={() => act(produce)}>
-            {t(text.write)}
-          </button>
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: READER_TINT.body }} />
-            {t(text.reader)}
-          </span>
-          <button className="chip-btn" disabled={!can("read")} onClick={() => act(read)}>
-            {t(text.readOne)}
-          </button>
-          <button className="chip-btn" disabled={!can("process")} onClick={() => act(process)}>
-            {t(text.doProcess)}
-          </button>
-          <button className="chip-btn is-ok" disabled={!can("commit")} onClick={() => act(commit)}>
-            {t(text.doCommit)}
-          </button>
-          {state.alive ? (
-            <button className="chip-btn is-danger toggle-btn" disabled={!can("crash")} onClick={() => act(crash)}>
-              {t(text.doCrash)}
-            </button>
-          ) : (
-            <button className="chip-btn is-ok toggle-btn" disabled={!can("restart")} onClick={() => act(restart)}>
-              {t(text.doStart)}
-            </button>
-          )}
-        </div>
-        <div className="control-row">
-          <span className="control-name ds-ledger-name">{t(text.ledger)}</span>
-          <button className="chip-btn" disabled={locked} onClick={() => act(dedupe(!state.dedupe))}>
-            {t(state.dedupe ? text.ledgerOff : text.ledgerOn)}
-          </button>
-        </div>
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {typed.panel}
+      {typed.terminal}
       {eventList}
     </div>
   ) : null;

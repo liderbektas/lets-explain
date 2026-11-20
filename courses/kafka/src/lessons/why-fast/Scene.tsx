@@ -1,29 +1,15 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { motion } from "motion/react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { NameTag } from "../../iso/PartitionStage";
 import { Belt, Building, IsoBox, Parcel, Person, Pill, TINTS, type Shades } from "@lets-explain/core/iso/shapes";
 import { usePlayback, useTicker } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
-import { starsFor, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import {
-  applyMove,
-  BATCHES,
-  knobsAfter,
-  measure,
-  SANDBOX_STEP,
-  settingsOf,
-  START_KNOBS,
-  steps,
-  type Measure,
-  type SandboxMove,
-  type Settings,
-} from "./model";
+import type { SceneProps } from "@lets-explain/core/course/types";
+import { BATCHES, measure, SANDBOX_STEP, steps, type Measure, type Settings } from "./model";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 import "./scene.css";
 
 const SLUG = "why-fast";
@@ -31,6 +17,7 @@ const W = 860;
 const H = 470;
 
 const text = {
+  same: l("aynı ayarlarla yeniden ölçüldü", "measured again, same setup"),
   label: l(
     "Producer'dan broker'a, oradan partition'lar üzerinden consumer'lara giden kayıtlar",
     "Records going from the producer to the broker, and through partitions to consumers",
@@ -69,12 +56,9 @@ const text = {
   rowComp: l("Sıkıştırma", "Compression"),
   rowParts: l("Partition", "Partitions"),
   rowCons: l("Consumer", "Consumers"),
-  perReq: l("kayıt/istek", "records/request"),
   none: l("yok", "none"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
   latest: l("Son değişiklikler (en yenisi üstte)", "Latest changes (newest first)"),
-  nothing: l("Bir ayarı değiştir, etkisini burada gör.", "Change a setting and see its effect here."),
+  nothing: l("Bir ayar değiştir ve performans testiyle ölç; etkisini burada gör.", "Change a setting and measure with the perf test; see its effect here."),
 };
 
 export function WhyFastScene({ step, paused, replayKey, controls }: SceneProps) {
@@ -86,33 +70,10 @@ export function WhyFastScene({ step, paused, replayKey, controls }: SceneProps) 
   const revealed = cursor >= 1;
   const tick = useTicker(!sandbox && view.mode !== "pipeline", paused, 900, `${step}-${replayKey}`);
 
-  const [moves, setMoves] = useState<SandboxMove[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
-  const knobs = useMemo(() => knobsAfter(moves), [moves]);
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
 
-  const settings: Settings = sandbox ? settingsOf(knobs) : revealed ? view.after : view.before;
+  const settings: Settings = sandbox ? (typed.state?.model ?? FREE.model) : revealed ? view.after : view.before;
   const m = measure(settings);
-
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && mission.check({ knobs, m }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(moves.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, moves.length, setMissionStars]);
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setMoves([]);
-  };
-  const act = (mv: SandboxMove) => {
-    if (!locked && applyMove(knobs, mv)) setMoves((xs) => [...xs, mv]);
-  };
-  const can = (mv: SandboxMove) => !locked && applyMove(knobs, mv) !== null;
 
   const pipeline = view.mode === "pipeline" || sandbox;
   const metrics: Metric[] = pipeline
@@ -135,52 +96,21 @@ export function WhyFastScene({ step, paused, replayKey, controls }: SceneProps) 
       : []),
   ];
 
-  // The change log for the try-it step: what each move did to the numbers.
-  const changeLines = useMemo(() => {
-    const out: { text: string; tone: "ok" | "bad" | "plain" }[] = [];
-    let k = START_KNOBS;
-    for (const mv of moves) {
-      const next = applyMove(k, mv) ?? k;
-      const a = measure(settingsOf(k));
-      const b = measure(settingsOf(next));
-      const name = describeKnob(mv, settingsOf(k), settingsOf(next), t);
-      const parts = [`${t(text.produce)} ${fmt(a.produce)} → ${fmt(b.produce)}`];
-      if (a.consume !== b.consume) parts.push(`${t(text.consume)} ${fmt(a.consume)} → ${fmt(b.consume)}`);
-      if (b.idle > a.idle) parts.push(`${b.idle} ${t(text.consumer).toLowerCase()} ${t(text.idle)}`);
-      out.push({ text: `${name}: ${parts.join(", ")}`, tone: b.produce > a.produce || b.consume > a.consume ? "ok" : b.produce < a.produce || b.consume < a.consume ? "bad" : "plain" });
-      k = next;
-    }
-    return out;
-  }, [moves, t, fmt]);
+  // The change log for the try-it step: what each measured change did to the numbers.
+  const changeLines = (typed.run?.events.flat() ?? []).map((e) => {
+    const a = measure(e.from);
+    const b = measure(e.to);
+    const parts = [`${t(text.produce)} ${fmt(a.produce)} → ${fmt(b.produce)}`];
+    if (a.consume !== b.consume) parts.push(`${t(text.consume)} ${fmt(a.consume)} → ${fmt(b.consume)}`);
+    if (b.idle > a.idle) parts.push(`${b.idle} ${t(text.consumer).toLowerCase()} ${t(text.idle)}`);
+    const tone: "ok" | "bad" | "plain" = b.produce > a.produce || b.consume > a.consume ? "ok" : b.produce < a.produce || b.consume < a.consume ? "bad" : "plain";
+    return { text: `${describeChange(e.from, e.to, t)}: ${parts.join(", ")}`, tone };
+  });
 
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={moves.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <Knob name={t(text.rowBatch)} color="var(--sun)" value={`${fmt(settings.batch)} ${t(text.perReq)}`} onMinus={() => act("batch-")} onPlus={() => act("batch+")} minus={can("batch-")} plus={can("batch+")} />
-        <div className="control-row knob-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.rowComp)}
-          </span>
-          <button className={`chip-btn ${!knobs.lz4 ? "is-selected" : ""}`} disabled={!can("none")} onClick={() => act("none")}>
-            {t(text.none)}
-          </button>
-          <button className={`chip-btn ${knobs.lz4 ? "is-selected" : ""}`} disabled={!can("lz4")} onClick={() => act("lz4")}>
-            lz4
-          </button>
-        </div>
-        <Knob name={t(text.rowParts)} color="#d9caae" value={String(settings.partitions)} onMinus={() => act("part-")} onPlus={() => act("part+")} minus={can("part-")} plus={can("part+")} />
-        <Knob name={t(text.rowCons)} color="var(--lilac)" value={String(settings.consumers)} onMinus={() => act("cons-")} onPlus={() => act("cons+")} minus={can("cons-")} plus={can("cons+")} />
-        <div className="control-row">
-          <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {typed.panel}
+      {typed.terminal}
       <div className="events" aria-live="polite">
         <h3>{t(text.latest)}</h3>
         {changeLines.length === 0 ? (
@@ -188,7 +118,7 @@ export function WhyFastScene({ step, paused, replayKey, controls }: SceneProps) 
         ) : (
           <ol>
             {[...changeLines].reverse().map((line, i) => (
-              <li key={`${moves.length}-${i}`} className={`ev-${line.tone}`}>
+              <li key={`${changeLines.length}-${i}`} className={`ev-${line.tone}`}>
                 <span className="ev-dot" />
                 <span>{line.text}</span>
               </li>
@@ -212,29 +142,14 @@ export function WhyFastScene({ step, paused, replayKey, controls }: SceneProps) 
   );
 }
 
-function describeKnob(mv: SandboxMove, a: Settings, b: Settings, t: (x: L) => string) {
-  if (mv.startsWith("batch")) return `${t(text.rowBatch)} ${a.batch} → ${b.batch}`;
-  if (mv === "lz4" || mv === "none") return `${t(text.rowComp)}: ${b.compression === "lz4" ? "lz4" : t(text.none)}`;
-  if (mv.startsWith("part")) return `${t(text.rowParts)} ${a.partitions} → ${b.partitions}`;
-  return `${t(text.rowCons)} ${a.consumers} → ${b.consumers}`;
-}
-
-function Knob(props: { name: string; color: string; value: string; onMinus: () => void; onPlus: () => void; minus: boolean; plus: boolean }) {
-  return (
-    <div className="control-row knob-row">
-      <span className="control-name">
-        <i style={{ background: props.color }} />
-        {props.name}
-      </span>
-      <button className="chip-btn knob-btn" disabled={!props.minus} onClick={props.onMinus} aria-label={`${props.name} −`}>
-        −
-      </button>
-      <span className="knob-value">{props.value}</span>
-      <button className="chip-btn knob-btn" disabled={!props.plus} onClick={props.onPlus} aria-label={`${props.name} +`}>
-        +
-      </button>
-    </div>
-  );
+/** Names what changed between two measured setups: batch, compression, partitions, consumers. */
+function describeChange(a: Settings, b: Settings, t: (x: L) => string) {
+  const out: string[] = [];
+  if (a.batch !== b.batch) out.push(`${t(text.rowBatch)} ${a.batch} → ${b.batch}`);
+  if (a.compression !== b.compression) out.push(`${t(text.rowComp)}: ${b.compression === "lz4" ? "lz4" : t(text.none)}`);
+  if (a.partitions !== b.partitions) out.push(`${t(text.rowParts)} ${a.partitions} → ${b.partitions}`);
+  if (a.consumers !== b.consumers) out.push(`${t(text.rowCons)} ${a.consumers} → ${b.consumers}`);
+  return out.join(", ") || t(text.same);
 }
 
 /* --------------------------------------------------------------- pipeline */

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
+import { useTypedSandbox, type CommandLine } from "@lets-explain/core/components/TypedSandbox";
 import { leaderLog, type REvent, type RState } from "../../engine/replication";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import type { L } from "@lets-explain/core/i18n";
@@ -9,7 +10,7 @@ import { TINTS, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { useGame } from "@lets-explain/core/lib/storage";
 import type { EventLine } from "../shared/describe";
-import { starsFor, type Change, type Mission } from "@lets-explain/core/course/types";
+import { starsFor, type Change, type Mission, type Scenario } from "@lets-explain/core/course/types";
 
 /* ------------------------------------------------------------ step runner */
 
@@ -261,17 +262,18 @@ const text = {
   thisStep: { tr: "Bu adımda olanlar", en: "What happened in this step" },
   waiting: { tr: "Birazdan başlıyor…", en: "Starting…" },
   nothing: { tr: "Bir düğmeye bas, sonucu burada gör.", en: "Press a button and see the result here." },
+  nothingTyped: { tr: "Bir komut yaz; Kafka'nın ne yaptığını burada sade bir dille gör.", en: "Type a command; see what Kafka did here, in plain words." },
   undo: { tr: "Geri al", en: "Undo" },
   reset: { tr: "Sıfırla", en: "Reset" },
 };
 
-export function EventList({ lines, sandbox, pulse }: { lines: EventLine[]; sandbox: boolean; pulse: number }) {
+export function EventList({ lines, sandbox, pulse, typed }: { lines: EventLine[]; sandbox: boolean; pulse: number; typed?: boolean }) {
   const { t } = useLang();
   return (
     <div className={`events ${sandbox ? "" : "is-short"}`} aria-live="polite">
       <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
       {lines.length === 0 ? (
-        <p>{t(sandbox ? text.nothing : text.waiting)}</p>
+        <p>{t(sandbox ? (typed ? text.nothingTyped : text.nothing) : text.waiting)}</p>
       ) : (
         <ol>
           {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
@@ -362,6 +364,81 @@ export function Sandbox<S, A, E>({
         </div>
       </div>
       <EventList lines={lines} sandbox pulse={extra.length} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- typed mode */
+
+/** A shell's replay: the box after each action and each action's events. */
+export interface BoxRun<B, E> {
+  boxes: B[];
+  events: E[][];
+}
+
+export interface TypedView<S, B, E> {
+  /** Where the scenario (or free play) started. */
+  start: S;
+  state: S;
+  before: S;
+  box: B;
+  lastEvents: E[];
+  shownEvents: E[];
+  /** Grows with every command, so the scene can replay its little animations. */
+  pulse: number;
+  panel: ReactNode;
+  terminal: ReactNode;
+}
+
+/**
+ * The try-it step played by typing, for any of the kit's models: a shell on a "box" (the model
+ * plus files), its scenarios, and how to read the model out of a box. Null on other steps.
+ */
+export function useTypedKit<SA, B, C, S, RR extends BoxRun<B, unknown>>(o: {
+  slug: string;
+  active: boolean;
+  scenarios: Scenario<C, B>[];
+  freeStart: B;
+  shell: CommandLine<SA, B>;
+  replay: (start: B, actions: SA[]) => RR;
+  context: (start: B, run: RR) => C;
+  stateOf: (box: B) => S;
+}): TypedView<S, B, RR["events"][number][number]> | null {
+  const typed = useTypedSandbox({
+    slug: o.slug,
+    active: o.active,
+    scenarios: o.scenarios,
+    freeStart: o.freeStart,
+    shell: o.shell,
+    replay: o.replay,
+    final: (r: RR) => r.boxes[r.boxes.length - 1]!,
+    context: (start: B, _actions: SA[], r: RR) => o.context(start, r),
+  });
+  if (!typed.run) return null;
+  const { boxes } = typed.run;
+  const events = typed.run.events as RR["events"][number][number][][];
+  const withEvents = events.filter((e) => e.length > 0);
+  const lastAt = events.map((e) => e.length > 0).lastIndexOf(true);
+  return {
+    start: o.stateOf(typed.start),
+    state: o.stateOf(boxes[boxes.length - 1]!),
+    before: o.stateOf(lastAt >= 0 ? boxes[lastAt]! : typed.start),
+    box: boxes[boxes.length - 1]!,
+    lastEvents: withEvents[withEvents.length - 1] ?? [],
+    shownEvents: events.flat(),
+    pulse: withEvents.length,
+    panel: typed.panel,
+    terminal: typed.terminal,
+  };
+}
+
+/** The typed try-it panel: scenarios on top, the terminal, and the event list. */
+export function TypedFooter({ view, lines }: { view: { panel: ReactNode; terminal: ReactNode; pulse: number }; lines: EventLine[] }) {
+  return (
+    <div className="sandbox">
+      {view.panel}
+      {view.terminal}
+      <EventList lines={lines} sandbox typed pulse={view.pulse} />
     </div>
   );
 }

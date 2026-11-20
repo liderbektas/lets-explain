@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, DeliverySemanticsScene } from "./Scene";
 
 export const deliverySemantics: Lesson = {
@@ -14,7 +14,7 @@ export const deliverySemantics: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: DeliverySemanticsScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Okumak, işlemek ve commit'in ayrı anlar olduğunu görmek", "See that reading, processing and committing are separate moments"), step: 1 },
     { text: l("Önce commit edince kaydın neden kaybolduğunu görmek (at-most-once)", "See why committing first loses a record (at-most-once)"), step: 3 },
@@ -321,23 +321,23 @@ export const deliverySemantics: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Log'da e-postası gönderilmemiş bir sipariş bekliyor ve gönderilenler defteri kapalı. Düğmelerle okuyabilir, işleyebilir, commit edebilir, servisi çökertip yeniden başlatabilir ve defteri açabilirsin.",
-          "One order is waiting for its email and the already-sent list is off. With the buttons you can read, process, commit, crash and restart the service, and switch the list on.",
+          "Sıra sende. Aşağıda e-posta servisinin projesi var: `email_consumer.py` okuma döngüsünü tutuyor. Kodu `nano` ile açıp düzenleyebilir, servisi `python email_consumer.py` ile başlatabilir, group'un nerede kaldığına `kafka-consumer-groups.sh` ile bakabilirsin.",
+          "Your turn. Below is the email service's project: `email_consumer.py` holds the read loop. Open and edit it with `nano`, start the service with `python email_consumer.py`, and see where the group stands with `kafka-consumer-groups.sh`.",
         ),
         l(
-          "Sahnenin altında **4 görev** var: bir e-postayı kaybetmek, iki kez göndermek, güvenle çökmek ve tekrarı zararsız yapmak. Az hamleyle bitirirsen 3 yıldız alırsın.",
-          "There are **4 missions** under the scene: lose an email, send one twice, crash safely, and make a repeat harmless. Finish in few moves for 3 stars.",
+          "**4 senaryo** gerçek işten: bir deploy servisi yarıda kesecek, bir e-posta kaybolmuş, müşteriler aynı e-postayı iki kez almış. Planlanan arıza, proje klasöründeki gizli `.chaos` dosyasında yazılı (`ls -a`). Az komutla bitirirsen 3 yıldız alırsın.",
+          "The **4 scenarios** come from real work: a deploy will cut the service off, an email went missing, customers got the same email twice. The planned failure is written in the hidden `.chaos` file in the project folder (`ls -a`). Finish in few commands for 3 stars.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Sayaçlar ve gelen kutusu her hamlenin sonucunu gösterir. Olay listesi ne olduğunu ve nedenini yazar. Bir şeyi bozarsan **Geri al** ya da **Sıfırla**.",
-            "The counters and the inbox show every move's result, and the event list says what happened and why. If you break something, use **Undo** or **Reset**.",
+            "Gelen kutusu ve sayaçlar her komutun sonucunu gösterir. Takılırsan `help` yaz ya da ipuçlarını aç; bir şeyi bozarsan **Son komutu geri al**.",
+            "The inbox and the counters show each command's result. If you're stuck, type `help` or open the hints; if you break something, **Undo last command**.",
           ),
         },
       ],

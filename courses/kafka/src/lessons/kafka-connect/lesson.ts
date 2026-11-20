@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, KafkaConnectScene } from "./Scene";
 
 export const kafkaConnect: Lesson = {
@@ -14,7 +14,7 @@ export const kafkaConnect: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: KafkaConnectScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Source ve sink connector'ı ayırt etmek", "Tell a source connector from a sink connector"), step: 3 },
     { text: l("SMT ve converter'ın kayda ne yaptığını görmek", "See what SMTs and converters do to a record"), step: 4 },
@@ -318,27 +318,23 @@ export const kafkaConnect: Lesson = {
     {
       short: l("Sıra sende", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Temiz bir başlangıç: tabloda 3 satır var, hepsi kopyalanmış ve iki tarafta da kaydedilmiş. Mask SMT kapalı, sink **insert** modunda.",
-          "A clean start: 3 rows in the table, all copied and saved on both sides. The mask SMT is off and the sink is in **insert** mode.",
+          "Sıra sende. Aşağıda docker-compose ile kurulu bir Connect hattı var: Postgres → `db-source` → `payments` topic'i → `search-sink` → Elasticsearch, iki worker üstünde. Connector ayarları `db-source.json` ve `search-sink.json`'da; değişikliği Connect'in REST API'sine `curl -X PUT ... /connectors/<ad>/config` ile gönderirsin.",
+          "Your turn. Below is a Connect pipeline set up with docker-compose: Postgres → `db-source` → topic `payments` → `search-sink` → Elasticsearch, on two workers. The connector settings live in `db-source.json` and `search-sink.json`; send a change to Connect's REST API with `curl -X PUT ... /connectors/<name>/config`.",
         ),
         l(
-          "Satır ekleyebilir, source ve sink task'larını çalıştırabilir, offset'leri kaydedebilir ve worker'ları çökertip başlatabilirsin.",
-          "You can add rows, run the source and sink tasks, save offsets, and crash or start the workers.",
-        ),
-        l(
-          "Sahnenin altında **4 görev** var. Ne kadar az hamleyle bitirirsen o kadar çok yıldız alırsın. Görevsiz oynamak için **Serbest**'i seç.",
-          "There are **4 missions** under the scene. The fewer moves you use, the more stars you get. To play without a mission, choose **Free play**.",
+          "Worker'ları `docker stop`, `kill`, `start` ve `restart` ile yönetirsin; `sleep 60` offset'lerin kaydedilmesini bekler. Görevler yeni satırları ve kayıtları kendiliğinden toplar. **4 senaryo** var; az komutla bitirirsen 3 yıldız.",
+          "Manage the workers with `docker stop`, `kill`, `start` and `restart`; `sleep 60` waits for the offsets to be saved. The tasks pick up new rows and records on their own. There are **4 scenarios**; few commands earn 3 stars.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Ortadaki `connect-offsets` kartını izle: kırmızı \"hafızada\" yazısı, bir çökmede kaybolacak bilgiyi gösterir.",
-            "Watch the `connect-offsets` card: the red \"in memory\" part is what a crash would lose.",
+            "Gerçekte worker'lar offset'leri bir zamanlayıcıyla kaydeder (`offset.flush.interval.ms`, varsayılan 60 sn) ve ölen bir worker'ın görevleri, grup bunu fark edince taşınır. Burada taşıma anında olur.",
+            "In real life workers save offsets on a timer (`offset.flush.interval.ms`, 60 s by default), and a dead worker's tasks move once the group notices. Here they move at once.",
           ),
         },
       ],

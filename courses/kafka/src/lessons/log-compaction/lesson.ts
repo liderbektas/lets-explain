@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, LogCompactionScene } from "./Scene";
 
 export const logCompaction: Lesson = {
@@ -14,7 +14,7 @@ export const logCompaction: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: LogCompactionScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Süreye göre silmenin neden her topic'e uymadığını görmek", "See why deleting by age does not suit every topic"), step: 1 },
     { text: l("Compaction'ın her key'in son değerini nasıl sakladığını görmek", "See how compaction keeps each key's latest value"), step: 3 },
@@ -299,27 +299,23 @@ export const logCompaction: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sandbox yeni bir topic ile başlıyor: kapalı segment'te Ali, Ece ve Can'ın birer adresi, aktif segment'te Ali'nin yeni adresi var.",
-          "The sandbox starts with a fresh topic: the closed segment holds one address each for Ali, Ece and Can, and the active segment has Ali's new address.",
+          "Sıra sende. Terminal `kafka-1` broker'ının üzerinde açık. `user-addresses` topic'inin kapalı segment'inde Ali, Ece ve Can'ın birer adresi, aktif segment'te Ali'nin yeni adresi var. Aşağıda gerçek işten **5 senaryo** var; komutları **kendin yaz**.",
+          "Your turn. The terminal is open on broker `kafka-1`. The `user-addresses` topic's closed segment holds one address each for Ali, Ece and Can, and the active segment has Ali's newer address. Below are **5 scenarios** from real work; **type the commands yourself**.",
         ),
         l(
-          "Yeni adres yazabilir, bir kişiyi tombstone ile silebilir, cleaner'ı çalıştırabilir ve zamanı 2 gün ilerletebilirsin. Sağ üstteki tablo her hamlede güncellenir.",
-          "You can write new addresses, delete a person with a tombstone, run the cleaner and move time forward 2 days. The table at the top right updates on every move.",
-        ),
-        l(
-          "Sahnenin altında **3 görev** var. Az hamleyle bitirirsen daha çok yıldız alırsın.",
-          "Under the scene there are **3 missions**. Finish with fewer moves for more stars.",
+          "Kayıtları key'iyle konsol producer'dan gönderirsin (`ali:İzmir`); `--property null.marker=NULL` ile `NULL` yazdığın value tombstone olur. Cleaner kendi kendine çalışır: saat `sleep` ile ilerledikçe. Sağ üstteki tablo her komutta güncellenir.",
+          "You send keyed records with the console producer (`ali:İzmir`); with `--property null.marker=NULL` a value you type as `NULL` becomes a tombstone. The cleaner runs on its own as the clock moves with `sleep`. The table at the top right updates with every command.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Cleaner'ı çalıştırıp hiçbir şey olmuyorsa aktif segment'e bak: cleaner onu görmez.",
-            "If running the cleaner does nothing, look at the active segment: the cleaner cannot see it.",
+            "Saat ilerlediği hâlde hiçbir şey temizlenmiyorsa aktif segment'e bak: cleaner onu görmez.",
+            "If time passes and nothing gets cleaned, look at the active segment: the cleaner cannot see it.",
           ),
         },
       ],

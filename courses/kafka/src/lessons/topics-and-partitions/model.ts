@@ -7,8 +7,6 @@ import { runMoves, stateAfter } from "../shared/topicSim";
 
 export const TOPIC = "orders";
 export const GROUP = "billing";
-export const MAX_PARTITIONS = 4;
-export const MAX_READERS = 4;
 
 export interface ReaderDef {
   id: string;
@@ -29,7 +27,6 @@ let order = 1100;
 const produce = (): Action => ({ type: "produce", topic: TOPIC, value: `order:${order++}`, producer: "orders-service" });
 export const produceValue = (value: string): Action => ({ type: "produce", topic: TOPIC, value, producer: "orders-service" });
 export const join = (id: string): Action => ({ type: "joinGroup", group: GROUP, member: id, topics: [TOPIC], autoOffsetReset: "earliest" });
-export const leave = (id: string): Action => ({ type: "leaveGroup", group: GROUP, member: id });
 export const poll = (id: string, max?: number): Action => ({ type: "poll", group: GROUP, member: id, max });
 export const grow = (count: number): Action => ({ type: "addPartitions", topic: TOPIC, count });
 export const commit = (id: string): Action => ({ type: "commit", group: GROUP, member: id });
@@ -84,7 +81,7 @@ export const base = (() => {
 
 /* ------------------------------------------------------------- sandbox */
 
-/** The try-it step starts small: one partition with a backlog, one reader that has not read yet. */
+/** Where the button sandbox used to start; the typed scenarios bring their own states. */
 export const sandboxStart: ClusterState = stateAfter(
   [
     { type: "createTopic", name: TOPIC, partitions: 1 },
@@ -96,42 +93,3 @@ export const sandboxStart: ClusterState = stateAfter(
   ],
   3,
 );
-
-export const nextOrder = (written: number) => `order:${2005 + written}`;
-
-export function activeReaders(state: ClusterState): string[] {
-  return (state.groups[GROUP]?.members ?? []).map((m) => m.id).sort();
-}
-
-/** The moves the sandbox buttons make. Each returns the engine actions for one press. */
-export const sandboxMoves = {
-  write: (written: number): Action[] => [produceValue(nextOrder(written))],
-  grow: (state: ClusterState): Action[] => [grow(state.topics[TOPIC]!.partitions.length + 1)],
-  addReader: (state: ClusterState): Action[] => {
-    const active = activeReaders(state);
-    const next = READERS.find((r) => !active.includes(r.id));
-    return next ? [join(next.id)] : [];
-  },
-  removeReader: (state: ClusterState): Action[] => {
-    const active = activeReaders(state);
-    const last = active[active.length - 1];
-    return last ? [leave(last)] : [];
-  },
-  /**
-   * Everyone in the group reads one record at the same time: one "round" of work.
-   * Each commits right after, so a later rebalance does not make anyone re-read.
-   */
-  tick: (state: ClusterState): Action[] => activeReaders(state).flatMap((id) => [poll(id, 1), commit(id)]),
-};
-
-/** Which buttons are enabled, as lists of actions (empty = disabled). Used by the scene and the tests. */
-export function enabledMoves(state: ClusterState, written: number): Action[][] {
-  const out: Action[][] = [sandboxMoves.write(written)];
-  if (state.topics[TOPIC]!.partitions.length < MAX_PARTITIONS) out.push(sandboxMoves.grow(state));
-  if (activeReaders(state).length < MAX_READERS) out.push(sandboxMoves.addReader(state));
-  if (activeReaders(state).length > 0) {
-    out.push(sandboxMoves.removeReader(state));
-    out.push(sandboxMoves.tick(state));
-  }
-  return out;
-}

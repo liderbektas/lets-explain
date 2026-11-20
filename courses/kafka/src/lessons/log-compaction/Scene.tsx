@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
-import { allRecords, recordCount, simulateStorage, type StorageEvent, type StorageLog } from "../../engine/storage";
+import { allRecords, recordCount, type StorageEvent, type StorageLog } from "../../engine/storage";
+import { replayS, sCtx, storageShell } from "../../engine/storageCli";
 import { l, useLang, type L } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { InfoCard, SEGMENT_STAGE, SegmentStage } from "../../iso/SegmentStage";
 import { TINTS } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import { describeStorage } from "../shared/describeStorage";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import { base, moveAction, people, personFor, SANDBOX_STEP, sandboxStart, stepBeats, tableOf, type SandboxMove } from "./model";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
+import { TypedFooter, useTypedKit } from "../cluster-kit/kit";
+import { base, people, personFor, SANDBOX_STEP, stepBeats, tableOf } from "./model";
+import { FREE, scenarios } from "./scenarios";
 import "../segments-and-retention/scene.css";
 
 const SLUG = "log-compaction";
@@ -40,46 +37,23 @@ const text = {
   tombstone: l("tombstone", "tombstone"),
   legendTomb: l("tombstone (value = null)", "tombstone (value = null)"),
   legendTray: l("tepsi = bir segment", "tray = one segment"),
-  write: l("yaz", "write"),
-  del: l("sil", "delete"),
-  rowWrite: l("Yeni adres", "New address"),
-  rowDelete: l("Tombstone", "Tombstone"),
-  rowBroker: l("Broker", "Broker"),
-  runCleaner: l("Cleaner'ı çalıştır", "Run the cleaner"),
-  wait: l("+2 gün", "+2 days"),
-  note: l("Cleaner sadece kapalı segment'lere bakar.", "The cleaner only looks at closed segments."),
-  thisStep: l("Bu adımda olanlar", "What happened in this step"),
-  latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
-  waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
 };
 
 export function LogCompactionScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [moves, setMoves] = useState<SandboxMove[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
-
   const count = sandbox ? 0 : stepBeats[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
-
-  const actions = useMemo(() => moves.map((m, i) => moveAction(m, i)), [moves]);
-  const sandboxRun = useMemo(() => (sandbox ? simulateStorage(actions, sandboxStart) : null), [sandbox, actions]);
+  // The try-it step is typed: the terminal runs Kafka's tools on the broker's disk.
+  const typed = useTypedKit({ slug: SLUG, active: sandbox, scenarios, freeStart: FREE, shell: storageShell, replay: replayS, context: sCtx, stateOf: (b) => b.log });
 
   let log: StorageLog;
   let lastEvents: StorageEvent[];
   let shownEvents: StorageEvent[];
-  if (sandboxRun) {
-    log = sandboxRun.logs[sandboxRun.logs.length - 1]!;
-    lastEvents = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
-    shownEvents = sandboxRun.events.flat();
+  if (typed) {
+    log = typed.state;
+    lastEvents = typed.lastEvents;
+    shownEvents = typed.shownEvents;
   } else {
     const start = base.startOf(step);
     log = base.run.logs[start + cursor]!;
@@ -87,22 +61,7 @@ export function LogCompactionScene({ step, paused, replayKey, controls }: SceneP
     shownEvents = base.run.events.slice(start, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, log, actions, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(moves.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, moves.length, setMissionStars]);
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setMoves([]);
-  };
-  const act = (m: SandboxMove) => {
-    if (!locked) setMoves((xs) => [...xs, m]);
-  };
-
-  const pulse = sandbox ? moves.length : cursor;
+  const pulse = typed ? typed.pulse : cursor;
   const produced = lastEvents.some((e) => e.type === "appended");
   const cleanedNow = lastEvents.some((e) => e.type === "compacted");
 
@@ -113,7 +72,7 @@ export function LogCompactionScene({ step, paused, replayKey, controls }: SceneP
 
   const records = allRecords(log);
   const metrics: Metric[] = [
-    { label: t(text.day), value: log.time },
+    { label: t(text.day), value: Math.round(log.time * 10) / 10 },
     { label: t(text.onLog), value: recordCount(log) },
     { label: t(text.written), value: log.logEndOffset },
     { label: t(text.cleaned), value: log.logEndOffset - records.length, tone: cleanedNow ? "ok" : "plain" },
@@ -138,75 +97,7 @@ export function LogCompactionScene({ step, paused, replayKey, controls }: SceneP
     const p = personFor(key);
     return p ? t(p.name) : null;
   });
-  const eventList = (
-    <div className={`events ${sandbox ? "" : "is-short"}`} aria-live="polite">
-      <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
-      {lines.length === 0 ? (
-        <p>{t(sandbox ? text.nothing : text.waiting)}</p>
-      ) : (
-        <ol>
-          {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
-            <li key={`${pulse}-${i}`} className={`ev-${line.tone}`}>
-              <span className="ev-dot" />
-              <span>{line.text}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-
-  const footer = sandbox ? (
-    <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={moves.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.rowWrite)}
-          </span>
-          {people.map((p) => (
-            <button key={p.key} className="chip-btn is-producer" disabled={locked} onClick={() => act(`w-${p.key}` as SandboxMove)}>
-              {t(p.name)} {t(text.write)}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "#d8d2dc" }} />
-            {t(text.rowDelete)}
-          </span>
-          {people.map((p) => (
-            <button key={p.key} className="chip-btn is-danger" disabled={locked} onClick={() => act(`d-${p.key}` as SandboxMove)}>
-              {t(p.name)} {t(text.del)}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sun)" }} />
-            {t(text.rowBroker)}
-          </span>
-          <button className="chip-btn is-ok" disabled={locked} onClick={() => act("compact")}>
-            {t(text.runCleaner)}
-          </button>
-          <button className="chip-btn" disabled={locked} onClick={() => act("wait")}>
-            {t(text.wait)}
-          </button>
-        </div>
-        <p className="control-note">{t(text.note)}</p>
-        <div className="control-row">
-          <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
-      {eventList}
-    </div>
-  ) : null;
+  const footer = typed ? <TypedFooter view={typed} lines={lines} /> : null;
 
   return (
     <SceneFrame

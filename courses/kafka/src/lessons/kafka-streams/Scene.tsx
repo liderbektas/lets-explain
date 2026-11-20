@@ -1,36 +1,27 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
 import { NameTag } from "../../iso/PartitionStage";
 import { Belt, Building, CommitSeal, Flag, GhostSlot, Parcel, Person, Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import type { EventLine } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
 import {
   base,
   CITIES,
-  movesIn,
   overcount,
-  SANDBOX_CITIES,
   SANDBOX_STEP,
-  sandboxStart,
-  simulate,
   tableOf,
   trueCounts,
-  type Action,
   type City,
-  type Guarantee,
   type StreamsEvent,
   type StreamsState,
   type Update,
 } from "./model";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 import "./scene.css";
 
 const SLUG = "kafka-streams";
@@ -74,18 +65,10 @@ const text = {
   legendSeal: l("commit edilen offset", "committed offset"),
   legendOpen: l("commit bekliyor", "waiting for commit"),
   legendAborted: l("iptal edildi", "aborted"),
-  ordersRow: l("Siparişler", "Orders"),
-  appRow: l("Uygulama", "App"),
-  processOne: l("1 işle", "Process 1"),
-  commitBtn: l("Commit", "Commit"),
-  crash: l("Çökert", "Crash"),
-  start: l("Başlat", "Start"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothing: l("Bir komut yaz; uygulamanın ne saydığını burada gör.", "Type a command; see what the app counted here."),
 };
 
 const cityName = (c: City, lang: Lang) => (lang === "tr" ? c : c.replace("İ", "I"));
@@ -93,16 +76,10 @@ const cityName = (c: City, lang: Lang) => (lang === "tr" ? c : c.replace("İ", "
 export function KafkaStreamsScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<Action[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
 
   const cursor = usePlayback(sandbox ? 0 : base.ends[step]! - base.startOf(step), paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? simulate(extra, sandboxStart) : null), [sandbox, extra]);
+  const sandboxRun = typed.sandboxRun;
 
   let state: StreamsState;
   let lastEvents: StreamsEvent[];
@@ -118,25 +95,7 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
     shown = base.run.events.slice(start, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(
-    mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }),
-  );
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const allowed = movesIn(state);
-  const can = (a: Action) => !locked && allowed.some((m) => JSON.stringify(m) === JSON.stringify(a));
-  const act = (a: Action) => {
-    if (can(a)) setExtra((xs) => [...xs, a]);
-  };
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-  };
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = sandbox ? (sandboxRun?.events.length ?? 0) : cursor;
 
   const extraCount = overcount(state);
   const eos = state.guarantee === "exactly_once_v2";
@@ -204,66 +163,8 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
 
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={extra.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.ordersRow)}
-          </span>
-          {SANDBOX_CITIES.map((c) => (
-            <button key={c} className="chip-btn is-producer" disabled={!can({ type: "order", city: c })} onClick={() => act({ type: "order", city: c })}>
-              + {cityName(c, lang)}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--lilac)" }} />
-            {t(text.appRow)}
-          </span>
-          <button className="chip-btn" disabled={!can({ type: "process" })} onClick={() => act({ type: "process" })}>
-            {t(text.processOne)}
-          </button>
-          <button className="chip-btn is-ok" disabled={!can({ type: "commit" })} onClick={() => act({ type: "commit" })}>
-            {t(text.commitBtn)}
-          </button>
-          {state.alive ? (
-            <button className="chip-btn is-danger toggle-btn" disabled={!can({ type: "crash" })} onClick={() => act({ type: "crash" })}>
-              {t(text.crash)}
-            </button>
-          ) : (
-            <button className="chip-btn is-ok toggle-btn" disabled={!can({ type: "restart" })} onClick={() => act({ type: "restart" })}>
-              {t(text.start)}
-            </button>
-          )}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sun)" }} />
-            {t(text.guarantee)}
-          </span>
-          {(["at_least_once", "exactly_once_v2"] as Guarantee[]).map((g) => (
-            <button
-              key={g}
-              className={`chip-btn ${state.guarantee === g ? "is-ok" : ""}`}
-              aria-pressed={state.guarantee === g}
-              disabled={locked || state.guarantee === g}
-              onClick={() => act({ type: "setGuarantee", guarantee: g })}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {typed.panel}
+      {typed.terminal}
       {eventList}
     </div>
   ) : null;

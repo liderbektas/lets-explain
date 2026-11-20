@@ -13,7 +13,6 @@ import { runMoves, stateAfter } from "../shared/topicSim";
 
 export const TOPIC = "orders";
 export const GROUP = "shipping";
-export const MAX_PARTITIONS = 4;
 
 export interface Customer {
   key: string;
@@ -98,17 +97,3 @@ export const base = (() => {
 /* ------------------------------------------------------------- sandbox */
 
 export const sandboxStart: ClusterState = stateAfter([{ type: "createTopic", name: TOPIC, partitions: 3 }], 3);
-
-export const sandboxMoves = {
-  customer: (key: string): Action[] => [write(`${key}:order`, key)],
-  keyless: (written: number): Action[] => [write(`order:${4001 + written}`)],
-  grow: (state: ClusterState): Action[] => [grow(state.topics[TOPIC]!.partitions.length + 1)],
-};
-
-export function enabledMoves(state: ClusterState, history: Action[][]): Action[][] {
-  const keyless = history.flat().filter((a) => a.type === "produce" && a.key === null).length;
-  const out: Action[][] = CUSTOMERS.map((c) => sandboxMoves.customer(c.key));
-  out.push(sandboxMoves.keyless(keyless));
-  if (state.topics[TOPIC]!.partitions.length < MAX_PARTITIONS) out.push(sandboxMoves.grow(state));
-  return out;
-}

@@ -4,10 +4,11 @@ import { l, useLang, type L } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage } from "../../iso/ClusterStage";
 import { Pill, type PillTone } from "@lets-explain/core/iso/shapes";
 import { describeReplicated } from "../cluster-kit/describe";
-import { clusterLabels, replicatedChanges, Sandbox, toStage, useSceneState } from "../cluster-kit/kit";
+import { clusterLabels, replicatedChanges, toStage, TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
+import { rCtx, replayR, replicationShell } from "../../engine/replicationCli";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import { controls, model, run, SANDBOX_STEP, SLUG, stepActions, writtenIn } from "./model";
+import { model, run, SANDBOX_STEP, SLUG, stepActions } from "./model";
+import { FREE, scenarios } from "./scenarios";
 
 const text = {
   label: l("Producer, üç broker'daki P0 kopyalarına yazıyor ve her yazma için bir cevap bekliyor", "The producer writes to P0's copies on three brokers and waits for an answer to each write"),
@@ -43,13 +44,17 @@ function receiptFor(send: Send | undefined) {
 
 export function AcksScene({ step, paused, replayKey, controls: frameControls }: SceneProps) {
   const { t, lang } = useLang();
-  const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  const lesson = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  // The try-it step is typed: the terminal's state replaces the lesson's.
+  const typed = useTypedKit({ slug: SLUG, active: step === SANDBOX_STEP, scenarios, freeStart: FREE, shell: replicationShell, replay: replayR, context: rCtx, stateOf: (b) => b.state });
+  const view = typed ? { ...lesson, ...typed, sandbox: true } : { ...lesson, start: null as RState | null };
   const s = view.state;
   const p = s.partitions[0]!;
   const stage = toStage(s, { brokerName: (id) => `Broker ${id}`, showHw: true, dimUncommitted: true, events: view.lastEvents });
 
   // Lesson steps count everything so far; the try-it step counts only the reader's own writes.
-  const mine = (st: RState) => (view.ctx ? st.sends.filter((x) => !view.ctx!.start.sends.some((y) => y.id === x.id)) : st.sends);
+  const since = view.start;
+  const mine = (st: RState) => (since ? st.sends.filter((x) => !since.sends.some((y) => y.id === x.id)) : st.sends);
   const sends = mine(s);
   // "Acked" counts every write the producer was told went through, even if it was lost later.
   const acked = sends.filter((x) => x.status === "acked" || x.status === "sent" || (x.status === "lost" && x.offset !== null)).length;
@@ -77,10 +82,7 @@ export function AcksScene({ step, paused, replayKey, controls: frameControls }: 
   const card = receiptFor(latest);
 
   const lines = describeReplicated(view.shownEvents, lang);
-  const footer =
-    view.sandbox && view.ctx ? (
-      <Sandbox slug={SLUG} missions={missions} ctx={view.ctx} rows={controls(s, writtenIn(view.extra))} extra={view.extra} setExtra={view.setExtra} lines={lines} />
-    ) : null;
+  const footer = typed ? <TypedFooter view={typed} lines={lines} /> : null;
 
   return (
     <SceneFrame

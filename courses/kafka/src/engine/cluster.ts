@@ -252,6 +252,22 @@ export function apply(prev: ClusterState, action: Action): StepResult {
       break;
     }
 
+    case "resetOffsets": {
+      const group = state.groups[action.group];
+      if (!group) return fail(`Group "${action.group}" does not exist`);
+      if (group.members.length > 0) return fail(`Assignments can only be reset if the group '${group.id}' is inactive`);
+      const offsets: Record<TP, { from: number | null; to: number }> = {};
+      for (const [p, offset] of Object.entries(action.offsets)) {
+        const partition = findPartition(state, p);
+        if (!partition) return fail(`${p} does not exist`);
+        const to = Math.max(partition.logStartOffset, Math.min(offset, partition.logEndOffset));
+        offsets[p] = { from: group.committed[p] ?? null, to };
+        group.committed[p] = to;
+      }
+      events.push({ type: "offsetsReset", group: group.id, offsets });
+      break;
+    }
+
     case "deleteRecordsBefore": {
       const partition = state.topics[action.topic]?.partitions[action.partition];
       if (!partition) return fail(`${tp(action.topic, action.partition)} does not exist`);

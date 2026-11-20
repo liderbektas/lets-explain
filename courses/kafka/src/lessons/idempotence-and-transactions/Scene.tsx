@@ -1,47 +1,27 @@
 import { AnimatePresence } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Partition } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
 import { Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
 import {
   abortedSeenBy,
-  abortTxn,
-  ack,
   base,
-  begin,
-  canDo,
-  commitInput,
-  commitTxn,
-  crash,
   duplicateOrders,
-  idem,
   isAborted,
   isOpen,
   lastStable,
   orderNo,
-  process,
-  readC,
-  readU,
-  restart,
-  retry,
-  run,
   SANDBOX_STEP,
-  sandboxStart,
   stepActions,
-  txns,
-  type TAction,
   type TEvent,
   type TState,
 } from "./model";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 import "./scene.css";
 
 const SLUG = "idempotence-and-transactions";
@@ -82,28 +62,7 @@ const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  writeInvoice: l("Fatura yaz", "Write invoice"),
-  doAck: l("Onay geldi", "Ack arrives"),
-  doRetry: l("Onay yok: tekrar gönder", "No ack: resend"),
-  doCommitInput: l("orders konumunu commit et", "Commit orders position"),
-  producerRow: l("Producer", "Producer"),
-  commitRow: l("Bitir", "Finish"),
-  doBegin: l("Başlat (begin)", "Begin"),
-  doCommitTxn: l("Commit", "Commit"),
-  doAbortTxn: l("Abort", "Abort"),
-  doCrash: l("Servisi çökert", "Crash service"),
-  doStart: l("Servisi başlat", "Start service"),
-  idemBtnOn: l("Idempotence aç", "Idempotence on"),
-  idemBtnOff: l("Idempotence kapat", "Idempotence off"),
-  txBtnOn: l("Transaction'ları aç", "Transactions on"),
-  txBtnOff: l("Transaction'ları kapat", "Transactions off"),
-  readers: l("Okuyucu", "Readers"),
-  readRc: l("Muhasebe oku", "Accounting reads"),
-  readRu: l("Rapor oku", "Reports reads"),
-  settingsRow: l("Ayarlar", "Settings"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
+  nothing: l("Bir komut yaz; uygulamanın ve okuyucuların ne yaptığını burada gör.", "Type a command; see what the app and the readers did here."),
   limitKafka: l("Kafka içi: oku → işle → yaz = tek transaction", "Inside Kafka: read → process → write = one transaction"),
   limitOutside: l("E-posta, ödeme, başka DB: idempotent işleme", "Email, payments, other DBs: idempotent processing"),
 };
@@ -262,17 +221,12 @@ function describe(events: TEvent[], s: TState, lang: Lang): Line[] {
 export function IdempotenceScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<TAction[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
+  const sandboxStart = typed.startModel;
 
   const count = sandbox ? 0 : stepActions[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? run(extra, sandboxStart) : null), [sandbox, extra]);
+  const sandboxRun = typed.sandboxRun;
 
   let state: TState;
   let lastEvents: TEvent[];
@@ -288,22 +242,7 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
     shown = base.run.events.slice(start, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-  };
-  const act = (a: TAction) => {
-    if (!locked) setExtra((xs) => [...xs, a]);
-  };
-
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = sandbox ? (sandboxRun?.events.length ?? 0) : cursor;
 
   // Highlights: open transactions faded, repeat invoices flagged, records just read ticked.
   const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
@@ -376,61 +315,10 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
     </div>
   );
 
-  const can = (a: TAction["type"]) => !locked && canDo(state, a);
-  // A plain render helper, not a component, so buttons are not remounted on every move.
-  const btn = (a: TAction, label: L, cls = "") => (
-    <button key={`${a.type}-${t(label)}`} className={`chip-btn ${cls}`} disabled={!can(a.type)} onClick={() => act(a)}>
-      {t(label)}
-    </button>
-  );
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={extra.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">{t(text.settingsRow)}</span>
-          {btn(idem(!state.idempotent), state.idempotent ? text.idemBtnOff : text.idemBtnOn)}
-          {btn(txns(!state.transactional), state.transactional ? text.txBtnOff : text.txBtnOn)}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.producerRow)}
-          </span>
-          {btn(process, text.writeInvoice, "is-producer")}
-          {btn(ack, text.doAck, "is-ok")}
-          {btn(retry, text.doRetry, "is-danger")}
-        </div>
-        <div className="control-row">
-          <span className="control-name">{t(text.commitRow)}</span>
-          {state.transactional ? (
-            <>
-              {btn(begin, text.doBegin)}
-              {btn(commitTxn, text.doCommitTxn, "is-ok")}
-              {btn(abortTxn, text.doAbortTxn, "is-danger")}
-            </>
-          ) : (
-            btn(commitInput, text.doCommitInput, "is-ok")
-          )}
-          {state.alive ? btn(crash, text.doCrash, "is-danger toggle-btn") : btn(restart, text.doStart, "is-ok toggle-btn")}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: RC_TINT.body }} />
-            {t(text.readers)}
-          </span>
-          {btn(readC, text.readRc)}
-          {btn(readU, text.readRu)}
-        </div>
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {typed.panel}
+      {typed.terminal}
       {eventList}
     </div>
   ) : null;

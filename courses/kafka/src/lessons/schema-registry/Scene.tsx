@@ -1,33 +1,17 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useAppSandbox } from "../shared/useAppSandbox";
+import { FREE, scenarios } from "./scenarios";
+import { lesson, shell } from "./shell";
 import "./scene.css";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
 import { NameTag } from "../../iso/PartitionStage";
 import { Belt, Building, Flag, GhostSlot, Parcel, Person, Pill, TINTS, type PersonState } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import type { EventLine } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import {
-  base,
-  fieldLabel,
-  MODES,
-  movesIn,
-  SANDBOX_STEP,
-  sandboxStart,
-  simulate,
-  type Action,
-  type Edit,
-  type Schema,
-  type SREvent,
-  type SRState,
-} from "./model";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
+import { base, fieldLabel, SANDBOX_STEP, type Schema, type SREvent, type SRState } from "./model";
 
 const SLUG = "schema-registry";
 const W = 860;
@@ -51,7 +35,6 @@ const text = {
   producerSchema: l("Yazdığı şema", "Schema it writes"),
   readerSchema: l("okuduğu", "reads"),
   noRegistry: l("registry yok: düz JSON", "no registry: plain JSON"),
-  next: l("sıradaki", "next"),
   records: l("Kayıt", "Records"),
   ok: l("Okunan", "Read"),
   failed: l("Okunamayan", "Failed"),
@@ -68,19 +51,10 @@ const text = {
   legendId: l("renk ve # = şema id", "colour and # = schema id"),
   legendFailed: l("okunamadı", "could not read"),
   legendFlag: l("Fatura'nın sıradaki offset'i", "billing's next offset"),
-  log: l("Sipariş servisi", "Order service"),
-  write: l("Sipariş yaz", "Write order"),
-  addCoupon: l("+ coupon (default'lu)", "+ coupon (with default)"),
-  addCouponRequired: l("+ coupon (default'suz)", "+ coupon (no default)"),
-  removeTotal: l("− total", "− total"),
-  readOne: l("1 oku", "Read 1"),
-  upgrade: l("Kodu güncelle", "Update code"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothing: l("Bir komut yaz; producer, registry ve billing ne yaptı burada gör.", "Type a command; see what the producer, the registry and billing did here."),
 };
 
 const KIND: Record<number, "order" | "payment" | "cancel"> = { 1: "order", 2: "payment", 3: "cancel" };
@@ -94,16 +68,11 @@ const schemaText = (s: Schema) => s.map(fieldLabel).join(", ");
 export function SchemaRegistryScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<Action[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
+  const typed = useAppSandbox({ slug: SLUG, active: sandbox, lesson, shell, scenarios, free: FREE });
+  const sandboxStart = typed.startModel;
 
   const cursor = usePlayback(sandbox ? 0 : base.ends[step]! - base.startOf(step), paused, `${step}-${replayKey}`);
-  const sandboxRun = useMemo(() => (sandbox ? simulate(extra, sandboxStart) : null), [sandbox, extra]);
+  const sandboxRun = typed.sandboxRun;
 
   let state: SRState;
   let lastEvents: SREvent[];
@@ -122,25 +91,6 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
     history = base.run.events.slice(0, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(
-    mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }),
-  );
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const allowed = movesIn(state);
-  const can = (a: Action) => !locked && allowed.some((m) => JSON.stringify(m) === JSON.stringify(a));
-  const act = (a: Action) => {
-    if (can(a)) setExtra((xs) => [...xs, a]);
-  };
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setExtra([]);
-  };
-
   const failedOffsets = new Set(history.flatMap((e) => (e.type === "failed" ? [e.offset] : [])));
   const readNow = new Set(lastEvents.flatMap((e) => (e.type === "read" ? [e.offset] : [])));
   const rejectedNow = (sandbox ? lastEvents : shown).find((e) => e.type === "rejected");
@@ -148,7 +98,7 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
   const fetchedNow = lastEvents.some((e) => e.type === "fetched");
   const producedNow = lastEvents.some((e) => e.type === "produced");
   const failedNow = lastEvents.some((e) => e.type === "failed");
-  const pulse = sandbox ? extra.length : cursor;
+  const pulse = sandbox ? (sandboxRun?.events.length ?? 0) : cursor;
 
   const failedCount = sandbox ? state.reader.failed - sandboxStart.reader.failed : state.reader.failed;
   const metrics: Metric[] = [
@@ -205,66 +155,10 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
     </div>
   );
 
-  const editBtn = (e: Edit, label: L) => (
-    <button className="chip-btn is-producer" disabled={!can({ type: "edit", edit: e })} onClick={() => act({ type: "edit", edit: e })}>
-      {t(label)}
-    </button>
-  );
-
   const footer = sandbox ? (
     <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={extra.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.producer)}
-          </span>
-          <button className="chip-btn is-producer" disabled={!can({ type: "produce" })} onClick={() => act({ type: "produce" })}>
-            {t(text.write)}
-          </button>
-          {editBtn("addCoupon", text.addCoupon)}
-          {editBtn("addCouponRequired", text.addCouponRequired)}
-          {editBtn("removeTotal", text.removeTotal)}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sun)" }} />
-            {t(text.mode)}
-          </span>
-          {MODES.map((m) => (
-            <button
-              key={m}
-              className={`chip-btn ${state.mode === m ? "is-ok" : ""}`}
-              aria-pressed={state.mode === m}
-              disabled={locked || state.mode === m}
-              onClick={() => act({ type: "setMode", mode: m })}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--coral)" }} />
-            {t(text.reader)}
-          </span>
-          <button className="chip-btn" disabled={!can({ type: "poll" })} onClick={() => act({ type: "poll" })}>
-            {t(text.readOne)}
-          </button>
-          <button className="chip-btn is-ok" disabled={!can({ type: "upgradeReader" })} onClick={() => act({ type: "upgradeReader" })}>
-            {t(text.upgrade)}
-          </button>
-        </div>
-        <div className="control-row">
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
+      {typed.panel}
+      {typed.terminal}
       {eventList}
     </div>
   ) : null;
@@ -590,7 +484,14 @@ export function describe(events: SREvent[], lang: Lang): EventLine[] {
       case "readerUpgraded":
         out.push({
           tone: "ok",
-          text: tr ? `Fatura'nın kodu güncellendi: artık v${e.version} ile okuyor` : `Billing's code was updated: it now reads with v${e.version}`,
+          text:
+            e.version > 0
+              ? tr
+                ? `Fatura'nın kodu güncellendi: artık v${e.version} ile okuyor`
+                : `Billing's code was updated: it now reads with v${e.version}`
+              : tr
+                ? "Fatura'nın kodu yeni şemasıyla güncellendi (henüz registry'de değil)"
+                : "Billing's code was updated with its new schema (not in the registry yet)",
         });
         break;
       case "nothing":

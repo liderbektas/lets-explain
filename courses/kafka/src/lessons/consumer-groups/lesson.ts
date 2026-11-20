@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, ConsumerGroupsScene } from "./Scene";
 
 export const consumerGroups: Lesson = {
@@ -14,7 +14,7 @@ export const consumerGroups: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: ConsumerGroupsScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir group'un partition'ları üyelerine nasıl paylaştırdığını görmek", "See how a group shares partitions among its members"), step: 1 },
     { text: l("Çöken üyenin işinin commit'ten devralındığını görmek", "See a crashed member's work taken over from the commit"), step: 2 },
@@ -287,17 +287,16 @@ export const consumerGroups: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Topic'te 6 sipariş var. Fatura 1 ve Fatura 2 group'ta ama henüz hiçbir şey okumadılar. Fatura 3 kapalı.",
-          "The topic holds 6 orders. Billing 1 and Billing 2 are in the group but have read nothing yet. Billing 3 is off.",
+          "Sıra sende. `orders` topic'inde 3 partition ve gerçek işten **5 senaryo** var. Okuyucuları Kafka'nın kendi aracıyla **kendin** başlat: `kafka-console-consumer.sh --group billing` bir group üyesi olarak okur ve commit eder; sonuna `&` koyarsan arka planda çalışmaya devam eder, `kill %1` (ya da çökme gibi `kill -9 %1`) onu durdurur.",
+          "Your turn. The `orders` topic has 3 partitions, and there are **5 scenarios** from real work. Start readers **yourself** with Kafka's own tool: `kafka-console-consumer.sh --group billing` reads and commits as a group member; with `&` at the end it keeps running in the background, and `kill %1` (or `kill -9 %1`, like a crash) stops it.",
         ),
         l(
-          "Her okuyucuyu okutabilir, commit ettirebilir, çökertip yeniden başlatabilirsin. Her çökme ve başlatma bir rebalance demek; olay listesi kimin neyi aldığını yazar.",
-          "You can make each reader read and commit, and crash or restart it. Every crash and start means a rebalance; the event list shows who got what.",
+          "`kafka-consumer-groups.sh --describe --group billing` kimin hangi partition'da olduğunu ve LAG'i gösterir; `--reset-offsets` group'un commit'lerini taşır. Takılırsan `help` yaz; ipuçları adım adım açılır.",
+          "`kafka-consumer-groups.sh --describe --group billing` shows who is on which partition, and the LAG; `--reset-offsets` moves the group's commits. If you're stuck, type `help`; hints open one at a time.",
         ),
-        l("**3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "There are **3 missions**. Finish with few moves for 3 stars."),
       ],
     },
   ],

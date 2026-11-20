@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
-import { fileName, recordCount, segmentFor, simulateStorage, type StorageEvent, type StorageLog } from "../../engine/storage";
+import { fileName, recordCount, segmentFor, type StorageEvent, type StorageLog } from "../../engine/storage";
+import { replayS, sCtx, storageShell } from "../../engine/storageCli";
 import { l, useLang, type L } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { InfoCard, SEGMENT_STAGE, SegmentStage } from "../../iso/SegmentStage";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import { describeStorage } from "../shared/describeStorage";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
+import { TypedFooter, useTypedKit } from "../cluster-kit/kit";
 import "./scene.css";
-import { base, LOOKUPS, moveAction, SANDBOX_STEP, sandboxStart, stepBeats, SURVIVOR, SURVIVOR_STEP, type SandboxMove } from "./model";
+import { base, LOOKUPS, SANDBOX_STEP, stepBeats, SURVIVOR, SURVIVOR_STEP } from "./model";
+import { FREE, scenarios } from "./scenarios";
 
 const SLUG = "segments-and-retention";
 
@@ -42,44 +39,23 @@ const text = {
   legendOld: l("retention'dan eski kayıt", "record older than retention"),
   legendTray: l("tepsi = bir segment dosyası", "tray = one segment file"),
   legendActive: l("turuncu tepsi = aktif segment", "orange tray = active segment"),
-  write: l("Kayıt yaz", "Write record"),
-  day1: l("+1 gün", "+1 day"),
-  day3: l("+3 gün", "+3 days"),
-  rowLog: l("Log", "Log"),
-  rowClock: l("Saat", "Clock"),
-  clockNote: l("Saat her ilerlediğinde retention kontrol eder.", "Retention checks every time the clock moves."),
-  thisStep: l("Bu adımda olanlar", "What happened in this step"),
-  latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
-  waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
 };
 
 export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [moves, setMoves] = useState<SandboxMove[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
-  });
-
   const count = sandbox ? 0 : stepBeats[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
-
-  const actions = useMemo(() => moves.map(moveAction), [moves]);
-  const sandboxRun = useMemo(() => (sandbox ? simulateStorage(actions, sandboxStart) : null), [sandbox, actions]);
+  // The try-it step is typed: the terminal runs Kafka's tools on the broker's disk.
+  const typed = useTypedKit({ slug: SLUG, active: sandbox, scenarios, freeStart: FREE, shell: storageShell, replay: replayS, context: sCtx, stateOf: (b) => b.log });
 
   let log: StorageLog;
   let lastEvents: StorageEvent[];
   let shownEvents: StorageEvent[];
-  if (sandboxRun) {
-    log = sandboxRun.logs[sandboxRun.logs.length - 1]!;
-    lastEvents = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
-    shownEvents = sandboxRun.events.flat();
+  if (typed) {
+    log = typed.state;
+    lastEvents = typed.lastEvents;
+    shownEvents = typed.shownEvents;
   } else {
     const start = base.startOf(step);
     log = base.run.logs[start + cursor]!;
@@ -87,24 +63,9 @@ export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps)
     shownEvents = base.run.events.slice(start, start + cursor).flat();
   }
 
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, log, actions, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(moves.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, moves.length, setMissionStars]);
-  const locked = won;
-  const selectMission = (i: number | null) => {
-    setMissionIndex(i);
-    setMoves([]);
-  };
-  const act = (m: SandboxMove) => {
-    if (!locked) setMoves((xs) => [...xs, m]);
-  };
-
   const retention = log.config.retentionDays ?? Infinity;
   const showAge = step >= 4;
-  const pulse = sandbox ? moves.length : cursor;
+  const pulse = typed ? typed.pulse : cursor;
   const produced = lastEvents.some((e) => e.type === "appended");
 
   // Pictures that belong to a step rather than to the log: a reader asking for an offset, a note.
@@ -126,7 +87,7 @@ export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps)
       : [];
 
   const metrics: Metric[] = [
-    { label: t(text.day), value: log.time },
+    { label: t(text.day), value: Math.round(log.time * 10) / 10 },
     { label: t(text.segments), value: log.segments.length },
     { label: t(text.start), value: log.logStartOffset },
     { label: t(text.records), value: recordCount(log) },
@@ -140,62 +101,7 @@ export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps)
   ];
 
   const lines = describeStorage(shownEvents, lang);
-  const eventList = (
-    <div className={`events ${sandbox ? "" : "is-short"}`} aria-live="polite">
-      <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
-      {lines.length === 0 ? (
-        <p>{t(sandbox ? text.nothing : text.waiting)}</p>
-      ) : (
-        <ol>
-          {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
-            <li key={`${pulse}-${i}`} className={`ev-${line.tone}`}>
-              <span className="ev-dot" />
-              <span>{line.text}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-
-  const footer = sandbox ? (
-    <div className="sandbox">
-      <MissionPanel missions={missions} active={missionIndex} onSelect={selectMission} moves={moves.length} won={won} best={best} />
-      <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.rowLog)}
-          </span>
-          <button className="chip-btn is-producer" disabled={locked} onClick={() => act("write")}>
-            {t(text.write)}
-          </button>
-        </div>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sun)" }} />
-            {t(text.rowClock)}
-          </span>
-          <button className="chip-btn" disabled={locked} onClick={() => act("day1")}>
-            {t(text.day1)}
-          </button>
-          <button className="chip-btn" disabled={locked} onClick={() => act("day3")}>
-            {t(text.day3)}
-          </button>
-        </div>
-        <p className="control-note">{t(text.clockNote)}</p>
-        <div className="control-row">
-          <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves((xs) => xs.slice(0, -1))}>
-            <Icon name="undo" size={15} /> {t(text.undo)}
-          </button>
-          <button className="chip-btn" disabled={moves.length === 0} onClick={() => setMoves([])}>
-            <Icon name="reset" size={15} /> {t(text.reset)}
-          </button>
-        </div>
-      </div>
-      {eventList}
-    </div>
-  ) : null;
+  const footer = typed ? <TypedFooter view={typed} lines={lines} /> : null;
 
   const fileRows = step >= 2 ? log.segments.slice(-4).map((s) => ({ text: `${fileName(s.base)}  .log .index .timeindex`, tone: s === log.segments[log.segments.length - 1] ? ("strong" as const) : ("plain" as const) })) : [];
 

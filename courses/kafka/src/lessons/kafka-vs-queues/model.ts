@@ -186,7 +186,6 @@ const k = (action: Action): VAction => ({ type: "kafka", action });
 export const kJoin = (g: GroupRef) => k({ type: "joinGroup", group: g.group, member: g.member, topics: [TOPIC], autoOffsetReset: "earliest" });
 export const kRead = (g: GroupRef) => k({ type: "poll", group: g.group, member: g.member });
 export const kCommit = (g: GroupRef) => k({ type: "commit", group: g.group, member: g.member });
-export const kRewind = (g: GroupRef) => k({ type: "seek", group: g.group, member: g.member, tp: P, offset: 0 });
 
 /* ---------------------------------------------------------------- lesson */
 
@@ -232,9 +231,6 @@ export const base = (() => {
   const startOf = (i: number) => (i === 0 ? 0 : ends[i - 1]!);
   return { run: r, ends, startOf };
 })();
-
-/** The try-it step starts from the end of the lesson with one order waiting in the queue. */
-export const sandboxStart: VState = step(base.run.states[base.ends[SANDBOX_STEP]!]!, write).state;
 
 /* ---------------------------------------------------------------- helpers */
 

@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@lets-explain/core/components/Icon";
-import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { ui } from "@lets-explain/core/i18n/ui";
 import { Flag, Parcel, TINTS, type PillTone } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
-import { useGame } from "@lets-explain/core/lib/storage";
 import type { EventLine } from "../shared/describe";
-import { starsFor, type Change, type SceneProps } from "@lets-explain/core/course/types";
+import type { Change, SceneProps } from "@lets-explain/core/course/types";
 import { BeltsStage, STAGE, type BeltPartition, type BeltReader } from "../ordering/BeltsStage";
 import "../ordering/scene.css";
-import { missions } from "./missions";
+import { FREE, lagCtx, scenarios } from "./scenarios";
+import { lagShell, replayLag, type LagAction, type LagBox } from "./shell";
 import {
   assignment,
   CLI_STEP,
@@ -22,16 +19,12 @@ import {
   inflow,
   KEEP,
   lagOf,
-  MAX_CONSUMERS,
+  memberSpeed,
   SANDBOX_STEP,
-  sandboxStart,
-  simulate,
-  speedOf,
   steps,
   stepActions,
   TOPIC,
   totalLag,
-  type LAction,
   type LEvent,
   type LState,
 } from "./model";
@@ -64,19 +57,7 @@ const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
-  nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
-  time: l("Zaman", "Time"),
-  tick: l("1 saniye geçsin", "Let 1 second pass"),
-  group: l("Group", "Group"),
-  addConsumer: l("Consumer ekle", "Add consumer"),
-  removeConsumer: l("Consumer çıkar", "Remove consumer"),
-  code: l("Ayarlar", "Settings"),
-  hotOn: l("Sıcak key'i aç", "Turn hot key on"),
-  hotOff: l("Sıcak key'i kapat", "Turn hot key off"),
-  fastOn: l("Kodu hızlandır", "Speed up code"),
-  fastOff: l("Normal hıza dön", "Back to normal speed"),
-  undo: l("Geri al", "Undo"),
-  reset: l("Sıfırla", "Reset"),
+  nothing: l("Bir komut yaz; `sleep 3` ile zaman geçsin ve lag'in nasıl değiştiğini burada gör.", "Type a command; let time pass with `sleep 3` and see how the lag changes here."),
   cliTitle: l("Terminalde lag'e bakmak", "Checking lag in a terminal"),
 };
 
@@ -220,48 +201,42 @@ function readersOf(state: LState, lastEvents: LEvent[], pulse: number, lang: Lan
 export function ConsumerLagScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
-  const [extra, setExtra] = useState<LAction[]>([]);
-  const { game, setMissionStars } = useGame();
-  const best = game.missions[SLUG] ?? {};
-  const [missionIndex, setMissionIndex] = useState<number | null>(() => {
-    const i = missions.findIndex((m) => !best[m.id]);
-    return i < 0 ? 0 : i;
+  const box = useTypedSandbox({
+    slug: SLUG,
+    active: sandbox,
+    scenarios,
+    freeStart: FREE,
+    shell: lagShell,
+    replay: (start: LagBox, actions: LagAction[]) => replayLag(start, actions),
+    final: (r) => r.boxes[r.boxes.length - 1]!,
+    context: (start, _actions, r) => lagCtx(start, r),
   });
 
   const count = sandbox ? 0 : stepActions[step]!.length;
   const cursor = usePlayback(count, paused, `${step}-${replayKey}`, 950);
-  const sandboxRun = useMemo(() => (sandbox ? simulate(extra, sandboxStart) : null), [sandbox, extra]);
 
   let state: LState;
   let lastEvents: LEvent[];
   let shownEvents: LEvent[];
-  if (sandboxRun) {
-    state = sandboxRun.states[sandboxRun.states.length - 1]!;
-    lastEvents = sandboxRun.events[sandboxRun.events.length - 1] ?? [];
-    shownEvents = sandboxRun.events.flat();
+  if (box.run) {
+    state = box.run.boxes[box.run.boxes.length - 1]!.lag;
+    const withEvents = box.run.events.filter((e) => e.length > 0);
+    lastEvents = withEvents[withEvents.length - 1] ?? [];
+    shownEvents = withEvents.flat();
   } else {
     const run = steps[step]!.run;
     state = run.states[cursor]!;
     lastEvents = cursor > 0 ? run.events[cursor - 1]! : [];
     shownEvents = run.events.slice(0, cursor).flat();
   }
-  const pulse = sandbox ? extra.length : cursor;
-
-  const mission = sandbox && missionIndex !== null ? missions[missionIndex]! : null;
-  const won = Boolean(mission && sandboxRun && mission.check({ start: sandboxStart, state, actions: extra, events: sandboxRun.events }));
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (won && missionId) setMissionStars(SLUG, missionId, starsFor(extra.length, missions[missionIndex!]!.par));
-  }, [won, missionId, missionIndex, extra.length, setMissionStars]);
-  const locked = won;
-  const act = (a: LAction) => {
-    if (!locked) setExtra((xs) => [...xs, a]);
-  };
+  const pulse = box.run ? box.run.events.length : cursor;
 
   const lag = totalLag(state);
   const single = state.partitions.length === 1;
   const owners = assignment(state);
   const idle = state.members.filter((m) => (owners[m] ?? []).length === 0).length;
+  // What the working members can handle a second; each instance runs at the speed it started with.
+  const capacity = state.members.filter((m) => (owners[m] ?? []).length > 0).reduce((sum, m) => sum + memberSpeed(state, m), 0);
   const metrics: Metric[] = single
     ? [
         { label: t(text.logEnd), value: state.partitions[0]!.logEnd },
@@ -273,13 +248,13 @@ export function ConsumerLagScene({ step, paused, replayKey, controls }: ScenePro
         { label: t(text.incoming), value: `${inflow(state).reduce((a, b) => a + b, 0)}${t(text.perSec)}` },
         {
           label: t(text.capacity),
-          value: `${(state.members.length - idle) * speedOf(state)}${t(text.perSec)}`,
-          tone: (state.members.length - idle) * speedOf(state) < 3 ? "warn" : "plain",
+          value: `${capacity}${t(text.perSec)}`,
+          tone: capacity < 3 ? "warn" : "plain",
         },
         { label: t(text.consumers), value: idle > 0 ? `${state.members.length} (${idle} ${t(text.idle)})` : state.members.length },
       ];
   if (!single && (sandbox || state.missed > 0)) {
-    const missed = state.missed - (sandbox ? sandboxStart.missed : 0);
+    const missed = state.missed - (sandbox ? box.start.lag.missed : 0);
     metrics.push({ label: `${t(text.missed)}${sandbox ? ` ${t(text.yours)}` : ""}`, value: missed, tone: missed > 0 ? "danger" : "plain" });
   }
 
@@ -313,60 +288,8 @@ export function ConsumerLagScene({ step, paused, replayKey, controls }: ScenePro
   if (sandbox) {
     footer = (
       <div className="sandbox">
-        <MissionPanel
-          missions={missions}
-          active={missionIndex}
-          onSelect={(i) => {
-            setMissionIndex(i);
-            setExtra([]);
-          }}
-          moves={extra.length}
-          won={won}
-          best={best}
-        />
-        <div className="sandbox-controls" title={locked ? t(ui.locked) : undefined}>
-          <div className="control-row">
-            <span className="control-name">
-              <i style={{ background: "var(--sky)" }} />
-              {t(text.time)}
-            </span>
-            <button className="chip-btn is-producer" disabled={locked} onClick={() => act({ type: "tick" })}>
-              <Icon name="clock" size={15} /> {t(text.tick)}
-            </button>
-          </div>
-          <div className="control-row">
-            <span className="control-name">
-              <i style={{ background: "var(--lilac)" }} />
-              {t(text.group)}
-            </span>
-            <button className="chip-btn is-ok" disabled={locked || state.members.length >= MAX_CONSUMERS} onClick={() => act({ type: "addConsumer" })}>
-              {t(text.addConsumer)}
-            </button>
-            <button className="chip-btn" disabled={locked || state.members.length === 0} onClick={() => act({ type: "removeConsumer" })}>
-              {t(text.removeConsumer)}
-            </button>
-          </div>
-          <div className="control-row">
-            <span className="control-name">
-              <i style={{ background: "var(--sun)" }} />
-              {t(text.code)}
-            </span>
-            <button className={`chip-btn toggle-btn ${state.hot ? "" : "is-danger"}`} disabled={locked} onClick={() => act({ type: "toggleHot" })}>
-              {t(state.hot ? text.hotOff : text.hotOn)}
-            </button>
-            <button className={`chip-btn toggle-btn ${state.fast ? "" : "is-ok"}`} disabled={locked} onClick={() => act({ type: "toggleFast" })}>
-              {t(state.fast ? text.fastOff : text.fastOn)}
-            </button>
-          </div>
-          <div className="control-row">
-            <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra((xs) => xs.slice(0, -1))}>
-              <Icon name="undo" size={15} /> {t(text.undo)}
-            </button>
-            <button className="chip-btn" disabled={extra.length === 0} onClick={() => setExtra([])}>
-              <Icon name="reset" size={15} /> {t(text.reset)}
-            </button>
-          </div>
-        </div>
+        {box.panel}
+        {box.terminal}
         {eventList}
       </div>
     );

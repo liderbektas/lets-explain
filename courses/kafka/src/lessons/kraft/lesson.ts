@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, KraftScene } from "./Scene";
 
 export const kraft: Lesson = {
@@ -14,7 +14,7 @@ export const kraft: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: KraftScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Metadata'nın ne olduğunu ve kimin yönettiğini öğrenmek", "Learn what metadata is and who manages it"), step: 0 },
     { text: l("ZooKeeper'dan KRaft'a geçişi bilmek", "Know about the move from ZooKeeper to KRaft"), step: 1 },
@@ -307,15 +307,15 @@ export const kraft: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Her şey yeniden ayakta ve C1 aktif. Düğmelerle controller'ları ve broker'ları çökertip başlatabilir, yeni topic oluşturabilirsin.",
-          "Everything is running again and C1 is active. With the buttons you can crash and start controllers and brokers, and create topics.",
+          "Sıra sende. Her şey yeniden ayakta ve C1 aktif. Cluster bir docker-compose ortamı: controller'lar `controller-1..3`, broker'lar `kafka-1..3` container'larında. Aşağıda gerçek işten **5 senaryo** var; komutları **kendin yaz**.",
+          "Your turn. Everything runs again and C1 is active. The cluster is a docker-compose setup: controllers in containers `controller-1..3`, brokers in `kafka-1..3`. Below are **5 scenarios** from real work; **type the commands yourself**.",
         ),
         l(
-          "**4 görev** var: aktif controller'ı değiştirmek, metadata'yı dondurmak, bir partition'ı sahipsiz bırakmak ve cluster'ı kurtarmak.",
-          "There are **4 missions**: changing the active controller, freezing the metadata, stranding a partition, and rescuing the cluster.",
+          "`kafka-metadata-quorum.sh ... describe --status` aktif controller'ı (`LeaderId`) ve commit edilmiş metadata'yı (`HighWatermark`) gösterir. `docker stop` / `docker start` container'ları kapatıp açar; `kafka-topics.sh` topic oluşturur ve partition leader'larını gösterir.",
+          "`kafka-metadata-quorum.sh ... describe --status` shows the active controller (`LeaderId`) and the committed metadata (`HighWatermark`). `docker stop` / `docker start` stop and start containers; `kafka-topics.sh` creates topics and shows partition leaders.",
         ),
       ],
       callouts: [

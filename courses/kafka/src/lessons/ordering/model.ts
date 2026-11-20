@@ -230,6 +230,3 @@ export const base = (() => {
   const startOf = (step: number) => (step === 0 ? 0 : ends[step - 1]!);
   return { run, ends, startOf };
 })();
-
-/** The try-it step starts clean: an empty three-partition topic. */
-export const sandboxStart = createState();

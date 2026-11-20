@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { changesFor, IdempotenceScene } from "./Scene";
 
 export const idempotenceAndTransactions: Lesson = {
@@ -14,7 +14,7 @@ export const idempotenceAndTransactions: Lesson = {
   level: l("İleri", "Advanced"),
   Scene: IdempotenceScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kaybolan bir onayın neden çift kayıt yazdırdığını görmek", "See why a lost ack writes a record twice"), step: 1 },
     { text: l("Idempotent producer'ın PID ve sıra numarasıyla tekrarı nasıl attığını görmek", "See how the idempotent producer drops repeats using a PID and sequence numbers"), step: 2 },
@@ -323,23 +323,23 @@ export const idempotenceAndTransactions: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Producer ayarları sıfırlandı: idempotence ve transaction kapalı. Faturalar yazıp onayları kaybedebilir, ayarları açıp kapatabilir, transaction başlatıp commit ya da abort edebilir, servisi çökertebilir ve iki okuyucuyu okutabilirsin.",
-          "The producer settings are reset: idempotence and transactions off. You can write invoices and lose acks, switch settings, begin, commit or abort transactions, crash the service and make both readers read.",
+          "Sıra sende. Aşağıda billing uygulamasının projesi var: producer ayarları `billing.properties`'te (`enable.idempotence`, `transactional.id`). Uygulamayı `./run-billing.sh` ile başlatırsın; bekleyen her siparişi faturalar. Faturaları başka bir servis gibi `kafka-console-consumer.sh` ile, istersen `--isolation-level read_committed` ile okursun.",
+          "Your turn. Below is the billing app's project: its producer settings live in `billing.properties` (`enable.idempotence`, `transactional.id`). Start it with `./run-billing.sh`; it invoices every waiting order. Read the invoices the way another service would with `kafka-console-consumer.sh`, with `--isolation-level read_committed` if you like.",
         ),
         l(
-          "Sahnenin altında **3 görev** var: çift fatura yazdırmak, tekrarı broker'a yakalatmak ve iptal edilen bir faturayı sadece doğru okuyucuya göstermek.",
-          "There are **3 missions** under the scene: write a duplicate invoice, get the broker to catch the repeat, and show an aborted invoice to only the right reader.",
+          "**4 senaryo** gerçek işten: ağda kaybolan onaylar, iki deploy arasında çöken uygulama, iptal edilen faturaları sayan muhasebe. Planlanan arıza, gizli `.chaos` dosyasında yazılı (`ls -a`). Az komutla bitirirsen 3 yıldız alırsın.",
+          "The **4 scenarios** come from real work: acks lost on the network, an app that crashes between two steps, accounting counting aborted invoices. The planned fault is written in the hidden `.chaos` file (`ls -a`). Finish in few commands for 3 stars.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Transaction'ları açmak idempotence'ı da açar; transaction'lar idempotent producer olmadan çalışmaz.",
-            "Turning transactions on also turns idempotence on; transactions do not work without the idempotent producer.",
+            "Gerçek client gibi, `transactional.id` verip `enable.idempotence=false` bırakırsan uygulama hiç başlamaz: transaction'lar idempotent producer olmadan çalışmaz.",
+            "Like the real client, a `transactional.id` with `enable.idempotence=false` stops the app from starting at all: transactions do not work without the idempotent producer.",
           ),
         },
       ],

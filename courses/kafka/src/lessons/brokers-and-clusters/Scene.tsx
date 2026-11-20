@@ -4,10 +4,11 @@ import { l, useLang } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage } from "../../iso/ClusterStage";
 import { Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { describeReplicated } from "../cluster-kit/describe";
-import { clusterLabels, partitionTint, replicatedChanges, Sandbox, toStage, useSceneState } from "../cluster-kit/kit";
+import { clusterLabels, partitionTint, replicatedChanges, toStage, TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import { controls, model, run, SANDBOX_STEP, SLUG, stepActions, writtenIn } from "./model";
+import { rCtx, replayR, replicationShell } from "../../engine/replicationCli";
+import { model, run, SANDBOX_STEP, SLUG, stepActions } from "./model";
+import { FREE, scenarios } from "./scenarios";
 
 const text = {
   label: l("Broker'lar bina, her partition bir bant, kayıtlar koli", "Brokers as buildings, each partition a belt, records as parcels"),
@@ -30,14 +31,17 @@ const brokerName = (lang: string) => (id: number) => (lang === "tr" ? `Broker ${
 
 export function BrokersScene({ step, paused, replayKey, controls: frameControls }: SceneProps) {
   const { t, lang } = useLang();
-  const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  const lesson = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
+  // The try-it step is typed: the terminal's state replaces the lesson's.
+  const typed = useTypedKit({ slug: SLUG, active: step === SANDBOX_STEP, scenarios, freeStart: FREE, shell: replicationShell, replay: replayR, context: rCtx, stateOf: (b) => b.state });
+  const view = typed ? { ...lesson, ...typed, sandbox: true } : { ...lesson, start: null as RState | null };
   const s = view.state;
   const stage = toStage(s, { brokerName: brokerName(lang), events: view.lastEvents });
 
   const produced = view.lastEvents.find((e) => e.type === "produced" || e.type === "rejected");
   const target = produced && (produced.type === "produced" || produced.type === "rejected") ? `p${produced.partition}` : null;
 
-  const sandboxSince = view.ctx?.start;
+  const sandboxSince = view.start;
   const rejectedNow = s.sends.filter((x) => x.status === "failed").length - (sandboxSince ? sandboxSince.sends.filter((x) => x.status === "failed").length : 0);
   const metrics: Metric[] = [
     { label: t(text.brokersUp), value: `${s.brokers.filter((b) => b.alive).length}/${s.brokers.length}` },
@@ -62,17 +66,7 @@ export function BrokersScene({ step, paused, replayKey, controls: frameControls 
     lang,
   );
 
-  const footer = view.sandbox && view.ctx ? (
-    <Sandbox
-      slug={SLUG}
-      missions={missions}
-      ctx={view.ctx}
-      rows={controls(s, writtenIn(view.extra))}
-      extra={view.extra}
-      setExtra={view.setExtra}
-      lines={lines}
-    />
-  ) : null;
+  const footer = typed ? <TypedFooter view={typed} lines={lines} /> : null;
 
   return (
     <SceneFrame

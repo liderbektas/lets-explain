@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { BrokersScene, changesFor } from "./Scene";
 
 export const brokersAndClusters: Lesson = {
@@ -14,7 +14,7 @@ export const brokersAndClusters: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: BrokersScene,
   changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Broker'ın ne olduğunu ve neyi sakladığını görmek", "See what a broker is and what it stores"), step: 0 },
     { text: l("Partition'ların cluster'a nasıl dağıldığını görmek", "See how partitions are spread over a cluster"), step: 1 },
@@ -312,27 +312,23 @@ export const brokersAndClusters: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sahnenin altındaki düğmelerle her partition'a yazabilir, partition'ları broker'lar arasında taşıyabilir, broker çökertip yeniden başlatabilir ve yeni broker ekleyebilirsin.",
-          "With the buttons under the scene you can write to each partition, move partitions between brokers, crash and restart brokers, and add new ones.",
+          "Sıra sende. Bu cluster bir docker-compose geliştirme ortamı: broker N, `kafka-N` container'ında çalışıyor. Aşağıda gerçek işten **4 senaryo** var; komutları terminale **kendin yaz**, sahne her komutta ne olduğunu gösterir.",
+          "Your turn. This cluster is a docker-compose dev setup: broker N runs in container `kafka-N`. Below are **4 scenarios** from real work; **type the commands yourself** in the terminal and the scene shows what each one does.",
         ),
         l(
-          "Sahnenin altında **3 görev** var: boş bir broker'ı işe katmak, bir broker'ı kesinti olmadan bakıma almak ve bir kesintiyi yaşayıp geri dönmek.",
-          "There are **3 missions** under the scene: putting an empty broker to work, taking a broker down for maintenance without an outage, and living through an outage and back.",
-        ),
-        l(
-          "Az hamleyle bitirirsen 3 yıldız alırsın. Takılırsan **İpucu**'na bas.",
-          "Finish in few moves for 3 stars. Stuck? Press **Hint**.",
+          "`kafka-topics.sh --describe` kimin neyin lideri olduğunu söyler; `docker stop` / `docker start` broker'ı kapatıp açar; bir partition'ı taşımak için `kafka-reassign-partitions.sh` bir JSON planı ister (`nano move.json`). `help` hepsini listeler.",
+          "`kafka-topics.sh --describe` tells you who leads what; `docker stop` / `docker start` stop and start a broker; to move a partition `kafka-reassign-partitions.sh` takes a JSON plan (`nano move.json`). `help` lists everything.",
         ),
       ],
       callouts: [
         {
           kind: "insight",
           text: l(
-            "Olay listesi her düğmeden sonra ne olduğunu yazar. Bir şeyi bozarsan **Geri al** ya da **Sıfırla**.",
-            "The event list says what happened after each button. If you break something, use **Undo** or **Reset**.",
+            "Sağdaki liste her komuttan sonra ne olduğunu sade bir dille yazar. Bir şeyi bozarsan **Son komutu geri al** ya da **Baştan başla**.",
+            "The list on the right says in plain words what each command did. If you break something, use **Undo last command** or **Start over**.",
           ),
         },
       ],

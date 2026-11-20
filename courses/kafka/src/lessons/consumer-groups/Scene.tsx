@@ -6,22 +6,18 @@ import type { StageReader } from "../../iso/TopicStage";
 import { describeTopicEvents } from "../shared/describeTopic";
 import { topicChanges } from "../shared/topicChanges";
 import { lanesOf } from "../shared/topicSim";
-import { FlagSwatch, MiniCube, orderText, TopicLessonScene, type SandboxApi, type SceneView } from "../shared/TopicLessonScene";
+import { FlagSwatch, MiniCube, orderText, TopicLessonScene, type SceneView } from "../shared/TopicLessonScene";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
-import {
-  ANALYTICS,
-  base,
-  BILLING,
-  isUp,
-  memberDef,
-  sandboxMoves,
-  SANDBOX_MEMBERS,
-  sandboxStart,
-  SANDBOX_STEP,
-  stepActions,
-  TOPIC,
-} from "./model";
+import { FREE, scenarios } from "./scenarios";
+import { ANALYTICS, base, BILLING, MEMBERS, memberDef as lessonMember, sandboxStart, SANDBOX_STEP, stepActions, TOPIC } from "./model";
+
+/** The lesson's members by id; readers started in the terminal are console consumers, named by pid. */
+function memberDef(id: string) {
+  if (MEMBERS.some((m) => m.id === id)) return lessonMember(id);
+  const pid = Number(id.replace("console-consumer-", ""));
+  const billing = MEMBERS.filter((m) => m.group === BILLING);
+  return { name: l(`okuyucu ${pid}`, `reader ${pid}`), tint: billing[Math.abs(pid - 4242) % billing.length]!.tint };
+}
 
 const SLUG = "consumer-groups";
 
@@ -39,12 +35,6 @@ const text = {
   legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
   legendFlag: l("bayrak = sıradaki offset", "flag = next offset"),
   legendSeal: l("mühür = group'un commit ettiği offset", "seal = offset the group committed"),
-  topic: l("Topic", "Topic"),
-  write: l("Sipariş yaz", "Write order"),
-  read: l("Oku", "Read"),
-  commit: l("Commit", "Commit"),
-  crash: l("Çökert", "Crash"),
-  start: l("Başlat", "Start"),
   p1: l("Rebalance: Fatura 1 → P0+P1 · Fatura 2 → P2", "Rebalance: Billing 1 → P0+P1 · Billing 2 → P2"),
   p2: l("Fatura 2 çöktü · P2'nin 2 kaydı yeniden okundu", "Billing 2 crashed · 2 records on P2 read again"),
   p3: l("Analitik her şeyi baştan okudu, Fatura etkilenmedi", "Analytics read everything; billing was untouched"),
@@ -60,7 +50,8 @@ function readersOf(view: SceneView): StageReader[] {
     const group = view.state.groups[gid];
     if (!group) continue;
     const current = group.members.map((m) => m.id);
-    const seen = new Set([...current, ...group.deliveries.map((d) => d.member)]);
+    // The lesson's readers stay on stage after a crash; a console consumer that left is simply gone.
+    const seen = new Set([...current, ...group.deliveries.map((d) => d.member).filter((m) => MEMBERS.some((x) => x.id === m))]);
     for (const id of [...seen].sort()) {
       const def = memberDef(id);
       const up = current.includes(id);
@@ -73,7 +64,7 @@ function readersOf(view: SceneView): StageReader[] {
         side,
         pulse: view.pulse,
         state: !up ? "crashed" : readNow ? "hop" : committedNow ? "happy" : "idle",
-        lanes: up ? lanesOf(view.state, gid, id, TOPIC) : [],
+        lanes: up ? lanesOf(view.state, gid, id, view.topic) : [],
       });
     }
   }
@@ -92,7 +83,9 @@ const config = {
   stepActions,
   sandboxStep: SANDBOX_STEP,
   sandboxStart,
-  missions,
+  missions: [],
+  scenarios,
+  freeStart: FREE,
   label: text.label,
   producerName: text.producer,
   readers: readersOf,
@@ -129,51 +122,7 @@ const config = {
       member: (_g, m) => view.t(memberDef(m).name),
       value: (v) => orderText(v, view.lang),
     }),
-  controls: (api: SandboxApi, view: SceneView) => {
-    const t = view.t;
-    const s = api.state;
-    const written = api.moves.flat().filter((a) => a.type === "produce").length;
-    return (
-      <>
-        <div className="control-row">
-          <span className="control-name">
-            <i style={{ background: "var(--sky)" }} />
-            {t(text.topic)}
-          </span>
-          <button className="chip-btn is-producer" disabled={api.locked} onClick={() => api.press(sandboxMoves.write(written))}>
-            {t(text.write)}
-          </button>
-        </div>
-        {SANDBOX_MEMBERS.map((id) => {
-          const def = memberDef(id);
-          const up = isUp(s, id) && !api.locked;
-          return (
-            <div className="control-row" key={id}>
-              <span className="control-name">
-                <i style={{ background: def.tint.body }} />
-                {t(def.name)}
-              </span>
-              <button className="chip-btn" disabled={!up} onClick={() => api.press(sandboxMoves.read(id))}>
-                {t(text.read)}
-              </button>
-              <button className="chip-btn is-ok" disabled={!up} onClick={() => api.press(sandboxMoves.commit(id))}>
-                {t(text.commit)}
-              </button>
-              {isUp(s, id) ? (
-                <button className="chip-btn is-danger toggle-btn" disabled={api.locked} onClick={() => api.press(sandboxMoves.toggle(s, id))}>
-                  {t(text.crash)}
-                </button>
-              ) : (
-                <button className="chip-btn is-ok toggle-btn" disabled={api.locked} onClick={() => api.press(sandboxMoves.toggle(s, id))}>
-                  {t(text.start)}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </>
-    );
-  },
+  controls: () => null,
   overlay: (view: SceneView) => {
     if (view.sandbox) return null;
     const done = view.pulse >= (stepActions[view.step]?.length ?? 0);
