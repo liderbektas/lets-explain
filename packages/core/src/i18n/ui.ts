@@ -78,6 +78,8 @@ export const ui = {
   scenarioGoal: l("Hedef", "Goal"),
   commands: l("Komut", "Commands"),
   commandsWord: l("komut", "commands"),
+  commandWord: l("komut", "command"),
+  scenarioWonIn1: l("komutta bitirdin.", "command to finish."),
   scenarioWonIn: l("komutta bitirdin.", "commands to finish."),
   scenarioBetter: l("Daha az komutla 3 yıldız alabilirsin.", "Fewer commands would earn 3 stars."),
   scenarioAnswerSeen: l("Cevaba baktığın için 1 yıldız. Cevapsız tekrar dene, 3 yıldız al.", "One star, since you looked at the answer. Try again without it for three."),

@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
-import { ScenarioPanel } from "@lets-explain/core/components/ScenarioPanel";
-import { Terminal } from "@lets-explain/core/components/Terminal";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Change, Mission, Scenario, SceneProps } from "@lets-explain/core/course/types";
-import { scenarioStars, starsFor } from "@lets-explain/core/course/types";
-import type { TermLine } from "@lets-explain/core/lib/terminal";
+import { starsFor } from "@lets-explain/core/course/types";
 import { useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { useGame } from "@lets-explain/core/lib/storage";
-import { completeLine, promptFor, runLine, type CliResult, type GitEditor } from "../../engine/cli";
+import { gitShell } from "../../engine/cli";
 import { describeGit } from "../../engine/describe";
 import { simulate, type GitAction, type GitEvent, type Repo } from "../../engine/git";
 import { GIT_STAGE } from "../../iso/GraphStage";
@@ -33,13 +31,6 @@ export interface GitCtx {
 }
 
 export type GitScenario = Scenario<GitCtx, Repo>;
-
-/** One typed line and what it did; an editor's save is its own entry, with no line. */
-interface Entry {
-  prompt: string;
-  line: string | null;
-  result: CliResult;
-}
 
 export interface SandboxButton {
   label: string;
@@ -140,24 +131,19 @@ export function makeGitScene(config: GitSceneConfig): GitScene {
       return missions.length ? (i < 0 ? 0 : i) : null;
     });
 
-    // Typing: the scenario being played, every line typed, and an editor a command opened.
-    const [scenarioIndex, setScenarioIndex] = useState<number | null>(() => {
-      const i = scenarios.findIndex((m) => !best[m.id]);
-      return scenarios.length ? (i < 0 ? 0 : i) : null;
+    // Typing: the shared terminal runs git commands on the model.
+    const typedBox = useTypedSandbox({
+      slug: config.slug,
+      active: typed && sandbox,
+      scenarios,
+      freeStart: sandboxStart,
+      shell: gitShell,
+      replay: (start: Repo, actions: GitAction[]) => simulate(actions, start),
+      final: (r) => r.states[r.states.length - 1]!,
+      context: (start, actions, r): GitCtx => ({ start, state: r.states[r.states.length - 1]!, actions, events: r.events, states: r.states }),
     });
-    const [entries, setEntries] = useState<Entry[]>([]);
-    const [editor, setEditor] = useState<GitEditor | null>(null);
-    const [hints, setHints] = useState(0);
-    const scenario = typed && sandbox && scenarioIndex !== null ? scenarios[scenarioIndex] : undefined;
-    const typedStart = scenario ? scenario.start : sandboxStart;
-    const typedActions = useMemo(() => entries.flatMap((e) => e.result.actions), [entries]);
-    const typedRun = useMemo(() => (typed && sandbox ? simulate(typedActions, typedStart) : null), [sandbox, typedActions, typedStart]);
-    const pick = (i: number | null) => {
-      setScenarioIndex(i);
-      setEntries([]);
-      setEditor(null);
-      setHints(0);
-    };
+    const typedRun = typedBox.run;
+    const typedStart = typedBox.start;
 
     let state: Repo;
     let last: GitEvent[];
@@ -193,48 +179,6 @@ export function makeGitScene(config: GitSceneConfig): GitScene {
       if (!won) setMoves((xs) => [...xs, a]);
     };
 
-    const typedMoves = entries.reduce((n, e) => n + e.result.moves, 0);
-    const typedWon = Boolean(
-      scenario && typedRun && scenario.check({ start: typedStart, state, actions: typedActions, events: typedRun.events, states: typedRun.states }),
-    );
-    const sawAnswer = Boolean(scenario && hints >= scenario.hints.length);
-    useEffect(() => {
-      if (typedWon && scenario) setMissionStars(config.slug, scenario.id, scenarioStars(typedMoves, scenario.par, sawAnswer));
-    }, [typedWon, scenario, typedMoves, sawAnswer, setMissionStars]);
-    const runTyped = (line: string) => {
-      const prompt = promptFor(state);
-      const result: CliResult = line ? runLine(state, line) : { actions: [], output: [], moves: 0 };
-      setEntries((xs) => [...xs, { prompt, line, result }]);
-      setEditor(result.editor ?? null);
-    };
-    const saveEditor = (text: string) => {
-      if (!editor) return;
-      const result = editor.save(state, text);
-      setEntries((xs) => [...xs, { prompt: "", line: null, result }]);
-      setEditor(result.editor ?? null);
-    };
-    const cancelEditor = () => {
-      setEntries((xs) => [...xs, { prompt: "", line: null, result: { actions: [], output: [{ text: "Aborted: the editor closed without saving.", tone: "dim" }], moves: 0 } }]);
-      setEditor(null);
-    };
-    const undoTyped = () => {
-      setEditor(null);
-      setEntries((xs) => {
-        let i = xs.length - 1;
-        while (i > 0 && xs[i]!.line === null) i--;
-        return xs.slice(0, Math.max(0, i));
-      });
-    };
-    const termLog: TermLine[] = [];
-    for (const e of entries) {
-      if (e.result.clear) {
-        termLog.length = 0;
-        continue;
-      }
-      if (e.line !== null) termLog.push({ text: `${e.prompt} ${e.line}`, tone: "in" });
-      termLog.push(...e.result.output);
-    }
-
     const lines = shown.map((e) => describeGit(e, lang));
     const eventList = (
       <div className="events" aria-live="polite">
@@ -257,36 +201,8 @@ export function makeGitScene(config: GitSceneConfig): GitScene {
     const footer =
       sandbox && typed ? (
         <div className="sandbox">
-          <ScenarioPanel
-            scenarios={scenarios}
-            active={scenarioIndex}
-            onSelect={pick}
-            moves={typedMoves}
-            won={typedWon}
-            hints={hints}
-            onHint={() => setHints((h) => h + 1)}
-            best={best}
-          />
-          <div>
-            <Terminal
-              prompt={promptFor(state)}
-              log={termLog}
-              onRun={runTyped}
-              history={entries.flatMap((e) => (e.line ? [e.line] : []))}
-              onComplete={(input) => completeLine(state, input)}
-              editor={editor ? { file: editor.file, text: editor.text, onSave: saveEditor, onCancel: cancelEditor } : null}
-              disabled={typedWon}
-              lockedText={t(ui.terminalLocked)}
-            />
-            <div className="terminal-tools">
-              <button className="chip-btn" disabled={entries.length === 0 || typedWon} onClick={undoTyped}>
-                <Icon name="undo" size={15} /> {t(ui.undoCommand)}
-              </button>
-              <button className="chip-btn" disabled={entries.length === 0} onClick={() => pick(scenarioIndex)}>
-                <Icon name="reset" size={15} /> {t(ui.startOver)}
-              </button>
-            </div>
-          </div>
+          {typedBox.panel}
+          {typedBox.terminal}
           {eventList}
         </div>
       ) : sandbox && config.sandbox?.rows ? (

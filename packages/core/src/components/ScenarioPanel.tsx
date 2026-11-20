@@ -79,7 +79,7 @@ export function ScenarioPanel<C, S>({ scenarios, active, onSelect, moves, won, h
                 <div>
                   <h4>{t(ui.missionWon)}</h4>
                   <p>
-                    {sawAnswer ? t(ui.scenarioAnswerSeen) : `${moves} ${t(ui.scenarioWonIn)} ${stars < 3 ? t(ui.scenarioBetter) : ""}`}
+                    {sawAnswer ? t(ui.scenarioAnswerSeen) : `${moves} ${t(moves === 1 ? ui.scenarioWonIn1 : ui.scenarioWonIn)} ${stars < 3 ? t(ui.scenarioBetter) : ""}`}
                   </p>
                 </div>
               </div>
@@ -111,7 +111,7 @@ export function ScenarioPanel<C, S>({ scenarios, active, onSelect, moves, won, h
                   {t(ui.commands)} <b>{moves}</b>
                 </span>
                 <span className="par">
-                  <Stars count={3} size={11} /> {t(ui.parFor3)} {scenario.par} {t(ui.commandsWord)}
+                  <Stars count={3} size={11} /> {t(ui.parFor3)} {scenario.par} {t(scenario.par === 1 ? ui.commandWord : ui.commandsWord)}
                 </span>
                 {hints < scenario.hints.length && (
                   <button className="link-btn" onClick={onHint} title={hints === scenario.hints.length - 1 ? t(ui.hintAnswerNote) : undefined}>

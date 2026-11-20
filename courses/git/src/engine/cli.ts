@@ -1,3 +1,4 @@
+import type { ShellEditor, ShellResult } from "@lets-explain/core/components/TypedSandbox";
 import { complete as completeWord, lines, out, shellWords, splitCommands, type TermLine } from "@lets-explain/core/lib/terminal";
 import {
   aheadBehind,
@@ -31,22 +32,9 @@ import { buildTrees, commitText, hashBlob } from "./objects";
  * instead of pretending.
  */
 
-export interface GitEditor {
-  file: string;
-  text: string;
-  /** Runs with the saved text, on the repository as it was when the editor opened. */
-  save: (repo: Repo, text: string) => CliResult;
-}
-
-export interface CliResult {
-  /** Actions that ran without an error, in order. Replaying them on the old state gives the new one. */
-  actions: GitAction[];
-  output: TermLine[];
-  /** Commands that changed something (an edit, a commit, a switch): a mission counts these. */
-  moves: number;
-  editor?: GitEditor;
-  clear?: boolean;
-}
+/** What one typed line did: the shared shape every course's command line returns. */
+export type CliResult = ShellResult<GitAction, Repo>;
+export type GitEditor = ShellEditor<GitAction, Repo>;
 
 export const PROJECT = "shop";
 const REMOTE_URL = "https://github.com/team/shop.git";
@@ -1414,3 +1402,6 @@ grow and tweak history     commit, branch, switch, checkout, merge, rebase,
                            reset, revert, cherry-pick, stash, tag
 collaborate                fetch, pull, push, remote
 find a bug                 bisect`;
+
+/** The git command line, as the shared terminal takes it. */
+export const gitShell = { run: runLine, prompt: promptFor, complete: completeLine, title: "bash" };
