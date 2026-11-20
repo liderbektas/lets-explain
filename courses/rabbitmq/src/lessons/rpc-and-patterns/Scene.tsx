@@ -122,6 +122,7 @@ export const scene = makeBrokerScene({
       <BrokerStage
         broker={b}
         last={info.last}
+        prev={info.prev}
         labels={labels(info.t)}
         kindOf={(m) => (m.routingKey === REPLY ? "payment" : "order")}
         layout={{

@@ -19,7 +19,8 @@
       "@lets-explain/kafka": ["./courses/kafka/src/index.ts"],
       "@lets-explain/git": ["./courses/git/src/index.ts"],
       "@lets-explain/rabbitmq": ["./courses/rabbitmq/src/index.ts"],
-      "@lets-explain/docker": ["./courses/docker/src/index.ts"]
+      "@lets-explain/docker": ["./courses/docker/src/index.ts"],
+      "@lets-explain/cicd": ["./courses/cicd/src/index.ts"]
     }
   },
   "include": ["packages/*/src", "courses/*/src", "site/src"]

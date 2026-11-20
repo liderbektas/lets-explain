@@ -149,6 +149,7 @@ export const scene = makeDockerScene({
         tag={b?.tag ?? TAG}
         labels={buildLabels(info.t)}
         pending={pending}
+        play={info.last.some((e) => e.type === "buildStep")}
       />
       </g>
     );

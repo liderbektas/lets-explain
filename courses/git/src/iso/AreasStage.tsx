@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { IsoBox, type Shades } from "@lets-explain/core/iso/shapes";
-import { headFiles, headId, isIgnored, ignorePatterns, short, type Repo } from "../engine/git";
+import { headFiles, headId, isIgnored, ignorePatterns, short, type GitEvent, type Repo } from "../engine/git";
 import "./git-stage.css";
 
 /**
@@ -33,6 +33,8 @@ interface Props {
   labels: AreasLabels;
   /** Which arrow to light up for the last action. */
   flow?: AreaFlow;
+  /** Events of the last action: the files it copied fly from one area to the next. */
+  last?: GitEvent[];
   box?: { x: number; y: number; w: number; h: number };
 }
 
@@ -41,7 +43,7 @@ const spring = { type: "spring", stiffness: 180, damping: 22 } as const;
 
 type Badge = { text: string; tone: "new" | "mod" | "del" | "ok" | "ign" } | null;
 
-export function AreasStage({ repo, labels, flow = null, box = { x: 0, y: 0, w: 860, h: 470 } }: Props) {
+export function AreasStage({ repo, labels, flow = null, last, box = { x: 0, y: 0, w: 860, h: 470 } }: Props) {
   // Wide enough for "git commit" between two trays.
   const gap = 84;
   const trayW = (box.w - 24 - gap * 2) / 3;
@@ -107,6 +109,18 @@ export function AreasStage({ repo, labels, flow = null, box = { x: 0, y: 0, w: 8
         </text>
       )}
 
+      {last && flow && (
+        <Flights
+          key={actionKey(last)}
+          trays={[workCards, indexCards, repoCards]}
+          flow={flow}
+          paths={copiedPaths(last, flow, indexCards)}
+          xs={xs as [number, number, number]}
+          y={top + 74}
+          w={trayW}
+        />
+      )}
+
       <Arrow x1={xs[0]! + trayW + 4} x2={xs[1]! - 4} y={top + 150} label="git add" lit={flow === "add"} />
       <Arrow x1={xs[1]! + trayW + 4} x2={xs[2]! - 4} y={top + 150} label="git commit" lit={flow === "commit"} />
       <Arrow x1={xs[1]! - 4} x2={xs[0]! + trayW + 4} y={top + 236} label="restore" lit={flow === "restore"} small />
@@ -152,6 +166,63 @@ function Cards({ x, y, w, cards, empty, max = 6 }: { x: number; y: number; w: nu
           +{cards.length - max}
         </text>
       )}
+    </g>
+  );
+}
+
+/** Each action's events are one array; a new array means a new action, so its copies fly again. */
+const keys = new WeakMap<object, number>();
+let nextKey = 0;
+function actionKey(last: GitEvent[]): number {
+  if (!keys.has(last)) keys.set(last, nextKey++);
+  return keys.get(last)!;
+}
+
+/**
+ * What an action copied. `git add` copies files from the folder into the index; `git commit`
+ * records the whole index as a snapshot; `restore` copies the index back over the folder;
+ * `restore --staged` copies the last commit's version back into the index.
+ */
+function copiedPaths(last: GitEvent[], flow: NonNullable<AreaFlow>, indexCards: { path: string; badge: Badge }[]): string[] {
+  if (flow === "commit") return indexCards.filter((c) => c.badge?.tone !== "del").map((c) => c.path);
+  const e = last[last.length - 1];
+  if (flow === "add" && e?.type === "staged") return e.paths;
+  if (flow === "restore" && e?.type === "restored") return [e.path];
+  if (flow === "unstage" && e?.type === "unstaged") return e.paths;
+  return [];
+}
+
+/** Copies of file cards travelling between areas. The originals stay where they are. */
+function Flights({ trays, flow, paths, xs, y, w }: { trays: { path: string; badge: Badge }[][]; flow: NonNullable<AreaFlow>; paths: string[]; xs: [number, number, number]; y: number; w: number }) {
+  const [from, to] = ({ add: [0, 1], commit: [1, 2], restore: [1, 0], unstage: [2, 1] } as const)[flow];
+  const max = [6, 6, 4];
+  const row = (tray: number, path: string) => {
+    const i = trays[tray]!.findIndex((c) => c.path === path);
+    return i >= 0 && i < max[tray]! && trays[tray]![i]!.badge?.tone !== "del" ? i : -1;
+  };
+  return (
+    <g pointerEvents="none">
+      {paths.map((p, k) => {
+        const a = row(from, p);
+        const b = row(to, p);
+        if (a < 0 || b < 0) return null;
+        return (
+          <motion.g
+            key={p}
+            className="file-card"
+            initial={{ x: xs[from] + 14, y: y + a * 50, opacity: 0.95 }}
+            animate={{ x: xs[to] + 14, y: y + b * 50, opacity: [0.95, 0.95, 0] }}
+            transition={{ x: { duration: 0.6, delay: k * 0.08, ease: "easeInOut" }, y: { duration: 0.6, delay: k * 0.08, ease: "easeInOut" }, opacity: { duration: 0.85, delay: k * 0.08, times: [0, 0.75, 1] } }}
+          >
+            <rect y={3} width={w - 28} height={42} rx={10} style={{ fill: "var(--ink)" }} />
+            <rect width={w - 28} height={42} rx={10} className="sheet" style={{ fill: "var(--card)" }} />
+            <path d="M12 9h10M12 14h7" stroke="var(--ink-3)" strokeWidth={2} strokeLinecap="round" />
+            <text x={30} y={17} className="file-name">
+              {clip(p, Math.floor((w - 130) / 7.3))}
+            </text>
+          </motion.g>
+        );
+      })}
     </g>
   );
 }

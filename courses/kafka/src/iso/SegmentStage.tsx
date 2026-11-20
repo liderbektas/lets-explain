@@ -93,6 +93,20 @@ export function SegmentStage({
   const middle = at((shown.length * stride - GAP) / 2, 0);
   const shift = { x: 400 - middle[0], y: 245 - middle[1] };
 
+  // What leaving looks like, decided against the log as it is now (AnimatePresence `custom`):
+  // a segment file that is gone (retention, or merged away by the cleaner) falls into the shredder;
+  // one that only scrolled out of view slides off; a record dropped by compaction vanishes in place.
+  const segmentExit = (base: number, x: number, y: number) => (now: StorageLog) =>
+    now.segments.some((sg) => sg.base === base)
+      ? { x: x - 60, y: y - 30, opacity: 0 }
+      : { x: shredder[0] - 10, y: shredder[1] - 30, opacity: 0, scale: 0.3 };
+  const recordExit = (offset: number, x: number, y: number) => (now: StorageLog) =>
+    offset < now.logStartOffset
+      ? { x: shredder[0], y: shredder[1] - s * 0.6, opacity: 0, scale: 0.4 }
+      : now.segments.some((sg) => sg.records.some((r) => r.offset === offset))
+        ? { x: x - 60, y: y - 30, opacity: 0 }
+        : { x, y, opacity: 0, scale: 0.2 };
+
   // Where a record sits: its segment's tray, at its position among the records still there.
   const place = (seg: Segment, i: number) => at((indexOf.get(seg.base) ?? 0) * stride + PAD + SLOT * (i + 0.5), 0);
 
@@ -124,7 +138,7 @@ export function SegmentStage({
 
       {hiddenCount > 0 && <Pill x={shredder[0] + 40} y={shredder[1] + 46} text={labels.hidden(hiddenCount)} animate={false} size={11} />}
 
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} custom={log}>
         {shown.map((seg, i) => {
           const active = i === last;
           const [x, y] = at(i * stride, 0);
@@ -135,7 +149,8 @@ export function SegmentStage({
               key={seg.base}
               initial={{ x: x + 40, y: y + 20, opacity: 0 }}
               animate={{ x, y, opacity: 1 }}
-              exit={{ x: shredder[0] - 10, y: shredder[1] - 30, opacity: 0, scale: 0.3 }}
+              variants={{ gone: segmentExit(seg.base, x, y) }}
+              exit="gone"
               transition={spring}
             >
               <IsoBox
@@ -200,7 +215,7 @@ export function SegmentStage({
         })}
       </AnimatePresence>
 
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} custom={log}>
         {shown.flatMap((seg) =>
           seg.records.map((r, i) => {
             const [x, y] = place(seg, i);
@@ -210,7 +225,8 @@ export function SegmentStage({
                 key={`r-${r.offset}`}
                 initial={{ x: producer[0], y: producer[1] - 50, opacity: 0, scale: 0.6 }}
                 animate={{ x, y, opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.4, y: y - 30 }}
+                variants={{ gone: recordExit(r.offset, x, y) }}
+                exit="gone"
                 transition={spring}
               >
                 <Parcel s={s} kind={shadesOf(r)} label={r.offset} state={marks?.get(r.offset) ?? "normal"} size={0.72} />

@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/cicd",
+  "private": true,
+  "description": "The CI/CD course: a small deterministic GitHub Actions model (workflows, jobs, steps, fresh runners, cache, artifacts, matrix, concurrency, PR checks, secrets, environments and deploys) and its lessons.",
+  "type": "module"
+}

@@ -169,8 +169,8 @@ export const workflows: Lesson = {
       tag: "how",
       predict: {
         question: l(
-          "Branch'i `git rebase origin/main` ile güncel main'in üstüne taşıdık. Şimdi normal `git push` dersek ne olur?",
-          "We moved the branch onto the latest main with `git rebase origin/main`. What happens with a plain `git push` now?",
+          "Branch'in commit'lerini `git rebase origin/main` ile güncel main'in üstünde yeniden oynattık. Şimdi normal `git push` dersek ne olur?",
+          "We replayed the branch's commits on the latest main with `git rebase origin/main`. What happens with a plain `git push` now?",
         ),
         options: [
           l("Sorunsuz gider", "It goes through fine"),

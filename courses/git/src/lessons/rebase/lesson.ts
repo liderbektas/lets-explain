@@ -40,15 +40,15 @@ export const rebase: Lesson = {
         {
           kind: "insight",
           text: l(
-            "Bunu bir önceki derste merge ile çözmüştük. Rebase aynı işi başka yoldan yapar: iki geçmişi birleştirmek yerine feature'ın commit'lerini main'in ucuna taşır.",
-            "The last lesson solved this with a merge. Rebase does the same job another way: instead of joining two histories, it moves feature's commits onto the tip of main.",
+            "Bunu bir önceki derste merge ile çözmüştük. Rebase aynı işi başka yoldan yapar: iki geçmişi birleştirmek yerine feature'ın commit'lerinin kopyalarını main'in ucuna dizer.",
+            "The last lesson solved this with a merge. Rebase does the same job another way: instead of joining two histories, it lays copies of feature's commits on the tip of main.",
           ),
         },
       ],
       practice: {
         commands: [
           { cmd: "git log --oneline --graph --all" },
-          { cmd: "git log main..feature --oneline", note: l("feature'da olup main'de olmayan commit'ler: rebase'in taşıyacakları.", "Commits on feature that main does not have: the ones rebase will move.") },
+          { cmd: "git log main..feature --oneline", note: l("feature'da olup main'de olmayan commit'ler: rebase'in kopyalayacakları.", "Commits on feature that main does not have: the ones rebase will copy.") },
         ],
       },
     },
@@ -85,7 +85,7 @@ export const rebase: Lesson = {
       practice: {
         commands: [
           { cmd: "git switch feature" },
-          { cmd: "git rebase main", note: l("feature'ın commit'lerini main'in ucuna taşır.", "Moves feature's commits onto the tip of main.") },
+          { cmd: "git rebase main", note: l("feature'ın commit'lerini main'in ucunda yeniden oynatır: yeni kimlikli kopyalar.", "Replays feature's commits on the tip of main: copies with new ids.") },
         ],
       },
     },
@@ -152,7 +152,7 @@ export const rebase: Lesson = {
       practice: {
         commands: [
           { cmd: "git merge feature", note: l("Geçmişi korur; gerekirse merge commit'i oluşturur.", "Keeps history; makes a merge commit when needed.") },
-          { cmd: "git rebase main", note: l("Commit'leri main'in ucuna taşır; geçmişi düzleştirir.", "Moves commits onto main's tip; straightens history.") },
+          { cmd: "git rebase main", note: l("Commit'lerin kopyalarını main'in ucuna dizer; geçmişi düzleştirir.", "Lays copies of the commits on main's tip; straightens history.") },
         ],
       },
     },

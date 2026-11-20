@@ -1,9 +1,13 @@
-import { IsoBox, type Shades } from "@lets-explain/core/iso/shapes";
-import { nodeAlive, queueAvailable, type Broker } from "../../engine/broker";
+import { motion } from "motion/react";
+import { IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes";
+import { nodeAlive, queueAvailable, type Broker, type BrokerEvent } from "../../engine/broker";
+import { HOP, landsAt } from "../../iso/choreography";
 
 /**
  * The cluster's three nodes side by side, with a chip for every queue copy each node holds:
  * the quorum leader in tangerine, followers in sky, a classic queue (one copy only) in sun.
+ * When a message reaches a quorum queue, the leader sends a copy to each follower that is up;
+ * when the leader's node fails, the leader role moves to the newly elected node.
  */
 
 export interface NodesLabels {
@@ -30,10 +34,38 @@ export function shownLeader(b: Broker, queue: string): string | null {
   return q.members.find((m) => nodeAlive(b, m)) ?? null;
 }
 
-export function NodesPanel({ broker, queues, labels, box }: { broker: Broker; queues: string[]; labels: NodesLabels; box: { x: number; y: number; w: number; h: number } }) {
+export function NodesPanel({ broker, queues, labels, box, last = [] }: { broker: Broker; queues: string[]; labels: NodesLabels; box: { x: number; y: number; w: number; h: number }; last?: BrokerEvent[] }) {
   const n = broker.nodes.length;
   const gap = 18;
   const w = (box.w - gap * (n - 1)) / n;
+  /** The left end of a queue's chip on a node card. */
+  const chipAt = (node: string, queue: string): [number, number] | null => {
+    const i = broker.nodes.findIndex((x) => x.name === node);
+    const k = queues.filter((name) => broker.queues[name]?.members.includes(node)).indexOf(queue);
+    return i >= 0 && k >= 0 ? [box.x + i * (w + gap) + 34, box.y + 68 + k * 26 + 10] : null;
+  };
+  const moves: { key: string; from: [number, number]; to: [number, number]; t0: number; leader: boolean }[] = [];
+  last.forEach((e, idx) => {
+    if (e.type === "routed") {
+      for (const name of e.queues) {
+        const q = broker.queues[name];
+        if (!q || q.type !== "quorum" || !queues.includes(name) || !queueAvailable(broker, q)) continue;
+        const leader = shownLeader(broker, name);
+        const from = leader ? chipAt(leader, name) : null;
+        if (!leader || !from) continue;
+        // The leader writes it, then copies it to every follower that is up.
+        for (const m of q.members) {
+          const to = m !== leader && nodeAlive(broker, m) ? chipAt(m, name) : null;
+          if (to) moves.push({ key: `${e.id}-${m}-${idx}`, from, to, t0: landsAt(e), leader: false });
+        }
+      }
+    }
+    if (e.type === "leaderMoved" && queues.includes(e.queue)) {
+      const from = chipAt(e.from, e.queue);
+      const to = chipAt(e.to, e.queue);
+      if (from && to) moves.push({ key: `lead-${e.queue}-${idx}`, from, to, t0: 0, leader: true });
+    }
+  });
   return (
     <g className="nodes-panel">
       {broker.nodes.map((node, i) => {
@@ -87,6 +119,37 @@ export function NodesPanel({ broker, queues, labels, box }: { broker: Broker; qu
           </g>
         );
       })}
+      {moves.map((mv) => (
+        <Move key={mv.key} from={mv.from} to={mv.to} t0={mv.t0} leader={mv.leader} label={labels.leader} />
+      ))}
     </g>
+  );
+}
+
+/** A copy travelling from the leader to a follower, or the leader role moving to its new node. */
+function Move({ from, to, t0, leader, label }: { from: [number, number]; to: [number, number]; t0: number; leader: boolean; label: string }) {
+  const dur = leader ? 0.7 : HOP;
+  const total = t0 + dur + 0.05;
+  const a = Math.max(t0 / total, 0.002);
+  const b = (t0 + dur) / total;
+  return (
+    <motion.g
+      initial={{ x: from[0], y: from[1], scale: 0 }}
+      animate={{ x: [from[0], from[0], to[0], to[0]], y: [from[1], from[1], to[1], to[1]], scale: [0, 0, 1, 1, 0] }}
+      transition={{ x: { duration: total, times: [0, a, b, 1], ease: "easeInOut" }, y: { duration: total, times: [0, a, b, 1], ease: "easeInOut" }, scale: { duration: total, times: [0, a - 0.001, a, b, 1], ease: "linear" } }}
+    >
+      {leader ? (
+        <g transform="translate(0 -12)">
+          <rect x={-30} y={-9} width={60} height={18} rx={9} style={{ fill: "var(--tangerine)", stroke: "var(--ink)", strokeWidth: 1.5 }} />
+          <text y={4} textAnchor="middle" style={{ fill: "var(--ink)", fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 800 }}>
+            {label}
+          </text>
+        </g>
+      ) : (
+        <g transform="translate(0 -4)">
+          <Parcel s={11} size={0.8} kind="order" />
+        </g>
+      )}
+    </motion.g>
   );
 }

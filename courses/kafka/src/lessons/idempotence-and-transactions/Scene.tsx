@@ -306,7 +306,7 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
   const pulse = sandbox ? extra.length : cursor;
 
   // Highlights: open transactions faded, repeat invoices flagged, records just read ticked.
-  const marks = new Map<number, { state: ParcelState; tint?: Tint }>();
+  const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
   const seenOrders = new Set<number>();
   for (const r of state.log) {
     if (r.kind !== "data") continue;
@@ -318,7 +318,7 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
   }
   for (const e of lastEvents) {
     if (e.type !== "read") continue;
-    for (const o of e.offsets) if (!marks.has(o)) marks.set(o, { state: "read", tint: e.reader === "rc" ? RC_TINT : RU_TINT });
+    for (const o of e.offsets) if (!marks.has(o)) marks.set(o, { state: "read", tint: e.reader === "rc" ? RC_TINT : RU_TINT, to: e.reader });
   }
 
   const readNow = (who: "rc" | "ru") => lastEvents.some((e) => e.type === "read" && e.reader === who && e.offsets.length > 0);

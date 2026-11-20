@@ -18,7 +18,8 @@ const keys = ["order.created", "order.paid", "order.created", "order.paid", "ord
 /** The course home loop: orders flow through a topic exchange to two queues and their consumers. */
 export function RabbitHero() {
   const { t } = useLang();
-  const tick = useTicker(true, false, 1300) % 14;
+  // One action per tick, slow enough for each message to finish its trip.
+  const tick = useTicker(true, false, 1500);
   const run = useMemo(() => {
     const actions = [...setup];
     for (let i = 0; i < 12; i++) {
@@ -27,7 +28,8 @@ export function RabbitHero() {
     }
     return simulate(actions);
   }, []);
-  const at = Math.min(setup.length + Math.round(tick * 1.4), run.states.length - 1);
+  const loop = run.states.length - setup.length + 2;
+  const at = Math.min(setup.length + (tick % loop), run.states.length - 1);
   const layout: BrokerLayout = {
     producers: [{ id: "shop", label: t(l("Mağaza", "Shop")), exchange: "orders" }],
     consumerNames: { "billing-1": t(l("Fatura", "Billing")), "shipping-1": t(l("Kargo", "Shipping")) },
@@ -38,6 +40,7 @@ export function RabbitHero() {
         broker={run.states[at]!}
         layout={layout}
         last={run.events[at - 1] ?? []}
+        prev={run.states[at - 1]}
         labels={{ unacked: "unacked", ready: "ready", prefetch: "prefetch", noLimit: "∞", down: "down", lost: t(l("kayıp", "lost")) }}
         kindOf={(m) => (m.routingKey.endsWith("paid") ? "payment" : m.routingKey.endsWith("cancelled") ? "cancel" : "order")}
       />

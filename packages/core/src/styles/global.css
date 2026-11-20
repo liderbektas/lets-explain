@@ -220,29 +220,112 @@ button {
   gap: 10px;
 }
 
-.lang-switch {
+/* Every control in the top bar shares one height. */
+.topbar .btn-small {
+  min-height: 40px;
+}
+
+.lang-menu {
+  position: relative;
+}
+
+.lang-trigger {
   display: inline-flex;
-  padding: 3px;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
   border: var(--stroke) solid var(--ink);
   border-radius: 999px;
   background: var(--card);
+  box-shadow: var(--sticker-s);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 0.16s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.lang-switch button {
+.lang-trigger:hover,
+.lang-trigger[aria-expanded="true"] {
+  background: var(--paper-2);
+}
+
+.lang-trigger[aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
+}
+
+.lang-list {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  min-width: 184px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--sticker);
+  animation: lang-pop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lang-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
   border: 0;
+  border-radius: 8px;
   background: none;
-  height: 30px;
-  padding: 0 11px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 13px;
-  color: var(--ink-3);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
   cursor: pointer;
 }
 
-.lang-switch button[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--card);
+.lang-list button:hover,
+.lang-list button:focus-visible {
+  background: var(--paper-2);
+  outline: none;
+}
+
+.lang-list button[aria-checked="true"] {
+  background: var(--tangerine-soft);
+}
+
+.lang-list button svg {
+  margin-left: auto;
+}
+
+.lang-code {
+  width: 22px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+@keyframes lang-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-list {
+    animation: none;
+  }
+
+  .lang-trigger {
+    transition: none;
+  }
 }
 
 .scrim {
@@ -1075,7 +1158,7 @@ a.drawer-item:hover {
 /* ---------- Home pages (hub and course) ---------- */
 
 .home {
-  max-width: 1120px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 44px 24px 96px;
 }
@@ -2171,4 +2254,120 @@ a.drawer-item:hover {
 
 .practice-snippet .practice-note {
   padding: 4px 10px 6px;
+}
+
+/* ------------------------------------------------------------------ credit */
+
+.credit-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px 56px;
+}
+
+.credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px 10px 10px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: var(--radius-m);
+  background: var(--card);
+  box-shadow: var(--sticker-s);
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.credit:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sticker);
+}
+
+.credit:focus-visible {
+  outline: 3px solid var(--tangerine);
+  outline-offset: 3px;
+}
+
+.credit-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--card);
+  box-shadow: 0 3px 0 rgba(43, 42, 51, 0.35);
+}
+
+.credit-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.credit-label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.credit-handle {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 800;
+  background: linear-gradient(transparent 52%, var(--mint) 52%, var(--mint) 94%, transparent 94%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .credit {
+    transition: none;
+  }
+}
+
+/* GitHub chip in the top bar: the same credit, small. */
+.gh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px 0 4px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--sticker-s);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.gh-chip:hover {
+  background: var(--paper-2);
+}
+
+.gh-chip:focus-visible {
+  outline: 3px solid var(--tangerine);
+  outline-offset: 2px;
+}
+
+.gh-chip-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--card);
+}
+
+.gh-chip-handle {
+  background: linear-gradient(transparent 52%, var(--mint) 52%, var(--mint) 94%, transparent 94%);
+}
+
+/* On phones the top bar has no room; the credit at the foot of the page stays. */
+@media (max-width: 560px) {
+  .gh-chip {
+    display: none;
+  }
 }

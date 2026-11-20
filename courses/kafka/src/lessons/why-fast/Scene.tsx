@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { motion } from "motion/react";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
@@ -350,6 +351,11 @@ function DiskDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; t
   };
   const shown = RND.slice(0, n);
   const head = shown.length ? cell(shown[shown.length - 1]!) : cell(0);
+  // The head moves at one fixed speed, so a long jump takes longer: that wait is the seek.
+  // A record is written only once the head is over its spot.
+  const travel = (from: [number, number], to: [number, number]) => Math.min(0.75, Math.hypot(to[0] - from[0], to[1] - from[1]) / 420);
+  const seek = travel(shown.length > 1 ? cell(shown[shown.length - 2]!) : cell(0), head);
+  const seqHead = (k: number): [number, number] => [(0.55 + k * 1.1) * 34, ((0.55 + k * 1.1) * 34) / 2 - 46];
   return (
     <g>
       <text x={210} y={150} textAnchor="middle" className="wf-title">
@@ -365,9 +371,9 @@ function DiskDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; t
             </g>
           );
         })}
-        <g transform={`translate(${(0.55 + n * 1.1) * 34} ${((0.55 + n * 1.1) * 34) / 2 - 46})`} className="wf-head">
+        <motion.g initial={false} animate={{ x: seqHead(n)[0], y: seqHead(n)[1] }} transition={{ duration: travel(seqHead(Math.max(0, n - 1)), seqHead(n)), ease: "easeInOut" }}>
           <path d="M-8 -10 h16 l-8 12 z" className="ink" style={{ fill: "var(--tangerine)" }} />
-        </g>
+        </motion.g>
       </g>
       {revealed && <Pill x={240} y={420} text={t(text.seqSpeed)} tone="ok" />}
 
@@ -382,7 +388,9 @@ function DiskDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; t
         const [x, y] = cell(slot);
         return (
           <g key={i} transform={`translate(${x} ${y})`}>
-            <Parcel s={28} size={0.7} kind="order" label={i} />
+            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i === shown.length - 1 ? seek : 0, duration: 0.15 }}>
+              <Parcel s={28} size={0.7} kind="order" label={i} />
+            </motion.g>
           </g>
         );
       })}
@@ -391,9 +399,9 @@ function DiskDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; t
         const [x2, y2] = cell(slot);
         return <line key={i} x1={x1} y1={y1 - 30} x2={x2} y2={y2 - 30} className="dashed-arrow wf-jump" />;
       })}
-      <g transform={`translate(${head[0]} ${head[1] - 52})`} className="wf-head">
+      <motion.g initial={false} animate={{ x: head[0], y: head[1] - 52 }} transition={{ duration: seek, ease: "easeInOut" }}>
         <path d="M-8 -10 h16 l-8 12 z" className="ink" style={{ fill: "var(--tangerine)" }} />
-      </g>
+      </motion.g>
       {revealed && <Pill x={610} y={420} text={t(text.rndSpeed)} tone="danger" />}
     </g>
   );
@@ -488,6 +496,11 @@ function ZeroCopyDiorama({ revealed, t }: { revealed: boolean; t: (x: L) => stri
       ))}
       {revealed ? (
         <>
+          {/* Same data, two routes: the classic one stops in the JVM and the socket buffer, sendfile goes straight to the NIC. */}
+          <g>
+            <Parcel s={26} size={0.6} kind="neutral" />
+            <animateMotion dur="4.8s" repeatCount="indefinite" path={classic} />
+          </g>
           <g>
             <Parcel s={26} size={0.6} kind="order" />
             <animateMotion dur="2.4s" repeatCount="indefinite" path={zero} />

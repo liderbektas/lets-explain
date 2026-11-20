@@ -16,6 +16,7 @@ Every lesson follows the same rhythm:
 | Git | 19 lessons in 6 chapters, each with the real commands to use in your own project |
 | RabbitMQ | 17 lessons in 5 chapters, with commands and Python code to set it up in your own project |
 | Docker | 22 lessons in 8 chapters, from your first container to Dockerfiles, Compose, CI and a first look at Kubernetes |
+| CI/CD | 24 lessons in 8 chapters with GitHub Actions: workflows, runners, PR checks, cache, matrix, path filters, reusable workflows, secrets, environments, deploy strategies and rollbacks |
 | Kubernetes, database transactions | Planned |
 
 ## Running it
@@ -56,6 +57,13 @@ courses/docker/    the Docker course
   engine/          a small Docker model: images and layers with a build cache, containers
                    with real exit codes, volumes, ports, networks and DNS, Compose, a registry
   iso/             the host stage (images, containers, volumes, networks) and the build stage
+  lessons/<slug>/  one folder per lesson
+courses/cicd/      the CI/CD course
+  engine/          a small GitHub Actions model: workflows with triggers and filters, jobs on
+                   fresh runners, steps that fail like the real ones, cache, artifacts, matrix,
+                   concurrency, timeouts, PR checks, secrets, environments, approvals and deploys;
+                   it also writes each workflow out as real YAML
+  iso/             runs, workflow files, logs, PR checks, timelines and environments
   lessons/<slug>/  one folder per lesson
 site/              the hub listing every course, and the app shell
 ```

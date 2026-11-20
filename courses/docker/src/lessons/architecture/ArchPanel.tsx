@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { l, type L } from "@lets-explain/core/i18n";
 import type { DockerEvent, Host } from "../../engine/docker";
+import { stampOf } from "../../iso/HostStage";
 import "./arch.css";
 
 /**
@@ -61,6 +62,9 @@ export function ArchPanel({ host, last, command, t }: Props) {
   const images = Object.keys(host.tags);
   const containers = Object.values(host.containers);
   const repos = Object.keys(host.registry.tags).slice(0, 7);
+  const createdIds = last.flatMap((e) => (e.type === "created" ? [e.id] : []));
+  const pulledRef = last.find((e): e is Extract<DockerEvent, { type: "pulled" }> => e.type === "pulled")?.ref;
+  const pulledRow = pulledRef ? images.indexOf(pulledRef) : -1;
 
   return (
     <g className="arch">
@@ -127,14 +131,23 @@ export function ArchPanel({ host, last, command, t }: Props) {
           {t(text.none)}
         </text>
       )}
-      {containers.slice(0, 5).map((c, i) => (
-        <g key={c.id} transform={`translate(342 ${268 + i * 26})`}>
+      {containers.slice(0, 5).map((c, i) => {
+        // A container the daemon just created comes out of its image's row.
+        const from = createdIds.includes(c.id) ? images.indexOf(c.ref) : -1;
+        return (
+        <motion.g
+          key={c.id}
+          initial={from >= 0 && from < 5 ? { x: 342, y: 104 + from * 26, opacity: 0 } : false}
+          animate={{ x: 342, y: 268 + i * 26, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 170, damping: 22, delay: pulled ? 0.75 : 0.35 }}
+        >
           <rect width={260} height={22} rx={11} className="arch-box" style={{ fill: c.state === "running" ? "var(--mint)" : c.exitCode ? "var(--red-soft)" : "#e9e5ec" }} />
           <text x={12} y={15} className="arch-mono-small">
             {clip(`${c.name} · ${c.ref.replace(/:latest$/, "")} · ${c.state === "running" ? "Up" : `Exited (${c.exitCode})`}`, 36)}
           </text>
-        </g>
-      ))}
+        </motion.g>
+        );
+      })}
       <text x={472} y={424} textAnchor="middle" className="arch-tiny">
         {t(text.runtime)}
       </text>
@@ -159,6 +172,30 @@ export function ArchPanel({ host, last, command, t }: Props) {
           {clip(ref.replace(/:latest$/, ""), 19)}
         </text>
       ))}
+
+      {/* The request travels from the CLI to the daemon; a pull goes on to the registry and the image comes back. */}
+      {talked && (
+        <g key={stampOf(host)}>
+          <motion.circle r={6} className="arch-box" style={{ fill: "var(--sun)" }} initial={{ cx: 258, cy: 160, opacity: 0 }} animate={{ cx: [258, 318], cy: 160, opacity: [0, 1, 0] }} transition={{ duration: 0.35 }} />
+          {(pulled || failedPull) && (
+            <motion.circle
+              r={6}
+              className="arch-box"
+              initial={{ cx: 624, cy: 160, opacity: 0, fill: "#ffd66b" }}
+              animate={{ cx: [624, 676, 624], cy: 160, opacity: [0, 1, 0], fill: failedPull ? ["#ffd66b", "#f2615a", "#f2615a"] : "#ffd66b" }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            />
+          )}
+          {pulled && pulledRow >= 0 && pulledRow < 5 && (
+            <motion.g initial={{ x: 680, y: 150, opacity: 0 }} animate={{ x: [680, 624, 342], y: [150, 150, 104 + pulledRow * 26], opacity: [0, 1, 0] }} transition={{ duration: 0.6, delay: 0.55, ease: "easeInOut" }}>
+              <rect width={120} height={22} rx={11} className="arch-box" style={{ fill: "var(--sun)" }} />
+              <text x={10} y={15} className="arch-mono-small">
+                {clip(pulledRef!, 14)}
+              </text>
+            </motion.g>
+          )}
+        </g>
+      )}
     </g>
   );
 }

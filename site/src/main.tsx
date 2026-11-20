@@ -1,4 +1,5 @@
 import { StrictMode } from "react";
+import { MotionConfig } from "motion/react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/baloo-2/600.css";
 import "@fontsource/baloo-2/700.css";
@@ -23,8 +24,11 @@ migrateLegacyStorage();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <LangProvider>
-      <App />
-    </LangProvider>
+    {/* Scenes animate how things really move; people who ask for less motion get the end states. */}
+    <MotionConfig reducedMotion="user">
+      <LangProvider>
+        <App />
+      </LangProvider>
+    </MotionConfig>
   </StrictMode>,
 );

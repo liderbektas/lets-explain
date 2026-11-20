@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { rel } from "@lets-explain/core/iso/geometry";
 import { IsoBox, type Shades } from "@lets-explain/core/iso/shapes";
+import { stampOf } from "../../iso/HostStage";
 import type { Cluster, KubeEvent } from "./model";
 
 /**
@@ -29,6 +30,11 @@ const S = 15;
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 const XS = [170, 430, 690];
 const NODE_Y = 330;
+
+/** Where pod `k` of a node stands, relative to the node's centre. */
+const podSpot = (k: number) => rel(S, -1.7 + (k % 3) * 1.7, -1.0 + Math.floor(k / 3) * 1.9, 0);
+/** The control plane card, where new pods are decided before the scheduler places them. */
+const CONTROL: [number, number] = [150, 90];
 
 const text = (size: number, weight = 800, fill = "var(--ink)") => ({ fontFamily: "var(--font-display)", fontSize: size, fontWeight: weight, fill });
 
@@ -97,10 +103,11 @@ export function ClusterView({ cluster, labels, last }: { cluster: Cluster; label
             </g>
             <AnimatePresence initial={false}>
               {pods.slice(0, 6).map((p, k) => {
-                const [px, py] = rel(S, -1.7 + (k % 3) * 1.7, -1.0 + Math.floor(k / 3) * 1.9, 0);
+                const [px, py] = podSpot(k);
                 const lit = served?.pod === p.id || fresh.has(p.id);
+                // A new pod is made by the control plane and placed on a node by the scheduler; a pod never moves between nodes.
                 return (
-                  <motion.g key={p.id} initial={{ opacity: 0, x: px, y: py - 30 }} animate={{ opacity: 1, x: px, y: py }} exit={{ opacity: 0, scale: 0.4 }} transition={spring}>
+                  <motion.g key={p.id} initial={{ opacity: 0, x: CONTROL[0] - XS[i]!, y: CONTROL[1] - NODE_Y, scale: 0.4 }} animate={{ opacity: 1, x: px, y: py, scale: 1 }} exit={{ opacity: 0, scale: 0.4 }} transition={spring}>
                     <g style={{ filter: lit ? "drop-shadow(0 0 6px rgba(255,148,102,0.95))" : undefined }}>
                       <IsoBox s={S} at={[-0.5, -0.5, 0]} size={[1, 1, 1]} shades={VERSION_SHADES[p.version] ?? VERSION_SHADES.v1!} />
                     </g>
@@ -115,7 +122,21 @@ export function ClusterView({ cluster, labels, last }: { cluster: Cluster; label
           </g>
         );
       })}
+      {served && <ServedPacket key={stampOf(cluster)} cluster={cluster} pod={served.pod} />}
     </g>
+  );
+}
+
+/** The request goes to the Service's one address and on to the pod that answered it. */
+function ServedPacket({ cluster, pod }: { cluster: Cluster; pod: string }) {
+  const p = cluster.pods.find((x) => x.id === pod);
+  const i = p ? cluster.nodes.findIndex((n) => n.name === p.node) : -1;
+  if (!p || i < 0) return null;
+  const k = cluster.pods.filter((x) => x.node === p.node).findIndex((x) => x.id === pod);
+  if (k < 0 || k >= 6) return null;
+  const [px, py] = podSpot(k);
+  return (
+    <motion.circle r={7} initial={{ cx: 430, cy: 40, opacity: 0 }} animate={{ cx: [430, 430, XS[i]! + px], cy: [40, 78, NODE_Y + py - 12], opacity: [0, 1, 1, 0] }} transition={{ duration: 0.8, ease: "easeInOut" }} style={{ fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: 2 }} />
   );
 }
 

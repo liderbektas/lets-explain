@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import type { Container } from "../../engine/docker";
 
 /**
@@ -50,6 +51,19 @@ export function LifecycleStrip({ phase, names, arrows }: { phase: Phase; names: 
       <text x={(BOXES[1]!.x + BOXES[2]!.x) / 2} y={y + 40} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 800, fill: "var(--ink-3)" }}>
         {arrows.start}
       </text>
+      {/* The container's marker moves along the arrow to its new state, instead of the light jumping. */}
+      {phase !== "none" && (
+        <motion.rect
+          y={y - h / 2 - 6}
+          width={w + 12}
+          height={h + 12}
+          rx={(h + 12) / 2}
+          initial={false}
+          animate={{ x: BOXES.find((b) => b.id === phase)!.x - w / 2 - 6 }}
+          transition={{ type: "spring", stiffness: 120, damping: 18 }}
+          style={{ fill: "none", stroke: "var(--tangerine-deep)", strokeWidth: 3 }}
+        />
+      )}
       {BOXES.map((b) => {
         const lit = phase === b.id;
         return (

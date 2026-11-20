@@ -1,14 +1,18 @@
+import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { rel } from "@lets-explain/core/iso/geometry";
 import { IsoBox, Parcel, Person, TINTS, type Shades, type Tint } from "@lets-explain/core/iso/shapes";
 import { depth, queueAvailable, type Broker, type BrokerEvent, type ExchangeType, type Message } from "../engine/broker";
+import { choreograph, hKey, qKey, type Fate, type Ghost, type Places, type Pt, type Token } from "./choreography";
 import "./broker-stage.css";
 
 /**
  * A RabbitMQ broker in four columns: producers carrying parcels, exchanges as sorting
  * machines (one shape colour per exchange type), queues as short belts of waiting parcels,
  * and consumers holding the messages they have not acked yet. Bindings are roads labelled
- * with their key; the message just published flies along its route.
+ * with their key. Every message moves the way RabbitMQ moves it (see choreography.ts): it
+ * travels to its exchange, is copied there per matching queue, waits in line, goes to a
+ * consumer and back on a requeue, or out through the dead letter exchange.
  */
 
 export const BROKER_STAGE = { width: 860, height: 470 };
@@ -46,8 +50,12 @@ interface Props {
   broker: Broker;
   layout: BrokerLayout;
   labels: BrokerLabels;
-  /** Events of the last action, to animate the message that just moved. */
+  /** Events of the last action, to animate what moved. */
   last: BrokerEvent[];
+  /** The state before the last action: where each message came from. */
+  prev?: Broker;
+  /** The publisher uses confirms: draw the broker's ack / nack going back to it. */
+  confirms?: boolean;
   /** Colour for a message, e.g. by routing key. Defaults to mint. */
   kindOf?: (m: Message) => "order" | "cancel" | "payment" | "neutral";
   box?: { x: number; y: number; w: number; h: number };
@@ -64,8 +72,6 @@ const SLOTS = 6;
 const SLOT_W = 33;
 const TRAY_W = SLOTS * SLOT_W + 12;
 const S = 19;
-const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
-
 function column(n: number, top: number, bottom: number): number[] {
   if (n <= 0) return [];
   if (n === 1) return [(top + bottom) / 2];
@@ -73,7 +79,8 @@ function column(n: number, top: number, bottom: number): number[] {
   return Array.from({ length: n }, (_, i) => top + i * gap);
 }
 
-export function BrokerStage({ broker, layout, labels, last, kindOf = () => "order", box = { x: 0, y: 0, w: 860, h: 470 } }: Props) {
+/** Where everything stands for one broker state; shared by the drawing and the choreography. */
+function geometry(broker: Broker, layout: BrokerLayout, box: { x: number; y: number; w: number; h: number }) {
   const exNames = (layout.exchanges ?? Object.keys(broker.exchanges).filter((n) => n && !n.startsWith("amq."))).filter((n) => broker.exchanges[n]);
   const qNames = (layout.queues ?? Object.keys(broker.queues)).filter((n) => broker.queues[n]);
   // Consumers in name order, so a worker that reconnects keeps its place.
@@ -87,8 +94,8 @@ export function BrokerStage({ broker, layout, labels, last, kindOf = () => "orde
   const bottom = box.y + box.h - 70;
   // A producer sending straight to a queue (default exchange) stands level with that queue,
   // so its road runs flat and never crosses an exchange box.
-  const yQ0 = column((layout.queues ?? Object.keys(broker.queues)).filter((n) => broker.queues[n]).length, top, bottom);
-  const qIndex = (n: string) => (layout.queues ?? Object.keys(broker.queues)).filter((x) => broker.queues[x]).indexOf(n);
+  const yQ0 = column(qNames.length, top, bottom);
+  const qIndex = (n: string) => qNames.indexOf(n);
   const others = layout.producers.filter((p) => !(p.exchange === "" && p.queue && qIndex(p.queue) >= 0));
   const yOthers = column(others.length, top, bottom);
   const yP = layout.producers.map((p) => (p.exchange === "" && p.queue && qIndex(p.queue) >= 0 ? yQ0[qIndex(p.queue)]! : yOthers[others.indexOf(p)]!));
@@ -97,6 +104,49 @@ export function BrokerStage({ broker, layout, labels, last, kindOf = () => "orde
   const yC = column(cTags.length, top, bottom);
   const exAt = (n: string) => [xE, yE[exNames.indexOf(n)]!] as const;
   const qAt = (n: string) => [xQ, yQ[qNames.indexOf(n)]!] as const;
+  /** A parcel's offset inside its queue tray: the head is on the right, next to the consumers. */
+  const slotX = (i: number) => TRAY_W / 2 - 6 - SLOT_W / 2 - Math.min(i, SLOTS - 1) * SLOT_W;
+  /** A parcel's offset in a consumer's hand: two columns, two rows. */
+  const handAt = (k: number) => [-52 - (Math.min(k, 3) % 2) * 18, -10 - Math.floor(Math.min(k, 3) / 2) * 17] as const;
+
+  const places: Places = {
+    queues: qNames,
+    consumers: cTags,
+    producer: (exchange, routingKey) => {
+      const i = layout.producers.findIndex((x) => x.exchange === exchange && (x.exchange !== "" || x.queue === routingKey));
+      return i >= 0 ? [xP + 26, yP[i]! - 10] : null;
+    },
+    exchange: (name) => (exNames.includes(name) ? [exAt(name)[0], exAt(name)[1] - 14] : null),
+    slot: (queue, i) => (qNames.includes(queue) ? [qAt(queue)[0] + slotX(i), qAt(queue)[1] + SLOT_Y] : null),
+    hand: (tag, k) => {
+      const i = cTags.indexOf(tag);
+      return i >= 0 ? [xC + handAt(k)[0], yC[i]! + 16 + handAt(k)[1]] : null;
+    },
+    tail: (queue) => (qNames.includes(queue) ? [qAt(queue)[0] - TRAY_W / 2 + 10, qAt(queue)[1] + SLOT_Y] : null),
+    head: (queue) => (qNames.includes(queue) ? [qAt(queue)[0] + TRAY_W / 2 + 8, qAt(queue)[1] + SLOT_Y] : null),
+  };
+  return { exNames, qNames, cTags, xP, yP, xE, xQ, xC, yC, exAt, qAt, slotX, handAt, places };
+}
+
+const SLOT_Y = 10;
+
+/** Gives each events array a stable number, so the moving parcels replay once per action. */
+const actionIds = new WeakMap<object, number>();
+let nextActionId = 1;
+function actionId(last: BrokerEvent[]): number {
+  let id = actionIds.get(last);
+  if (id === undefined) {
+    id = nextActionId++;
+    actionIds.set(last, id);
+  }
+  return id;
+}
+
+export function BrokerStage({ broker, layout, labels, last, prev, confirms, kindOf = () => "order", box = { x: 0, y: 0, w: 860, h: 470 } }: Props) {
+  const g = geometry(broker, layout, box);
+  const { exNames, qNames, cTags, xP, yP, xE, xQ, xC, yC, exAt, qAt } = g;
+  const plan = choreograph({ prev: prev ?? broker, cur: broker, last: prev ? last : [], before: geometry(prev ?? broker, layout, box).places, here: g.places, confirms });
+  const fateOf = (key: string): Fate | undefined => plan.fates.get(key);
 
   // Roads: producer → exchange (or straight to a queue via the default exchange), exchange → queue.
   const roads: { key: string; from: readonly [number, number]; to: readonly [number, number]; label?: string; dashed?: boolean }[] = [];
@@ -132,22 +182,6 @@ export function BrokerStage({ broker, layout, labels, last, kindOf = () => "orde
     if (!qNames.includes(c.queue)) return;
     roads.push({ key: `c-${t}`, from: [xQ + TRAY_W / 2 + 8, qAt(c.queue)[1]], to: [xC - 34, yC[i]!], dashed: true });
   });
-
-  // The message that just moved: from its producer, through the exchange, into each queue.
-  const flights: { id: string; points: [number, number][]; kind: string }[] = [];
-  for (const e of last) {
-    if (e.type !== "routed") continue;
-    const p = layout.producers.find((x) => x.exchange === e.exchange && (x.exchange !== "" || x.queue === e.routingKey));
-    const start: [number, number] | null = p ? [xP + 26, yP[layout.producers.indexOf(p)]! - 10] : exNames.includes(e.exchange) ? [exAt(e.exchange)[0], exAt(e.exchange)[1] - 10] : null;
-    if (!start) continue;
-    const msg = findMessage(broker, e.id);
-    for (const qn of e.queues) {
-      if (!qNames.includes(qn)) continue;
-      const via = e.via ?? (e.exchange === "" ? null : e.exchange);
-      const mid: [number, number][] = via && exNames.includes(via) ? [[exAt(via)[0], exAt(via)[1] - 14]] : [];
-      flights.push({ id: `${e.id}-${qn}`, points: [start, ...mid, [qAt(qn)[0] - TRAY_W / 2 + 10, qAt(qn)[1] + 6]], kind: msg ? kindOf(msg) : "order" });
-    }
-  }
 
   return (
     <g className="broker">
@@ -190,21 +224,17 @@ export function BrokerStage({ broker, layout, labels, last, kindOf = () => "orde
         if (q.args.maxLength !== undefined) chips.push(`max ${q.args.maxLength}`);
         if (q.args.dlx !== undefined) chips.push(`DLX → ${q.args.dlx || "default"}`);
         if (!q.durable) chips.push("transient");
+        const shift = plan.shift.get(name) ?? 0;
         return (
           <g key={name} className={up ? "" : "is-down"}>
             <g transform={`translate(${x} ${y})`}>
               <QueueTrough />
-              <AnimatePresence initial={false}>
-                {shown.map((m, i) => {
-                  // The head of the queue is on the right, next to the consumers.
-                  const px = TRAY_W / 2 - 6 - SLOT_W / 2 - i * SLOT_W;
-                  const py = 10;
-                  return (
-                    <motion.g key={m.id} initial={{ opacity: 0, x: px - 20, y: py }} animate={{ opacity: 1, x: px, y: py }} exit={{ opacity: 0, x: px + 30 }} transition={spring}>
-                      <Parcel s={17} size={0.8} kind={kindOf(m)} label={m.body.slice(0, 3)} state={m.redelivered ? "dup" : "normal"} />
-                    </motion.g>
-                  );
-                })}
+              <AnimatePresence initial={false} custom={fateOf}>
+                {shown.map((m, i) => (
+                  <Held key={m.id} place={qKey(name, m.id)} x={g.slotX(i)} y={SLOT_Y} arrive={plan.arrive.get(qKey(name, m.id))} shift={shift}>
+                    <Parcel s={17} size={0.8} kind={kindOf(m)} label={m.body.slice(0, 3)} state={m.redelivered ? "dup" : "normal"} />
+                  </Held>
+                ))}
               </AnimatePresence>
               {items.length > SLOTS && (
                 <text x={-TRAY_W / 2 - 8} y={6} textAnchor="end" className="q-more">
@@ -234,22 +264,15 @@ export function BrokerStage({ broker, layout, labels, last, kindOf = () => "orde
         return (
           <g key={t} transform={`translate(${xC} ${y + 16})`}>
             <Person tint={tint} scale={1.2} state={busy ? "busy" : "idle"} />
-            <g transform="translate(-52 -20)">
-              <AnimatePresence initial={false}>
-                {/* Two columns, two rows: a full hand stays beside the head, not on it. */}
-                {c.unacked.slice(0, 4).map((m, k) => (
-                  <motion.g
-                    key={m.id}
-                    initial={{ opacity: 0, x: -20 - (k % 2) * 18, y: 10 - Math.floor(k / 2) * 17 }}
-                    animate={{ opacity: 1, x: -(k % 2) * 18, y: 10 - Math.floor(k / 2) * 17 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={spring}
-                  >
-                    <Parcel s={14} size={0.85} kind={kindOf(m)} label={m.body.slice(0, 2)} />
-                  </motion.g>
-                ))}
-              </AnimatePresence>
-            </g>
+            <AnimatePresence initial={false} custom={fateOf}>
+              {/* Two columns, two rows: a full hand stays beside the head, not on it. */}
+              {/* Keyed per delivery: a message requeued and handed straight back leaves and lands again. */}
+              {c.unacked.slice(0, 4).map((m, k) => (
+                <Held key={`${m.id}:${broker.deliveries.filter((d) => d.tag === t && d.id === m.id).length}`} place={hKey(t, m.id)} x={g.handAt(k)[0]} y={g.handAt(k)[1]} arrive={plan.arrive.get(hKey(t, m.id))} shift={0}>
+                  <Parcel s={14} size={0.85} kind={kindOf(m)} label={m.body.slice(0, 2)} />
+                </Held>
+              ))}
+            </AnimatePresence>
             <Tag y={24} text={layout.consumerNames?.[t] ?? t} fill={tint.soft} />
             <text y={50} textAnchor="middle" className="c-meta">
               {c.autoAck ? "auto-ack" : `${labels.prefetch} ${c.prefetch === 0 ? labels.noLimit : c.prefetch} · ${c.unacked.length}`}
@@ -261,30 +284,106 @@ export function BrokerStage({ broker, layout, labels, last, kindOf = () => "orde
       {/* Between the exchange and queue columns, where no producer or consumer stands. */}
       {broker.lost.length > 0 && <Tag x={(xE + xQ) / 2} y={box.y + box.h - 18} text={`${labels.lost}: ${broker.lost.length}`} fill="var(--red-soft)" small />}
 
-      {flights.map((f) => (
-        <motion.g
-          key={f.id}
-          initial={{ x: f.points[0]![0], y: f.points[0]![1], opacity: 1 }}
-          animate={{ x: f.points.map((p) => p[0]), y: f.points.map((p) => p[1]), opacity: [1, 1, 0] }}
-          transition={{ duration: 0.9, ease: "easeInOut" }}
-        >
-          <Parcel s={14} kind={f.kind as "order"} />
-        </motion.g>
-      ))}
+      <g key={actionId(last)}>
+        {plan.ghosts.map((gh) => (
+          <Flight key={gh.key} ghost={gh} kind={kindOf(gh.msg)} />
+        ))}
+        {plan.tokens.map((tk) => (
+          <Answer key={tk.key} token={tk} />
+        ))}
+      </g>
     </g>
   );
 }
 
-function findMessage(b: Broker, id: string): Message | undefined {
-  for (const q of Object.values(b.queues)) {
-    const m = q.ready.find((x) => x.id === id) ?? q.log.find((x) => x.id === id);
-    if (m) return m;
-  }
-  for (const c of Object.values(b.consumers)) {
-    const m = c.unacked.find((x) => x.id === id);
-    if (m) return m;
-  }
-  return undefined;
+const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
+
+/**
+ * A parcel sitting in a queue slot or a consumer's hand. It shows up when the parcel that
+ * carried it lands, slides when the line moves up, and leaves the way its fate says.
+ */
+function Held({ place, x, y, arrive, shift, children }: { place: string; x: number; y: number; arrive?: number; shift: number; children: ReactNode }) {
+  return (
+    <motion.g
+      initial={{ scale: 0, x, y }}
+      animate={{ scale: 1, x, y }}
+      exit="gone"
+      variants={{
+        gone: (fate: (key: string) => Fate | undefined) => {
+          const f = fate(place);
+          if (f?.how === "leave") return { scale: 0, transition: { duration: 0.01, delay: f.at } };
+          if (f?.how === "drop") return { scale: 0, y: y + 22, transition: { duration: 0.45, delay: f.at } };
+          if (f?.how === "done") return { scale: 0, transition: { duration: 0.35, delay: f.at } };
+          return { scale: 0, transition: { duration: 0.3 } };
+        },
+      }}
+      // Scale, not opacity, so it changes in the same frame as the ghost that hands it over.
+      transition={{ x: { ...spring, delay: shift }, y: spring, scale: arrive === undefined ? { duration: 0.25 } : { duration: 0.01, delay: arrive } }}
+    >
+      {children}
+    </motion.g>
+  );
+}
+
+/** A moving parcel: invisible until it sets off, then along its points, then lands or falls. */
+function Flight({ ghost, kind }: { ghost: Ghost; kind: ReturnType<NonNullable<Props["kindOf"]>> }) {
+  const { pts, ts, end } = ghost;
+  const t0 = ts[0]!;
+  const tEnd = ts[ts.length - 1]!;
+  const fall = end === "drop" ? 0.45 : 0;
+  const total = tEnd + fall + 0.02;
+  const at = (t: number) => t / total;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  const times: number[] = [];
+  const push = (p: Pt, t: number) => {
+    xs.push(p[0]);
+    ys.push(p[1]);
+    times.push(at(t));
+  };
+  if (t0 > 0) push(pts[0]!, 0);
+  pts.forEach((p, i) => push(p, ts[i]!));
+  if (end === "drop") push([pts.at(-1)![0], pts.at(-1)![1] + 26], tEnd + fall);
+  push(xs.length ? [xs.at(-1)!, ys.at(-1)!] : pts[0]!, total);
+  // Hidden until it sets off, visible while it travels, gone the instant it lands (or as it falls).
+  // Shown through scale, not opacity: it then runs with x and y in one transform.
+  const shown = appear(at(t0), at(tEnd));
+  return (
+    <motion.g
+      initial={{ x: pts[0]![0], y: pts[0]![1], scale: 0 }}
+      animate={{ x: xs, y: ys, scale: shown.values }}
+      transition={{ x: { duration: total, times, ease: "easeInOut" }, y: { duration: total, times, ease: "easeInOut" }, scale: { duration: total, times: shown.times, ease: "linear" } }}
+    >
+      <Parcel s={15} size={0.8} kind={kind} label={ghost.msg.body.slice(0, 3)} state={ghost.msg.redelivered ? "dup" : "normal"} />
+    </motion.g>
+  );
+}
+
+/** The broker's ack or nack travelling back to the publisher. */
+function Answer({ token }: { token: Token }) {
+  const total = token.t0 + LEG_BACK + 0.25;
+  const a = Math.max(token.t0 / total, 0.002);
+  const b = (token.t0 + LEG_BACK) / total;
+  const shown = appear(a, b);
+  const [fx, fy] = [token.from[0], token.from[1] - 22];
+  const [tx, ty] = [token.to[0], token.to[1] - 22];
+  return (
+    <motion.g
+      initial={{ x: fx, y: fy, scale: 0 }}
+      animate={{ x: [fx, fx, tx, tx], y: [fy, fy, ty, ty], scale: shown.values }}
+      transition={{ x: { duration: total, times: [0, a, b, 1], ease: "easeInOut" }, y: { duration: total, times: [0, a, b, 1], ease: "easeInOut" }, scale: { duration: total, times: shown.times, ease: "linear" } }}
+    >
+      <Tag y={0} text={token.ok ? "ack" : "nack"} fill={token.ok ? "var(--mint)" : "var(--red-soft)"} small />
+    </motion.g>
+  );
+}
+
+const LEG_BACK = 0.45;
+
+/** Visibility keyframes: 0 until `from`, 1 until `to`, then 0 by the end (times are fractions). */
+function appear(from: number, to: number) {
+  if (from <= 0.001) return { values: [0, 1, 1, 0], times: [0, 0.001, Math.max(to, 0.002), 1] };
+  return { values: [0, 0, 1, 1, 0], times: [0, from - 0.001, from, Math.max(to, from + 0.001), 1] };
 }
 
 function Road({ from, to, label, dashed }: { from: readonly [number, number]; to: readonly [number, number]; label?: string; dashed?: boolean }) {

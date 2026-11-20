@@ -132,7 +132,7 @@ export const scene = makeGitScene({
   slug: SLUG,
   start: START,
   steps,
-  label: l("Commit grafiği: rebase commit'leri yeni bir tabanın üstüne taşır", "The commit graph: rebase moves commits onto a new base"),
+  label: l("Commit grafiği: rebase commit'lerin kopyalarını yeni bir tabanın üstüne dizer, eskileri yerinde kalır", "The commit graph: rebase lays copies of the commits on a new base; the originals stay where they were"),
   view: (repo, info) =>
     repo.op ? (
       <g>

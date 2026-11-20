@@ -52,8 +52,11 @@ interface Props {
   partitions: Partition[];
   readers: StageReader[];
   producer?: { name: string; state: PersonState; pulse?: number } | null;
-  /** Highlights keyed by `${partition}:${offset}`. */
-  marks?: Map<string, { state: ParcelState; tint?: Tint }>;
+  /**
+   * Highlights keyed by `${partition}:${offset}`. `to` names the reader that fetched the record in
+   * this action: a copy travels to that reader, while the record itself stays on the log.
+   */
+  marks?: Map<string, { state: ParcelState; tint?: Tint; to?: string }>;
   look?: (record: KafkaRecord, partition: Partition) => ParcelLook;
   labels: { partition: (index: number) => string; next: string };
   /** Partitions to draw empty and faded (e.g. ones about to be added). */
@@ -229,6 +232,28 @@ export function TopicStage({ partitions, readers, producer, marks, look, labels,
           return out;
         }),
       )}
+
+      {/* Reading copies a record to the reader; the original stays where it is. */}
+      {[...(marks ?? [])].map(([key, mark]) => {
+        const target = mark.to === undefined ? undefined : placed.find((p) => p.reader.id === mark.to && p.reader.state !== "crashed");
+        const [pi, offset] = key.split(":").map(Number) as [number, number];
+        const p = partitions[pi];
+        const record = p?.records.find((r) => r.offset === offset && r.offset >= firstOf(p));
+        if (!target || !p || !record || (mark.state !== "read" && mark.state !== "dup")) return null;
+        const [rx, ry] = at(xOf(p, offset), laneY(pi));
+        const [tx, ty] = at(target.x, target.y);
+        const l = look?.(record, p) ?? {};
+        return (
+          <motion.g
+            key={`copy-${key}-${mark.to}-${target.reader.pulse ?? 0}`}
+            initial={{ x: rx, y: ry - s * 0.3, opacity: 0, scale: 0.6 }}
+            animate={{ x: tx, y: ty - 40, opacity: [0, 1, 1, 0], scale: 0.6 }}
+            transition={{ duration: 0.75, ease: "easeInOut", opacity: { duration: 0.75, times: [0, 0.15, 0.8, 1] } }}
+          >
+            <StageParcel s={s} shades={l.shades} label="" state="normal" />
+          </motion.g>
+        );
+      })}
 
       {producer && (
         <g transform={`translate(${producerAt[0]} ${producerAt[1]})`}>

@@ -22,6 +22,13 @@ export interface Commit {
   author: string;
   time: number;
   files: Files;
+  /**
+   * Drawing only, not part of the commit object or its id: the branch HEAD was building when
+   * the commit was made, so the graph can keep every commit where it was born.
+   */
+  branch?: string | null;
+  /** Drawing only: the commits this one was copied from (rebase, cherry-pick, amend, squash). */
+  from?: string[];
 }
 
 export type Head = { kind: "branch"; name: string } | { kind: "detached"; id: string };
@@ -584,7 +591,7 @@ export function apply(prev: Repo, action: GitAction): StepResult {
       }
       const message = action.type === "cherryPick" ? c.message : `Revert "${c.message}"\n\nThis reverts commit ${c.id}.`;
       if (sameFiles(result.files, s.commits[head]!.files)) return fail("no-op", "The change is already there: nothing to commit");
-      const id = makeCommit(s, result.files, [head], message);
+      const id = makeCommit(s, result.files, [head], message, action.type === "cherryPick" ? [target] : undefined);
       s.index = { ...result.files };
       s.work = { ...result.files, ...untrackedOf(prev) };
       advance(s, id, action.type === "cherryPick" ? `cherry-pick: ${c.message}` : `revert: ${message.split("\n")[0]}`);
@@ -720,7 +727,7 @@ export function apply(prev: Repo, action: GitAction): StepResult {
       const files: Files = { ...(parent ? s.remote.commits[parent]!.files : {}) };
       if (action.content === null) delete files[action.path];
       else files[action.path] = action.content;
-      const c = buildCommit(files, parent ? [parent] : [], action.message, BORA, s.time);
+      const c: Commit = { ...buildCommit(files, parent ? [parent] : [], action.message, BORA, s.time), branch: action.branch };
       s.time += 60;
       s.remote.commits[c.id] = c;
       s.remote.branches[action.branch] = c.id;
@@ -805,8 +812,9 @@ export function buildCommit(files: Files, parents: string[], message: string, au
   return { id, tree, parents, message, author, time, files: { ...files } };
 }
 
-function makeCommit(s: Repo, files: Files, parents: string[], message: string): string {
-  const c = buildCommit(files, parents, message, s.author, s.time);
+function makeCommit(s: Repo, files: Files, parents: string[], message: string, from?: string[]): string {
+  const c: Commit = { ...buildCommit(files, parents, message, s.author, s.time), branch: s.op?.kind === "rebase" ? s.op.branch : currentBranch(s) };
+  if (from) c.from = from;
   s.time += 60;
   s.commits[c.id] = c;
   return c.id;
@@ -925,7 +933,7 @@ function commit(prev: Repo, s: Repo, a: Extract<GitAction, { type: "commit" }>, 
     const old = s.commits[head]!;
     const message = a.message ?? old.message;
     if (sameFiles(s.index, old.files) && message === old.message) return fail("nothing-to-commit", "Nothing changed: the amend would be the same commit");
-    const id = makeCommit(s, s.index, old.parents, message);
+    const id = makeCommit(s, s.index, old.parents, message, [old.id]);
     advance(s, id, `commit (amend): ${message.split("\n")[0]}`);
     events.push({ type: "committed", id, branch: currentBranch(s), message, amend: true, merge: false, files: Object.keys(s.index).length });
     return { state: s, events };
@@ -1037,7 +1045,7 @@ function replayRest(prev: Repo, s: Repo, events: GitEvent[], replayed: number, s
       skipped += 1;
       continue;
     }
-    const nid = makeCommit(s, r.files, [cur], c.message);
+    const nid = makeCommit(s, r.files, [cur], c.message, [id]);
     s.head = { kind: "detached", id: nid };
     s.index = { ...r.files };
     s.work = { ...r.files, ...untrackedOf(s) };
@@ -1064,7 +1072,7 @@ function continueOp(prev: Repo, s: Repo, events: GitEvent[], fail: Fail): StepRe
     const c = s.commits[op.applying]!;
     op.todo.shift();
     if (!sameFiles(s.index, s.commits[cur]!.files)) {
-      const nid = makeCommit(s, s.index, [cur], c.message);
+      const nid = makeCommit(s, s.index, [cur], c.message, [c.id]);
       s.head = { kind: "detached", id: nid };
       s.reflog.push({ from: cur, to: nid, message: `rebase (continue): ${c.message.split("\n")[0]}` });
     }
@@ -1072,7 +1080,7 @@ function continueOp(prev: Repo, s: Repo, events: GitEvent[], fail: Fail): StepRe
   }
   const c = s.commits[op.target]!;
   const message = op.kind === "cherry-pick" ? c.message : `Revert "${c.message}"\n\nThis reverts commit ${c.id}.`;
-  const id = makeCommit(s, s.index, [cur], message);
+  const id = makeCommit(s, s.index, [cur], message, op.kind === "cherry-pick" ? [op.target] : undefined);
   advance(s, id, `${op.kind}: ${message.split("\n")[0]}`);
   events.push(op.kind === "cherry-pick" ? { type: "picked", from: op.target, id } : { type: "reverted", target: op.target, id });
   s.op = null;
@@ -1098,9 +1106,10 @@ function rebaseInteractive(prev: Repo, s: Repo, a: Extract<GitAction, { type: "r
       const prevCommit = s.commits[cur]!;
       if (cur === baseId) return fail("no-op", "Cannot squash without a previous commit");
       const message = item.action === "squash" ? item.message ?? `${prevCommit.message}\n\n${c.message}` : prevCommit.message;
-      cur = makeCommit(s, r.files, prevCommit.parents, message);
+      // The folded commit is one copy of everything folded into it.
+      cur = makeCommit(s, r.files, prevCommit.parents, message, [...(prevCommit.from ?? [prevCommit.id]), c.id]);
     } else {
-      cur = makeCommit(s, r.files, [cur], item.action === "reword" ? (item.message ?? c.message) : c.message);
+      cur = makeCommit(s, r.files, [cur], item.action === "reword" ? (item.message ?? c.message) : c.message, [c.id]);
       replayed += 1;
     }
   }

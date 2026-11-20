@@ -142,8 +142,8 @@ export const collaboration: Lesson = {
       title: l("git pull --rebase: düz bir çizgi", "git pull --rebase: a straight line"),
       body: [
         l(
-          "Sen \"app.js: renkler\" commit'ini attın, Bora yine senden önce push etti. `git pull --rebase` senin commit'ini Bora'nınkinin **üstüne** taşıdı; merge commit yok.",
-          "You committed \"app.js: renkler\" and Bora pushed first again. `git pull --rebase` moved your commit **on top of** his; no merge commit.",
+          "Sen \"app.js: renkler\" commit'ini attın, Bora yine senden önce push etti. `git pull --rebase` senin commit'ini Bora'nınkinin **üstünde** yeniden oynattı: yeni kimlikli bir kopya oldu, merge commit yok.",
+          "You committed \"app.js: renkler\" and Bora pushed first again. `git pull --rebase` replayed your commit **on top of** his: it became a copy with a new id, and there is no merge commit.",
         ),
         l(
           "Sonra `git push` doğrudan geçti. Sağdaki geçmiş tek bir çizgi: önce Bora, sonra sen.",
@@ -161,7 +161,7 @@ export const collaboration: Lesson = {
       ],
       practice: {
         commands: [
-          { cmd: "git pull --rebase", note: l("Yerel commit'lerini uzaktakilerin üstüne taşır.", "Moves your local commits on top of the remote ones.") },
+          { cmd: "git pull --rebase", note: l("Yerel commit'lerini uzaktakilerin üstünde yeniden oynatır.", "Replays your local commits on top of the remote ones.") },
           { cmd: "git config --global pull.rebase true", note: l("Bundan sonra her pull rebase yapsın.", "Make every pull rebase from now on.") },
         ],
       },
@@ -355,7 +355,7 @@ export const collaboration: Lesson = {
     {
       question: l("`git pull` ile `git pull --rebase` arasındaki fark?", "What is the difference between `git pull` and `git pull --rebase`?"),
       options: [
-        l("pull merge commit oluşturabilir; --rebase senin commit'lerini onlarınkinin üstüne taşır", "pull may create a merge commit; --rebase moves your commits on top of theirs"),
+        l("pull merge commit oluşturabilir; --rebase senin commit'lerini onlarınkinin üstünde yeniden oynatır", "pull may create a merge commit; --rebase replays your commits on top of theirs"),
         l("--rebase uzaktakini siler", "--rebase deletes the remote's commits"),
         l("Fark yok", "No difference"),
         l("pull sadece indirir, --rebase gönderir", "pull only downloads, --rebase sends"),

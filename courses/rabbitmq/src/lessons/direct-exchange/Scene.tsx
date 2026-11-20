@@ -83,6 +83,7 @@ export const scene = makeBrokerScene({
     <BrokerStage
       broker={mergeBindings(b)}
       last={info.last}
+      prev={info.prev}
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={{

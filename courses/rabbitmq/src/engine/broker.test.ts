@@ -83,6 +83,12 @@ describe("routing", () => {
     expect(depth(r.s, "catch-all").ready).toBe(1);
     expect(of(r.events, "unroutable").at(-1)).toMatchObject({ returned: true });
   });
+
+  it("publish events carry the message as published, even when it never reaches a queue", () => {
+    const r = ok([q("jobs"), pub("", "jobs", "a"), { type: "declareExchange", name: "plain", kind: "direct" }, pub("plain", "nobody", "b")]);
+    expect(of(r.events, "routed")[0]!.message).toMatchObject({ id: "m1", body: "a", routingKey: "jobs" });
+    expect(of(r.events, "unroutable")[0]!.message).toMatchObject({ id: "m2", body: "b", exchange: "plain" });
+  });
 });
 
 describe("consumers and acks", () => {

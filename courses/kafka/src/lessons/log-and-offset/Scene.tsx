@@ -125,11 +125,11 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
   const pulse = sandbox ? extra.length : cursor;
 
   // Highlights for this moment: parcels just read (or read again).
-  const marks = new Map<number, { state: ParcelState; tint?: Tint }>();
+  const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
   for (const e of lastEvents) {
     if (e.type !== "delivered") continue;
     const tint = consumers.find((c) => c.group === e.group)?.tint;
-    marks.set(e.offset, { state: e.duplicate ? "dup" : "read", tint });
+    marks.set(e.offset, { state: e.duplicate ? "dup" : "read", tint, to: e.group });
   }
 
   const readers: Reader[] = consumers.flatMap((c) => {

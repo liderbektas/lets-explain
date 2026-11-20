@@ -86,6 +86,7 @@ export const scene = makeBrokerScene({
         <BrokerStage
           broker={b}
           last={info.last}
+          prev={info.prev}
           labels={labels(info.t)}
           box={{ x: 0, y: 0, w: 860, h: 300 }}
           kindOf={(m) => (m.routingKey === "cache" ? "neutral" : "order")}
@@ -98,7 +99,7 @@ export const scene = makeBrokerScene({
             consumerNames: { "cache-1": info.t(l("Önbellek işçisi", "Cache worker")), "orders-1": info.t(l("Sipariş işçisi", "Order worker")) },
           }}
         />
-        <NodesPanel broker={b} queues={["cache", quorum]} labels={nodeLabels(info.t)} box={{ x: 24, y: 318, w: 812, h: 132 }} />
+        <NodesPanel broker={b} last={info.last} queues={["cache", quorum]} labels={nodeLabels(info.t)} box={{ x: 24, y: 318, w: 812, h: 132 }} />
       </g>
     );
   },

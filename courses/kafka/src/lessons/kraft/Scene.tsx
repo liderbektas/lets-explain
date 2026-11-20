@@ -44,7 +44,11 @@ const roles = (t: (x: L) => string) => ({
 const kindOf = (r: MetaRecord) =>
   r.kind === "register" || r.kind === "unfence" ? "order" : r.kind === "fence" ? "cancel" : r.kind === "leader" ? "payment" : "neutral";
 
-function toStage(s: KState, t: (x: L) => string): { brokers: StageBroker[]; partitions: StagePartition[] } {
+/**
+ * `before` is the state ahead of the latest action: records a follower controller gained since
+ * then were copied from the active controller's log, so they travel from there.
+ */
+function toStage(s: KState, t: (x: L) => string, before?: KState): { brokers: StageBroker[]; partitions: StagePartition[] } {
   const brokers: StageBroker[] = s.controllers.map((c) => ({
     id: c.id,
     name: `Controller ${c.id}`,
@@ -61,7 +65,11 @@ function toStage(s: KState, t: (x: L) => string): { brokers: StageBroker[]; part
         broker: c.id,
         end: c.log.length,
         role: s.active === null ? "offline" : s.active === c.id ? "leader" : c.alive ? "follower" : "behind",
-        records: c.log.map((r, offset) => ({ offset, kind: kindOf(r) })),
+        records: c.log.map((r, offset) => {
+          const had = before?.controllers.find((x) => x.id === c.id)?.log.length ?? c.log.length;
+          const copied = before !== undefined && offset >= had && s.active !== null && s.active !== c.id;
+          return { offset, kind: kindOf(r), arrived: copied ? ("copy" as const) : undefined };
+        }),
       })),
     },
   ];
@@ -157,7 +165,7 @@ export function KraftScene({ step, paused, replayKey, controls: frameControls }:
   const { t, lang } = useLang();
   const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
   const s = view.state;
-  const stage = toStage(s, t);
+  const stage = toStage(s, t, view.before);
   const up = s.controllers.filter((c) => c.alive).length;
   const stuck = stranded(s);
 

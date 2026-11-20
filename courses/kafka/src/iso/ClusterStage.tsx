@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import "./cluster.css";
 import { rel } from "@lets-explain/core/iso/geometry";
 import { NameTag } from "./PartitionStage";
@@ -15,6 +15,11 @@ export interface StageRecord {
   offset: number;
   kind?: "order" | "cancel" | "payment" | "neutral";
   state?: ParcelState;
+  /**
+   * Set when the record reached this copy in the latest action: written by the producer onto
+   * the leader, or copied from the leader by a follower. The parcel then travels that way.
+   */
+  arrived?: "producer" | "copy";
 }
 
 export interface StageReplica {
@@ -71,6 +76,8 @@ export const CLUSTER_STAGE = { width: 860, height: 470 };
 const SLOT = 0.95;
 const ROW = 1.5;
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
+/** Followers fetch from the leader after it has the record, so copies leave a beat later. */
+const COPY_DELAY = 0.4;
 
 export interface ClusterLayout {
   s: number;
@@ -133,6 +140,25 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
 
   const target = producer?.target ? layout.ghost(producer.target) : null;
 
+  // Belts that appear after the first draw (a reassigned replica) still animate their copies in.
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
+
+  /** Where a parcel that just arrived on a belt starts, relative to that belt; null to drop in. */
+  const arrivalFrom = (p: StagePartition, r: StageRecord, start: [number, number]): [number, number] | null => {
+    if (r.arrived === "producer") return producer ? [producerAt[0] - start[0], producerAt[1] - 40 - start[1]] : null;
+    if (r.arrived !== "copy") return null;
+    const leader = p.replicas.find((x) => x.role === "leader");
+    // The leader's own copy must already be there: a copy never comes from a record that is itself arriving.
+    const source = leader?.records.find((x) => x.offset === r.offset);
+    if (!leader || !source || source.arrived) return null;
+    const at = slotAt(leader.broker, p.id, r.offset - firstShown(p));
+    return at ? [at[0] - start[0], at[1] - start[1]] : null;
+  };
+  const copying = (p: StagePartition) => p.replicas.some((x) => x.records.some((r) => r.arrived === "copy"));
+
   return (
     <g>
       {brokers.map((b, i) => {
@@ -164,18 +190,20 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
                       <GhostSlot s={s} size={0.64} />
                     </g>
                   )}
-                  <AnimatePresence initial={false}>
+                  <AnimatePresence initial={mounted.current && replica.records.some((r) => r.arrived)}>
                     {replica.records
                       .filter((r) => r.offset >= first)
                       .map((r) => {
                         const [x, y] = rel(s, 0.55 + (r.offset - first) * SLOT, 0);
+                        const from = arrivalFrom(p, r, start);
+                        const copy = r.arrived === "copy" && from !== null;
                         return (
                           <motion.g
                             key={r.offset}
-                            initial={{ x, y: y - 30, opacity: 0, scale: 0.6 }}
+                            initial={from ? { x: from[0], y: from[1], opacity: 0, scale: copy ? 0.9 : 0.6 } : { x, y: y - 30, opacity: 0, scale: 0.6 }}
                             animate={{ x, y, opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, y: y + 10 }}
-                            transition={spring}
+                            transition={copy ? { ...spring, delay: COPY_DELAY } : spring}
                           >
                             <Parcel s={s} size={0.64} kind={r.kind ?? "order"} label={r.offset} state={r.state ?? "normal"} />
                           </motion.g>
@@ -183,7 +211,7 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
                       })}
                   </AnimatePresence>
                   {p.hw !== undefined && replica.role === "leader" && b.alive && p.hw >= first && (
-                    <HwMarker s={s} x={0.55 + (p.hw - first) * SLOT - SLOT / 2} label={`${labels.hw} ${p.hw}`} />
+                    <HwMarker s={s} x={0.55 + (p.hw - first) * SLOT - SLOT / 2} label={`${labels.hw} ${p.hw}`} delay={copying(p) ? COPY_DELAY + 0.35 : 0} />
                   )}
                   <Pill x={ex} y={ey + 4} text={`${p.label} · ${roleText}`} tone={tone} size={11} animate={false} />
                 </g>
@@ -226,14 +254,18 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
   );
 }
 
-/** The high watermark: a short post between the last readable record and the next one. */
-function HwMarker({ s, x, label }: { s: number; x: number; label: string }) {
+/**
+ * The high watermark: a short post between the last readable record and the next one.
+ * It moves only once the in-sync followers have the record, so it waits for the copies.
+ */
+function HwMarker({ s, x, label, delay }: { s: number; x: number; label: string; delay: number }) {
   const [bx, by] = rel(s, x, 0.7);
   const [tx, ty] = rel(s, x, 0.7, 1.9);
+  const move = { ...spring, delay };
   return (
     <motion.g initial={false} animate={{ x: 0 }}>
-      <motion.line initial={false} animate={{ x1: bx, y1: by, x2: tx, y2: ty }} transition={spring} className="hw-post" />
-      <motion.g initial={false} animate={{ x: tx, y: ty }} transition={spring}>
+      <motion.line initial={false} animate={{ x1: bx, y1: by, x2: tx, y2: ty }} transition={move} className="hw-post" />
+      <motion.g initial={false} animate={{ x: tx, y: ty }} transition={move}>
         <rect x={-4} y={-17} width={label.length * 6.4 + 14} height={17} rx={8.5} className="hw-tag" />
         <text x={3} y={-5} className="hw-text">
           {label}

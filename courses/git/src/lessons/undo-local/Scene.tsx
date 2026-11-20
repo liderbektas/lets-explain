@@ -105,7 +105,7 @@ export const scene = makeGitScene({
     GRAPH_STEPS.has(info.step) ? (
       <GraphStage repo={repo} highlight={info.fresh} />
     ) : (
-      <AreasStage repo={repo} labels={areasLabels(info.t)} flow={flowOf(info.last)} />
+      <AreasStage repo={repo} labels={areasLabels(info.t)} flow={flowOf(info.last)} last={info.last} />
     ),
   metrics: (repo, t, info) => {
     if (GRAPH_STEPS.has(info.step)) {

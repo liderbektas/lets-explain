@@ -5,6 +5,7 @@ import { lessonHref } from "../lib/router";
 import { resumeStep, useProgress } from "../lib/storage";
 import { ChapterCube } from "./CourseDrawer";
 import { HowItWorks } from "./HowItWorks";
+import { Credit } from "./Credit";
 import { Icon } from "./Icon";
 
 const copy = {
@@ -128,6 +129,7 @@ export function CourseHome() {
           })}
         </div>
       </section>
+      <Credit />
     </div>
   );
 }

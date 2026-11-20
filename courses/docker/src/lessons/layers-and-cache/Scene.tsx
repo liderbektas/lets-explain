@@ -123,7 +123,7 @@ export const scene = makeDockerScene({
     // BuildStage's layer labels run past the right edge at full size, so draw it a little smaller.
     return (
       <g transform="translate(25 20) scale(0.9)">
-        <BuildStage steps={last?.steps ?? []} seconds={last?.seconds ?? 0} size={last?.size ?? 0} tag={last?.tag ?? "shop"} labels={buildLabels(info.t)} />
+        <BuildStage steps={last?.steps ?? []} seconds={last?.seconds ?? 0} size={last?.size ?? 0} tag={last?.tag ?? "shop"} labels={buildLabels(info.t)} play={info.last.some((e) => e.type === "buildStep")} />
       </g>
     );
   },

@@ -1,0 +1,190 @@
+/* The CI/CD course's drawings: runs, workflow files, logs, PR checks, timelines, environments. */
+
+.ci .sticker {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ci .sticker-shadow {
+  fill: var(--ink);
+}
+
+.ci .card-fill {
+  fill: var(--card);
+}
+
+.ci .title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.ci .sub {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: var(--ink-2);
+}
+
+.ci .muted {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: var(--ink-3);
+}
+
+.ci .mono {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: var(--ink);
+}
+
+.ci .mono-light {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: #fffdf8;
+}
+
+.ci .mono-dim {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: #a7a1b0;
+}
+
+.ci .mono-bad {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: #ff9f8a;
+}
+
+.ci .mono-ok {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: #8fe0b6;
+}
+
+.ci .mono-key {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: #ffd66b;
+}
+
+.ci .term {
+  fill: #2b2a33;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ci .term-bar {
+  fill: #3a3943;
+}
+
+.ci .yaml-new {
+  fill: rgba(143, 224, 182, 0.22);
+}
+
+.ci .yaml-bad {
+  fill: rgba(255, 159, 138, 0.22);
+}
+
+.ci .log-fail {
+  fill: rgba(242, 97, 90, 0.18);
+}
+
+.ci .edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.ci .edge.is-dim {
+  stroke: #b9b2c2;
+  stroke-dasharray: 5 6;
+}
+
+.ci .row-line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.ci .lane {
+  fill: var(--paper-2);
+}
+
+.ci .tick {
+  stroke: #d9d0c0;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.ci .tick-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  fill: var(--ink-3);
+}
+
+.ci .bar {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+.ci .bar-seg {
+  stroke: rgba(43, 42, 51, 0.35);
+  stroke-width: 1;
+}
+
+.ci .hatch {
+  fill: url(#ci-hatch);
+}
+
+.ci .env-flag-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.ci .env-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.ci .is-lit {
+  filter: drop-shadow(0 0 6px rgba(255, 148, 102, 0.95));
+}
+
+.ci .dot {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.ci .check-mark {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ci .spin {
+  animation: ci-spin 1.6s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes ci-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ci .spin {
+    animation: none;
+  }
+}

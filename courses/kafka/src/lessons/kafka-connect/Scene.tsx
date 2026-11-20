@@ -347,7 +347,8 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
       <g transform={`translate(${INDEX_AT[0]} ${INDEX_AT[1]})`}>
         <Building s={24} roof={TINTS.coral} />
       </g>
-      <IndexCard x={14} y={150} title={t(text.index)} state={state} />
+      {/* The sink task writes each record to the index, so new documents come from the task. */}
+      <IndexCard x={14} y={150} title={t(text.index)} state={state} from={sinkChip} />
 
       <AnimatePresence>
         {crashedNow && crashedNow.type === "crashed" && (
@@ -444,7 +445,7 @@ function RowsCard({ x, y, title, state, notCopied }: { x: number; y: number; tit
   );
 }
 
-function IndexCard({ x, y, title, state }: { x: number; y: number; title: string; state: ConnectState }) {
+function IndexCard({ x, y, title, state, from }: { x: number; y: number; title: string; state: ConnectState; from: [number, number] | null }) {
   const docs = state.index.slice(-7);
   const counts = new Map<number, number>();
   for (const d of state.index) counts.set(d.rowId, (counts.get(d.rowId) ?? 0) + 1);
@@ -464,7 +465,12 @@ function IndexCard({ x, y, title, state }: { x: number; y: number; title: string
         {docs.map((d, i) => {
           const dup = (counts.get(d.rowId) ?? 0) > 1;
           return (
-            <motion.g key={`${d.rowId}-${state.index.length - docs.length + i}`} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={spring}>
+            <motion.g
+              key={`${d.rowId}-${state.index.length - docs.length + i}`}
+              initial={from ? { opacity: 0, x: from[0] - x - 10, y: from[1] - y - 32 - i * 21 } : { opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              transition={spring}
+            >
               <g transform={`translate(10 ${32 + i * 21})`}>
                 <rect width={194} height={18} rx={6} style={{ fill: dup ? "var(--red-soft)" : d.card === MASKED ? "var(--sky-soft)" : "var(--paper-2)" }} />
                 <text x={8} y={13} className="cx-mono">

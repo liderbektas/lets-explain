@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { IsoBox, type Shades } from "@lets-explain/core/iso/shapes";
 import type { DockerEvent, Host } from "../../engine/docker";
+import { stampOf } from "../../iso/HostStage";
 
 /**
  * This machine on the left, a registry on the right. Each tag is a row with a coloured
@@ -64,25 +65,42 @@ export function RegistryStage({ host, last, labels, showRemote, showLocal }: Pro
         </text>
       )}
       <AnimatePresence initial={false}>
-        {local.map(([ref, id], i) => (
-          <motion.g key={`l-${ref}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={spring}>
-            <Row x={36} y={rowY(i)} refName={ref} id={id} shades={colorOf(id)} lit={tagged?.target === ref || pulled?.ref === ref} />
-          </motion.g>
-        ))}
+        {local.map(([ref, id], i) => {
+          // `docker tag` copies nothing: the new name comes out of the row of the image it points at.
+          const src = tagged?.target === ref ? localRow(tagged.source) : -1;
+          return (
+            <motion.g
+              key={`l-${ref}`}
+              initial={src >= 0 ? { opacity: 0, x: 0, y: rowY(src) } : { opacity: 0, x: -20, y: rowY(i) }}
+              animate={{ opacity: 1, x: 0, y: rowY(i) }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={spring}
+            >
+              <Row x={36} y={0} refName={ref} id={id} shades={colorOf(id)} lit={tagged?.target === ref || pulled?.ref === ref} />
+            </motion.g>
+          );
+        })}
       </AnimatePresence>
       <AnimatePresence initial={false}>
         {remote.map(([ref, id], i) => (
-          <motion.g key={`r-${ref}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={spring}>
-            <Row x={496} y={rowY(i)} refName={ref} id={id} shades={colorOf(id)} lit={pushed?.ref === ref || released?.ref === ref} warn={released?.ref === ref} />
+          <motion.g key={`r-${ref}`} initial={{ opacity: 0, x: 20, y: rowY(i) }} animate={{ opacity: 1, x: 0, y: rowY(i) }} exit={{ opacity: 0 }} transition={spring}>
+            <Row x={496} y={0} refName={ref} id={id} shades={colorOf(id)} lit={pushed?.ref === ref || released?.ref === ref} warn={released?.ref === ref} />
           </motion.g>
         ))}
       </AnimatePresence>
 
       {pushed && localRow(pushed.ref) >= 0 && remoteRow(pushed.ref) >= 0 && (
-        <Arrow key={`push-${pushed.ref}`} from={[368, rowY(localRow(pushed.ref))]} to={[492, rowY(remoteRow(pushed.ref))]} label={`push · ${pushed.layers - pushed.skipped}/${pushed.layers} layer`} />
+        <g key={`push-${stampOf(host)}`}>
+          <Arrow from={[368, rowY(localRow(pushed.ref))]} to={[492, rowY(remoteRow(pushed.ref))]} label={`push · ${pushed.layers - pushed.skipped}/${pushed.layers} layer`} />
+          {/* Only layers the registry does not have yet travel. */}
+          <LayerTrain count={pushed.layers - pushed.skipped} from={[368, rowY(localRow(pushed.ref))]} to={[492, rowY(remoteRow(pushed.ref))]} />
+        </g>
       )}
       {pulled && localRow(pulled.ref) >= 0 && remoteRow(pulled.ref) >= 0 && (
-        <Arrow key={`pull-${pulled.ref}`} from={[492, rowY(remoteRow(pulled.ref))]} to={[368, rowY(localRow(pulled.ref))]} label="pull" />
+        <g key={`pull-${stampOf(host)}`}>
+          <Arrow from={[492, rowY(remoteRow(pulled.ref))]} to={[368, rowY(localRow(pulled.ref))]} label={`pull · ${pulled.layers - pulled.reused}/${pulled.layers} layer`} />
+          <LayerTrain count={pulled.layers - pulled.reused} from={[492, rowY(remoteRow(pulled.ref))]} to={[368, rowY(localRow(pulled.ref))]} />
+        </g>
       )}
       {removed && (
         <g transform="translate(200 440)">
@@ -126,7 +144,8 @@ function Row({ x, y, refName, id, shades, lit, warn }: { x: number; y: number; r
         {clip(refName, 32)}
       </text>
       <g transform="translate(272 0)">
-        <rect x={-6} y={-11} width={58} height={22} rx={8} className="ink" style={{ fill: shades[0] }} />
+        {/* The colour is the image the tag points at: when the tag moves, only the colour changes. */}
+        <rect x={-6} y={-11} width={58} height={22} rx={8} className="ink" style={{ fill: shades[0], transition: "fill 0.4s" }} />
         <text x={23} y={4} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 800, fill: "var(--ink)" }}>
           {id.slice(0, 6)}
         </text>
@@ -150,6 +169,27 @@ function Arrow({ from, to, label }: { from: [number, number]; to: [number, numbe
         </text>
       </g>
     </motion.g>
+  );
+}
+
+/** Layer blobs travelling one after another along a push or pull. */
+function LayerTrain({ count, from, to }: { count: number; from: [number, number]; to: [number, number] }) {
+  const [x1, y1] = from;
+  const [x2, y2] = to;
+  const mx = (x1 + x2) / 2;
+  return (
+    <g>
+      {Array.from({ length: Math.min(count, 5) }, (_, k) => (
+        <motion.g
+          key={k}
+          initial={{ x: x1, y: y1, opacity: 0 }}
+          animate={{ x: [x1, mx, x2], y: [y1, (y1 + y2) / 2, y2], opacity: [0, 1, 0] }}
+          transition={{ duration: 0.6, delay: 0.15 + k * 0.12, ease: "easeInOut" }}
+        >
+          <IsoBox s={6} at={[-1.3, -1.3, 0]} size={[2.6, 2.6, 0.9]} shades={["var(--sky)", "var(--sky-mid)", "var(--sky-deep)"]} className="ink-box" />
+        </motion.g>
+      ))}
+    </g>
   );
 }
 

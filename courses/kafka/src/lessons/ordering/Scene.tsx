@@ -505,12 +505,18 @@ function RetryScene({ step, paused, replayKey, controls }: SceneProps) {
   const frame = frames[cursor]!;
   const geo = beltsGeometry(1);
   const kindOf = (stage: number): ParcelKind => (stage === 1 ? "order" : "payment");
-  const records = frame.log.map((stage, offset) => ({ offset, label: String(stage), kind: kindOf(stage) }));
   const flightPos = (f: Flight, k: number): [number, number] => {
     if (f.where === "producer") return [geo.producerAt[0] - 6 + k * 16, geo.producerAt[1] - 96 - k * 10];
     const [x, y] = geo.at(geo.beltEnd - 0.2 + k * 0.9, -1.3, 1.4);
     return [x, y];
   };
+  // A request that was in the air and went through lands from where it was. One that timed out
+  // or was rejected is sent again by the producer, so it comes from the producer.
+  const previous = cursor > 0 ? frames[cursor - 1]! : null;
+  const records = frame.log.map((stage, offset) => {
+    const k = previous ? previous.flights.findIndex((f) => f.stage === stage && f.where === "air" && !f.status) : -1;
+    return { offset, label: String(stage), kind: kindOf(stage), from: k >= 0 ? flightPos(previous!.flights[k]!, k) : undefined };
+  });
 
   const metrics: Metric[] = [
     { label: t(l("Yoldaki istek", "Requests in flight")), value: frame.flights.length },
@@ -535,15 +541,18 @@ function RetryScene({ step, paused, replayKey, controls }: SceneProps) {
         partitionLabel={() => "p0"}
         nextLabel={t(text.next)}
       >
-        <AnimatePresence>
+        {/* A request that landed is now the record on the belt: it hands over at once instead of fading. */}
+        <AnimatePresence custom={frame.log}>
           {frame.flights.map((f, k) => {
             const [x, y] = flightPos(f, k);
+            const landed = (log: number[]) => log.includes(f.stage) && !f.status;
             return (
               <motion.g
                 key={f.stage}
                 initial={{ x: geo.producerAt[0], y: geo.producerAt[1] - 60, opacity: 0 }}
                 animate={{ x, y, opacity: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
+                variants={{ gone: (log: number[]) => (landed(log) ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, scale: 0.6 }) }}
+                exit="gone"
                 transition={{ type: "spring", stiffness: 120, damping: 18 }}
               >
                 <Parcel s={geo.s} kind={kindOf(f.stage)} label={String(f.stage)} size={0.74} />

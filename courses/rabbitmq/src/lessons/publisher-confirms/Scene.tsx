@@ -101,6 +101,8 @@ export const scene = makeBrokerScene({
     <BrokerStage
       broker={b}
       last={info.last}
+      prev={info.prev}
+      confirms
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={{

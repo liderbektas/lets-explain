@@ -46,7 +46,7 @@ export function AcksScene({ step, paused, replayKey, controls: frameControls }: 
   const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
   const s = view.state;
   const p = s.partitions[0]!;
-  const stage = toStage(s, { brokerName: (id) => `Broker ${id}`, showHw: true, dimUncommitted: true });
+  const stage = toStage(s, { brokerName: (id) => `Broker ${id}`, showHw: true, dimUncommitted: true, events: view.lastEvents });
 
   // Lesson steps count everything so far; the try-it step counts only the reader's own writes.
   const mine = (st: RState) => (view.ctx ? st.sends.filter((x) => !view.ctx!.start.sends.some((y) => y.id === x.id)) : st.sends);

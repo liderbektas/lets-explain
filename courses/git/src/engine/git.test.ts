@@ -310,3 +310,58 @@ it("an empty repo is on an unborn main", () => {
   expect(headId(s)).toBeNull();
   expect(apply(s, { type: "branch", name: "x" }).events[0]).toMatchObject({ code: "unborn" });
 });
+
+describe("drawing provenance: where a commit was born and what it was copied from", () => {
+  const w = (path: string, content: string): GitAction[] => [{ type: "write", path, content }, { type: "add", paths: [path] }];
+  const base: GitAction[] = [
+    ...w("a.txt", "a"),
+    { type: "commit", message: "A" },
+    { type: "switch", target: "feature", create: true },
+    ...w("f1.txt", "1"),
+    { type: "commit", message: "F1" },
+    ...w("f2.txt", "2"),
+    { type: "commit", message: "F2" },
+    { type: "switch", target: "main" },
+    ...w("m.txt", "m"),
+    { type: "commit", message: "M" },
+    { type: "switch", target: "feature" },
+  ];
+  const byMessage = (s: Repo, m: string) => Object.values(s.commits).filter((c) => c.message === m);
+
+  it("every commit remembers the branch it was made on", () => {
+    const s = ok(base);
+    expect(byMessage(s, "A")[0]!.branch).toBe("main");
+    expect(byMessage(s, "F1")[0]!.branch).toBe("feature");
+    expect(byMessage(s, "M")[0]!.branch).toBe("main");
+  });
+
+  it("rebase copies each commit, in order, on the branch being rebased; the originals stay", () => {
+    const before = ok(base);
+    const [f1, f2] = [byMessage(before, "F1")[0]!.id, byMessage(before, "F2")[0]!.id];
+    const s = ok([{ type: "rebase", onto: "main" }], before);
+    const copies = byMessage(s, "F1").concat(byMessage(s, "F2")).filter((c) => c.from);
+    expect(copies.map((c) => c.from)).toEqual([[f1], [f2]]);
+    expect(copies.every((c) => c.branch === "feature")).toBe(true);
+    expect(s.commits[f1]!.from).toBeUndefined();
+    expect(s.commits[f1]).toEqual(before.commits[f1]);
+  });
+
+  it("amend, cherry-pick and squash record their sources; new work and merges do not", () => {
+    const amended = ok([{ type: "commit", message: "F2 better", amend: true }], ok(base));
+    const f2 = byMessage(ok(base), "F2")[0]!.id;
+    expect(amended.commits[headId(amended)!]!.from).toEqual([f2]);
+
+    const picked = ok([{ type: "switch", target: "main" }, { type: "cherryPick", target: f2 }], ok(base));
+    expect(picked.commits[headId(picked)!]).toMatchObject({ from: [f2], branch: "main" });
+
+    const start = ok(base);
+    const f1 = byMessage(start, "F1")[0]!.id;
+    const a = byMessage(start, "A")[0]!.id;
+    const squashed = ok([{ type: "rebaseInteractive", base: a, plan: [{ id: f1, action: "pick" }, { id: f2, action: "squash", message: "F" }] }], start);
+    expect(squashed.commits[headId(squashed)!]!.from).toEqual([f1, f2]);
+
+    const merged = ok([{ type: "switch", target: "main" }, { type: "merge", target: "feature" }], ok(base));
+    expect(merged.commits[headId(merged)!]!.from).toBeUndefined();
+    expect(byMessage(ok(base), "M")[0]!.from).toBeUndefined();
+  });
+});

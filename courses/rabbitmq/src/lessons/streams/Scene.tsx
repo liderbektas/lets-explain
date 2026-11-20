@@ -77,11 +77,12 @@ export const scene = makeBrokerScene({
       <BrokerStage
         broker={b}
         last={info.last}
+        prev={info.prev}
         labels={labels(info.t)}
         box={{ x: 0, y: 0, w: 860, h: 290 }}
         layout={{ producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: STREAM }], consumerNames: names(info.t, info.sandbox) }}
       />
-      <OffsetPanel broker={b} stream={STREAM} names={names(info.t, info.sandbox)} title={info.t(l("events log'u ve her okuyucunun sıradaki offset'i", "The events log and each reader's next offset"))} box={{ x: 24, y: 298, w: 812, h: 164 }} />
+      <OffsetPanel broker={b} last={info.last} stream={STREAM} names={names(info.t, info.sandbox)} title={info.t(l("events log'u ve her okuyucunun sıradaki offset'i", "The events log and each reader's next offset"))} box={{ x: 24, y: 298, w: 812, h: 164 }} />
     </g>
   ),
   metrics: (b, t) => {

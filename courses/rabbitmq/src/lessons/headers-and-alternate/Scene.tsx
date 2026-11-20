@@ -150,6 +150,7 @@ export const scene = makeBrokerScene({
     <BrokerStage
       broker={forDrawing(b)}
       last={info.last}
+      prev={info.prev}
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={

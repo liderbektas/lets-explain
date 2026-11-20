@@ -3,6 +3,8 @@ import { findContainer, type DockerAction, type DockerEvent } from "../../engine
 import { ctxFor, searchWin } from "../shared/missionHelpers";
 import { missions } from "./missions";
 import { EXPECTED_ERRORS, scene, steps } from "./Scene";
+import { targetOf } from "../../iso/HostStage";
+import { buildTimeline } from "../../iso/BuildStage";
 
 const create: DockerAction = { type: "networkCreate", name: "shop" };
 const connect = (container: string): DockerAction => ({ type: "networkConnect", network: "shop", container });
@@ -58,4 +60,30 @@ describe("networks", () => {
       expect(searchWin(scene, m.check, m.par - 1)).toBeNull();
     });
   }
+});
+
+describe("networks: what the stage animates", () => {
+  const h = scene.run.states[scene.stepEnd(4)]!;
+  const list = Object.values(h.containers);
+
+  it("a ping or curl inside a container is drawn to the container whose name it used", () => {
+    expect(targetOf("ping cache", list)?.name).toBe("cache");
+    expect(targetOf("curl http://api", list)?.name).toBe("api");
+    expect(targetOf("cat /etc/hosts", list)).toBeUndefined();
+  });
+
+  it("a Compose service name finds that service's container", () => {
+    const fake = [{ ...list[0]!, name: "shop-db-1" }];
+    expect(targetOf("ping db", fake)?.name).toBe("shop-db-1");
+  });
+
+  it("builds play line by line: a cached line is quicker than one that runs", () => {
+    const tl = buildTimeline([
+      { index: 0, text: "FROM node:22", cached: true, seconds: 0, size: 1, stage: 0 },
+      { index: 1, text: "RUN npm ci", cached: false, seconds: 30, size: 60, stage: 0 },
+    ]);
+    expect(tl.start[1]).toBeGreaterThan(tl.start[0]!);
+    expect(tl.end[0]! - tl.start[0]!).toBeLessThan(tl.end[1]! - tl.start[1]!);
+    expect(tl.total).toBe(tl.end[1]);
+  });
 });

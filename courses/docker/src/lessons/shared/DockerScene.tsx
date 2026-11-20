@@ -6,10 +6,10 @@ import type { Change, Mission, SceneProps } from "@lets-explain/core/course/type
 import { starsFor } from "@lets-explain/core/course/types";
 import { useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
-import { usePlayback } from "@lets-explain/core/lib/playback";
 import { useGame } from "@lets-explain/core/lib/storage";
 import { describeDocker } from "../../engine/describe";
 import { simulate, type DockerAction, type DockerEvent, type Host } from "../../engine/docker";
+import { buildTimeline } from "../../iso/BuildStage";
 import { HOST_STAGE } from "../../iso/HostStage";
 import { hostChanges } from "./hostChanges";
 
@@ -83,6 +83,30 @@ export interface DockerScene {
   moves: (repo: Host, history: DockerAction[]) => DockerAction[];
 }
 
+/** How long an action stays on screen: long enough for its motion (a build plays line by line). */
+function dwellFor(events: DockerEvent[]): number {
+  const steps = events.flatMap((e) => (e.type === "buildStep" ? [e.step] : []));
+  if (steps.length) return Math.round(buildTimeline(steps).total * 1000) + 700;
+  const created = events.filter((e) => e.type === "created").length;
+  return 850 + Math.max(0, created - 1) * 180;
+}
+
+/**
+ * Plays a step's actions one at a time, like core's usePlayback, but waits `dwell(i)` ms after
+ * action i so its motion can finish. Starts over when `resetKey` changes.
+ */
+function usePacedPlayback(count: number, paused: boolean, resetKey: string, dwell: (i: number) => number): number {
+  const [pb, setPb] = useState({ key: resetKey, cursor: 0 });
+  const cursor = pb.key === resetKey ? Math.min(pb.cursor, count) : 0;
+  const wait = cursor === 0 ? 450 : dwell(cursor - 1);
+  useEffect(() => {
+    if (paused || cursor >= count) return;
+    const id = setTimeout(() => setPb((p) => ({ key: resetKey, cursor: (p.key === resetKey ? p.cursor : 0) + 1 })), wait);
+    return () => clearTimeout(id);
+  }, [cursor, count, paused, resetKey, wait]);
+  return cursor;
+}
+
 export function makeDockerScene(config: DockerSceneConfig): DockerScene {
   const ends: number[] = [];
   let n = 0;
@@ -110,7 +134,8 @@ export function makeDockerScene(config: DockerSceneConfig): DockerScene {
     const { t, lang } = useLang();
     const sandbox = Boolean(config.sandbox) && step === sandboxStep;
     const count = sandbox ? 0 : (config.steps[step]?.length ?? 0);
-    const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
+    const s0 = stepStart(Math.min(step, sandboxStep));
+    const cursor = usePacedPlayback(count, paused, `${step}-${replayKey}`, (i) => dwellFor(run.events[s0 + i] ?? []));
 
     const [moves, setMoves] = useState<DockerAction[]>([]);
     const sandRun = useMemo(() => (sandbox ? simulate(moves, sandboxStart) : null), [sandbox, moves]);
@@ -130,7 +155,6 @@ export function makeDockerScene(config: DockerSceneConfig): DockerScene {
       last = sandRun.events[sandRun.events.length - 1] ?? [];
       shown = sandRun.events.flat();
     } else {
-      const s0 = stepStart(Math.min(step, sandboxStep));
       state = run.states[s0 + cursor]!;
       last = cursor > 0 ? run.events[s0 + cursor - 1]! : [];
       shown = run.events.slice(s0, s0 + cursor).flat();

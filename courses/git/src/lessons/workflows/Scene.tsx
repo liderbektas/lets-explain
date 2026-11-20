@@ -1,6 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, apply, asRemote, cloned, createRepo, currentBranch, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
+import { placeIn } from "../remotes/TwoRepos";
 import { makeGitScene, type SandboxRow } from "../shared/GitScene";
 import { missions } from "./missions";
 
@@ -68,12 +69,15 @@ export function remoteView(repo: Repo): Repo {
 
 /** Both sides: your clone on the left, the shared repo on GitHub on the right. */
 function TwoSides({ repo, fresh, you, origin }: { repo: Repo; fresh: Set<string>; you: string; origin: string }) {
+  const remote = remoteView(repo);
+  const mine = { x: 0, y: 0, w: 450, h: 470 };
+  const theirs = { x: 454, y: 0, w: 406, h: 470 };
   return (
     <g>
       {/* No ghosts or messages here: two graphs share the stage, and the lesson is about where commits are. */}
-      <GraphStage repo={repo} box={{ x: 0, y: 0, w: 450, h: 470 }} highlight={fresh} title={you} showGhosts={false} messages={false} />
+      <GraphStage repo={repo} box={mine} highlight={fresh} title={you} showGhosts={false} messages={false} arrivals={placeIn(remote, theirs, { showGhosts: false, messages: false })} />
       <line x1={452} y1={24} x2={452} y2={446} stroke="var(--line)" strokeWidth={2} strokeDasharray="6 6" />
-      <GraphStage repo={remoteView(repo)} box={{ x: 454, y: 0, w: 406, h: 470 }} highlight={fresh} title={origin} hideHead showGhosts={false} messages={false} />
+      <GraphStage repo={remote} box={theirs} highlight={fresh} title={origin} hideHead showGhosts={false} messages={false} arrivals={placeIn(repo, mine, { showGhosts: false, messages: false })} />
     </g>
   );
 }

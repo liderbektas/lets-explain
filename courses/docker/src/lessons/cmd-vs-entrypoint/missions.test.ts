@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { apply, findContainer, type DockerAction } from "../../engine/docker";
 import { ctxFor, searchWin } from "../shared/missionHelpers";
 import { missions } from "./missions";
-import { commandLine, printed, runLineOf } from "./model";
+import { commandLine, printed, runLineOf, runOf, BUILDS } from "./model";
+import { partsOf } from "./ProcessCard";
 import { EXPECTED_ERRORS, sandboxRun, scene, START, steps } from "./Scene";
 
 const solutions: Record<string, DockerAction[]> = {
@@ -88,5 +89,28 @@ describe("cmd-vs-entrypoint", () => {
     let h = START;
     for (let i = 0; i < 6; i++) h = apply(h, { type: "run", image: "acme/greet:cmd" }).state;
     expect(Object.keys(h.containers)).toHaveLength(6);
+  });
+});
+
+describe("cmd-vs-entrypoint: where PID 1's words come from", () => {
+  let h = START;
+  for (const b of BUILDS) h = apply(h, b).state;
+  const parts = (name: string, ref: string, args: string[] = [], ep?: string) => {
+    const c = findContainer(apply(h, runOf(name, ref, args, ep)).state, name)!;
+    return partsOf(c).map((p) => `${p.origin}:${p.words.join(" ")}`);
+  };
+
+  it("CMD alone, or replaced by typed words", () => {
+    expect(parts("a", "acme/greet:cmd")).toEqual(["cmd:echo Merhaba"]);
+    expect(parts("b", "acme/greet:cmd", ["ls"])).toEqual(["typed:ls"]);
+  });
+
+  it("ENTRYPOINT stays first; typed words replace CMD after it", () => {
+    expect(parts("c", "acme/greet:ep")).toEqual(["entrypoint:echo Merhaba", "cmd:dünya"]);
+    expect(parts("d", "acme/greet:ep", ["Ada"])).toEqual(["entrypoint:echo Merhaba", "typed:Ada"]);
+  });
+
+  it("--entrypoint replaces ENTRYPOINT and drops CMD: everything was typed", () => {
+    expect(parts("e", "acme/greet:ep", [], "ls")).toEqual(["typed:ls"]);
   });
 });

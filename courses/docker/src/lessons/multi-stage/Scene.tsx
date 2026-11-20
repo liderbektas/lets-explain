@@ -149,6 +149,7 @@ export const scene = makeDockerScene({
             tag={last?.tag ?? "shop"}
             labels={buildLabels(info.t)}
             pending={info.sandbox ? pending : undefined}
+            play={info.last.some((e) => e.type === "buildStep")}
           />
         </g>
         {info.sandbox ? (

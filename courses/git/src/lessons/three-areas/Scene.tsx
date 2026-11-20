@@ -102,7 +102,7 @@ export const scene = makeGitScene({
   start: START,
   steps,
   label: l("Git'in üç alanı: klasör, staging ve repo", "Git's three areas: folder, staging and repo"),
-  view: (repo, info) => <AreasStage repo={repo} labels={labels(info.t)} flow={flowOf(info.last)} />,
+  view: (repo, info) => <AreasStage repo={repo} labels={labels(info.t)} flow={flowOf(info.last)} last={info.last} />,
   metrics: (repo, t) => {
     const st = status(repo);
     return [

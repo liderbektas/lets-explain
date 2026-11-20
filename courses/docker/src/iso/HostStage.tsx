@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { rel } from "@lets-explain/core/iso/geometry";
 import { IsoBox, type Shades } from "@lets-explain/core/iso/shapes";
@@ -41,6 +42,34 @@ interface Props {
 const NET_COLORS = ["var(--sky)", "var(--lilac)", "var(--coral)", "var(--sun)", "var(--mint)"];
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 
+/**
+ * The engine clones the host on every action, so each drawn state is its own object. A stamp
+ * per object keys one-shot motion (a packet, a file being written) so it plays once per action
+ * and not again when the same state is drawn again.
+ */
+const stamps = new WeakMap<object, number>();
+let nextStamp = 0;
+export function stampOf(o: object): number {
+  let s = stamps.get(o);
+  if (s === undefined) {
+    s = ++nextStamp;
+    stamps.set(o, s);
+  }
+  return s;
+}
+
+/** Where image `i` sits on the shelf. */
+const shelf = (i: number): [number, number] => [62, 112 + i * 98];
+const BARREL = (i: number): [number, number] => [740, 88 + i * 70];
+
+/** The container a network command inside `from` is talking to: by name, or by Compose service name. */
+export function targetOf(cmd: string, list: Container[]): Container | undefined {
+  const m = /^(?:ping|curl|wget|nslookup)\s+(?:-\S+\s+)*(?:https?:\/\/)?([a-z0-9_.-]+)/i.exec(cmd);
+  if (!m) return undefined;
+  const name = m[1]!;
+  return list.find((c) => c.name === name) ?? list.find((c) => new RegExp(`^.+-${name}-\\d+$`).test(c.name));
+}
+
 function stateShades(c: Container): Shades {
   if (c.state === "running") return ["var(--mint)", "var(--mint-mid)", "var(--mint-deep)"];
   if (c.state === "created") return ["#fffdf8", "#efe5d2", "#ddd0b8"];
@@ -77,6 +106,14 @@ export function HostStage({ host, labels, containers, hideImages, highlight, las
   const tagsOf = (id: string) => Object.keys(host.tags).filter((t) => host.tags[t] === id);
   const volumes = Object.values(host.volumes);
 
+  const events = last ?? [];
+  const stamp = stampOf(host);
+  const shelved = hideImages ? [] : images.slice(0, 4);
+  // `docker run` / `compose up`: each new container comes out of its image, in creation order.
+  const created = events.flatMap((e) => (e.type === "created" ? [e.id] : []));
+  const pulled = events.find((e): e is Extract<DockerEvent, { type: "pulled" }> => e.type === "pulled");
+  const indexOf = (name: string) => list.findIndex((c) => c.name === name);
+
   return (
     <g className="host">
       {lastCurl && (
@@ -98,11 +135,25 @@ export function HostStage({ host, labels, containers, hideImages, highlight, las
           {images.slice(0, 4).map((img, i) => {
             const y = 112 + i * 98;
             const n = Math.min(img.layers.length, 6);
+            // A layer another image already has was on disk before this pull: only the others download.
+            const justPulled = pulled?.id === img.id;
+            const onDisk = (k: number) => {
+              const layer = img.layers[n === img.layers.length ? k : Math.floor((k * img.layers.length) / n)]!;
+              return images.some((o) => o.id !== img.id && o.layers.some((x) => x.id === layer.id));
+            };
+            let downloaded = 0;
             return (
               <g key={img.id} transform={`translate(62 ${y})`}>
-                {Array.from({ length: n }, (_, k) => (
-                  <IsoBox key={k} s={15} at={[-1.3, -1.3, k * 0.42]} size={[2.6, 2.6, 0.38]} shades={k === n - 1 ? ["var(--sky)", "var(--sky-mid)", "var(--sky-deep)"] : ["#fffdf8", "#efe5d2", "#ddd0b8"]} className="layer-slab" />
-                ))}
+                {Array.from({ length: n }, (_, k) => {
+                  const box = <IsoBox s={15} at={[-1.3, -1.3, k * 0.42]} size={[2.6, 2.6, 0.38]} shades={k === n - 1 ? ["var(--sky)", "var(--sky-mid)", "var(--sky-deep)"] : ["#fffdf8", "#efe5d2", "#ddd0b8"]} className="layer-slab" />;
+                  if (!justPulled || onDisk(k)) return <g key={k}>{box}</g>;
+                  const delay = downloaded++ * 0.12;
+                  return (
+                    <motion.g key={`${k}-${stamp}`} initial={{ opacity: 0, y: -60 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay }}>
+                      {box}
+                    </motion.g>
+                  );
+                })}
                 <text x={46} y={-18} className="img-tag">
                   {clip(tagsOf(img.id)[0] ?? `<none> ${img.id.slice(0, 6)}`, 18)}
                 </text>
@@ -138,8 +189,18 @@ export function HostStage({ host, labels, containers, hideImages, highlight, las
           const lit = highlight?.has(c.name);
           const state = c.state === "running" ? labels.running : c.state === "created" ? labels.created : `${labels.exited} (${c.exitCode})`;
           const [lx, ly] = rel(17, 0.2, -0.55, 1.35);
+          // A new container is made from its image: it comes out of the image on the shelf, which stays.
+          const from = shelved.findIndex((img) => img.id === c.image);
+          const order = created.indexOf(c.id);
+          const [fx, fy] = from >= 0 ? shelf(from) : [x, y - 30];
           return (
-            <motion.g key={c.id} initial={{ opacity: 0, x, y: y - 30 }} animate={{ opacity: 1, x, y }} exit={{ opacity: 0, scale: 0.6 }} transition={spring}>
+            <motion.g
+              key={c.id}
+              initial={{ opacity: 0, x: fx, y: fy, scale: from >= 0 ? 0.35 : 1 }}
+              animate={{ opacity: 1, x, y, scale: 1, transition: { ...spring, delay: order > 0 ? order * 0.18 : 0 } }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={spring}
+            >
               <g className={`ctr ${lit ? "is-lit" : ""}`}>
                 <IsoBox s={17} at={[-1.6, -0.75, 0]} size={[3.2, 1.5, 1.35]} shades={stateShades(c)} className="ctr-box" />
                 {/* Corrugation lines on the front face. */}
@@ -222,7 +283,102 @@ export function HostStage({ host, labels, containers, hideImages, highlight, las
           </g>
         )}
       </g>
+
+      <Motions key={stamp} events={events} list={list} pos={pos} volumes={volumes.slice(0, 4).map((v) => v.name)} indexOf={indexOf} />
     </g>
+  );
+}
+
+/**
+ * One-shot motion for what the last action moved: a file written into a volume or the
+ * container's own layer, a request coming in through a published port, a packet between
+ * containers that found each other by name.
+ */
+function Motions({ events, list, pos, volumes, indexOf }: { events: DockerEvent[]; list: Container[]; pos: (i: number) => [number, number]; volumes: string[]; indexOf: (name: string) => number }) {
+  const out: ReactElement[] = [];
+  events.forEach((e, n) => {
+    if (e.type === "wrote") {
+      const i = indexOf(e.name);
+      if (i < 0) return;
+      const [x, y] = pos(i);
+      const file = e.path.split("/").pop()!;
+      if (e.where === "volume") {
+        const v = volumes.indexOf(e.source ?? "");
+        if (v < 0) return;
+        const [bx, by] = BARREL(v);
+        out.push(<FileChip key={n} path={[[x, y - 20], [bx, by - 20], [bx, by - 4]]} label={file} />);
+      } else if (e.where === "bind") {
+        // The file lands in the host's folder, outside the container.
+        out.push(<FileChip key={n} path={[[x, y - 20], [x - 70, y + 40], [x - 90, y + 60]]} label={e.source ? clip(e.source, 22) : file} />);
+      } else {
+        // The container's own writable layer: the file stays in the container and goes when it is removed.
+        out.push(<FileChip key={n} path={[[x, y - 70], [x, y - 22], [x, y - 14]]} label={file} />);
+      }
+    }
+    if (e.type === "curlResult") {
+      const i = list.findIndex((c) => c.ports.some((p) => p.host === e.port));
+      if (i < 0) {
+        // Nothing published on that port: the request stops at the host.
+        if (!e.ok) out.push(<Packet key={n} path={[[450, 40], [450, 74]]} bad />);
+        return;
+      }
+      const [x, y] = pos(i);
+      const c = list[i]!;
+      const k = c.ports.findIndex((p) => p.host === e.port);
+      const px = x + (k - (c.ports.length - 1) / 2) * 112;
+      out.push(<Packet key={n} path={[[450, 40], [px, y + 78], [x, y + 6]]} bad={!e.ok} />);
+    }
+    if (e.type === "execOutput") {
+      const i = indexOf(e.name);
+      if (i < 0 || !/^(ping|curl|wget|nslookup)\b/.test(e.cmd)) return;
+      const [sx, sy] = pos(i);
+      const target = targetOf(e.cmd, list);
+      if (e.code === 0 && target && target.name !== e.name) {
+        const [tx, ty] = pos(list.indexOf(target));
+        out.push(<Packet key={n} path={[[sx, sy], [tx, ty], [sx, sy]]} />);
+      } else if (e.code !== 0 && e.code !== 126 && e.code !== 127) {
+        // The name did not resolve (or nothing answered): nothing reaches another container.
+        // (126/127 mean the tool itself is missing in the image: no network was involved.)
+        out.push(<Unresolved key={n} x={sx + 40} y={sy - 40} />);
+      }
+    }
+  });
+  return <g className="host-motion">{out}</g>;
+}
+
+function FileChip({ path, label }: { path: [number, number][]; label: string }) {
+  const w = Math.round(Math.min(label.length, 22) * 6.8 + 22);
+  return (
+    <motion.g
+      initial={{ x: path[0]![0], y: path[0]![1], opacity: 0 }}
+      animate={{ x: path.map((p) => p[0]), y: path.map((p) => p[1]), opacity: [0, 1, 1, 0] }}
+      transition={{ duration: 0.85, ease: "easeInOut" }}
+    >
+      <rect x={-w / 2} y={-10} width={w} height={20} rx={6} className="ink" style={{ fill: "var(--sun-soft)" }} />
+      <text y={4} textAnchor="middle" className="tag-text" style={{ fontSize: 11 }}>
+        {clip(label, 22)}
+      </text>
+    </motion.g>
+  );
+}
+
+function Packet({ path, bad }: { path: [number, number][]; bad?: boolean }) {
+  return (
+    // A delivered packet fades once it arrives (the answer shows at the top); a refused one stays red where it stopped.
+    <motion.g initial={{ x: path[0]![0], y: path[0]![1], opacity: 0 }} animate={{ x: path.map((p) => p[0]), y: path.map((p) => p[1]), opacity: bad ? [0, 1, 1] : [0, 1, 1, 0] }} transition={{ duration: bad ? 0.75 : 0.9, ease: "easeInOut" }}>
+      <motion.circle r={7} className="ink" initial={{ fill: "#ffd66b" }} animate={{ fill: bad ? ["#ffd66b", "#ffd66b", "#f2615a"] : "#ffd66b" }} transition={{ duration: 0.75 }} />
+    </motion.g>
+  );
+}
+
+function Unresolved({ x, y }: { x: number; y: number }) {
+  return (
+    <motion.g initial={{ x, y, scale: 0, opacity: 0 }} animate={{ x, y, scale: 1, opacity: 1 }} transition={spring}>
+      <circle r={12} className="ink" style={{ fill: "var(--red-soft)" }} />
+      <text y={5} textAnchor="middle" className="tag-text" style={{ fontSize: 14 }}>
+        ?
+      </text>
+    </motion.g>
   );
 }
 

@@ -45,10 +45,6 @@
   stroke: var(--tangerine-deep);
 }
 
-.wf-head {
-  transition: transform 0.4s cubic-bezier(0.3, 1.3, 0.5, 1);
-}
-
 .wf-read {
   fill: none;
   stroke: var(--green);

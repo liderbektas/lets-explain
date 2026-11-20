@@ -94,6 +94,7 @@ export const scene = makeBrokerScene({
       <BrokerStage
         broker={b}
         last={info.last}
+        prev={info.prev}
         labels={labels(info.t)}
         kindOf={kindOf}
         layout={{ producers, exchanges: ["dlx"], queues: [OLD, QQ, RETRY, PARKING], consumerNames: names(info.t) }}

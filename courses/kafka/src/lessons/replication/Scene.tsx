@@ -34,7 +34,7 @@ export function ReplicationScene({ step, paused, replayKey, controls: frameContr
   const s = view.state;
   const p = s.partitions[0]!;
   const replicated = p.replicas.length > 1;
-  const stage = toStage(s, { brokerName: (id) => `Broker ${id}`, showHw: replicated, dimUncommitted: replicated });
+  const stage = toStage(s, { brokerName: (id) => `Broker ${id}`, showHw: replicated, dimUncommitted: replicated, events: view.lastEvents });
 
   const writing = view.lastEvents.some((e) => e.type === "produced" || e.type === "rejected");
   const stats = sendStats(s);

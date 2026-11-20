@@ -20,6 +20,8 @@ export interface BeltRecord {
   tint?: Tint;
   /** A red "!" over the parcel: it was handled out of order. */
   alert?: boolean;
+  /** Screen point it arrives from when it is not a fresh send from the producer (a request already in flight). */
+  from?: [number, number];
 }
 
 export interface BeltPartition {
@@ -129,7 +131,7 @@ export function BeltsStage({ partitions, readers, producer, partitionLabel, next
               return (
                 <motion.g
                   key={r.offset}
-                  initial={{ x: producerAt[0], y: producerAt[1] - 40, opacity: 0, scale: 0.6 }}
+                  initial={r.from ? { x: r.from[0], y: r.from[1], opacity: 1, scale: 1 } : { x: producerAt[0], y: producerAt[1] - 40, opacity: 0, scale: 0.6 }}
                   animate={{ x, y: py, opacity: 1, scale: 1 }}
                   exit={{ x: at(-0.5, y)[0], y: at(-0.5, y)[1], opacity: 0 }}
                   transition={spring}

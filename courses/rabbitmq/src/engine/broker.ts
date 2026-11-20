@@ -190,8 +190,9 @@ export type BrokerEvent =
   | { type: "purged"; queue: string; messages: number }
   | { type: "bound"; exchange: string; queue: string; key: string }
   | { type: "unbound"; exchange: string; queue: string; key: string }
-  | { type: "routed"; id: string; exchange: string; routingKey: string; queues: string[]; via?: string }
-  | { type: "unroutable"; id: string; exchange: string; routingKey: string; returned: boolean }
+  /** `message` is the published message as it left the producer, so a drawing can show it even after it is gone. */
+  | { type: "routed"; id: string; exchange: string; routingKey: string; queues: string[]; via?: string; message: Message }
+  | { type: "unroutable"; id: string; exchange: string; routingKey: string; returned: boolean; message: Message }
   | { type: "confirmed"; id: string; ok: boolean; reason?: string }
   | { type: "delivered"; id: string; tag: string; queue: string; redelivered: boolean; autoAck: boolean }
   | { type: "acked"; ids: string[]; tag: string }
@@ -552,13 +553,13 @@ function publish(s: Broker, msg: Message, mandatory: boolean, events: BrokerEven
     via = alt;
   }
   if (queues.length === 0) {
-    events.push({ type: "unroutable", id: msg.id, exchange: msg.exchange, routingKey: msg.routingKey, returned: mandatory });
+    events.push({ type: "unroutable", id: msg.id, exchange: msg.exchange, routingKey: msg.routingKey, returned: mandatory, message: msg });
     if (!mandatory) s.lost.push({ id: msg.id, reason: "unroutable" });
     // The broker confirms unroutable messages too: it took responsibility, even if it dropped them.
     events.push({ type: "confirmed", id: msg.id, ok: true });
     return;
   }
-  events.push({ type: "routed", id: msg.id, exchange: msg.exchange, routingKey: msg.routingKey, queues, via });
+  events.push({ type: "routed", id: msg.id, exchange: msg.exchange, routingKey: msg.routingKey, queues, via, message: msg });
   let ok = true;
   let reason: string | undefined;
   for (const name of queues) {

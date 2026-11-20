@@ -48,6 +48,8 @@ export interface ViewInfo {
   last: BrokerEvent[];
   /** Message ids the last action touched, to highlight. */
   fresh: Set<string>;
+  /** The state before the last action, so the stage can move each message from where it was. */
+  prev: Broker;
   t: (x: L) => string;
   lang: Lang;
 }
@@ -110,7 +112,8 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
     const { t, lang } = useLang();
     const sandbox = Boolean(config.sandbox) && step === sandboxStep;
     const count = sandbox ? 0 : (config.steps[step]?.length ?? 0);
-    const cursor = usePlayback(count, paused, `${step}-${replayKey}`);
+    // Each action gets time for its whole motion: to the exchange, into the queue, on to a consumer.
+    const cursor = usePlayback(count, paused, `${step}-${replayKey}`, ACTION_MS);
 
     const [moves, setMoves] = useState<BrokerAction[]>([]);
     const sandRun = useMemo(() => (sandbox ? simulate(moves, sandboxStart) : null), [sandbox, moves]);
@@ -136,9 +139,8 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
       shown = run.events.slice(s0, s0 + cursor).flat();
     }
     const prev = sandRun ? (sandRun.states[sandRun.states.length - 2] ?? sandboxStart) : run.states[Math.max(0, stepStart(Math.min(step, sandboxStep)) + cursor - 1)]!;
-    void prev;
     const fresh = new Set(last.flatMap((e) => ("id" in e ? [e.id] : [])));
-    const info: ViewInfo = { step, sandbox, last, fresh, t, lang };
+    const info: ViewInfo = { step, sandbox, last, fresh, prev, t, lang };
 
     const mission = sandbox && missionIndex !== null ? missions[missionIndex] : undefined;
     const won = Boolean(mission && sandRun && mission.check({ start: sandboxStart, state, actions: moves, events: sandRun.events, states: sandRun.states }));
@@ -231,6 +233,9 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
 
   return { Scene, changesFor, run, stepStart, stepEnd, sandboxStart, moves };
 }
+
+/** Milliseconds per action: the longest motion (publish, route, deliver) takes about 1.4 s. */
+const ACTION_MS = 1500;
 
 const l = (tr: string, en: string): L => ({ tr, en });
 const text = {

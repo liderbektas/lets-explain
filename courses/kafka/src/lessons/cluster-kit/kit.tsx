@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
-import { leaderLog, type RState } from "../../engine/replication";
+import { leaderLog, type REvent, type RState } from "../../engine/replication";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import type { L } from "@lets-explain/core/i18n";
 import { useLang } from "@lets-explain/core/i18n";
@@ -118,11 +118,29 @@ export function useSceneState<S, A, E>(opts: {
 const PARTITION_TINTS: Tint[] = [TINTS.mint, TINTS.sky, TINTS.lilac, TINTS.coral];
 export const partitionTint = (i: number) => PARTITION_TINTS[i % PARTITION_TINTS.length]!;
 
-/** Turns a replication state into what ClusterStage draws. Records at or past the HW look dim. */
+/** Records that reached a copy in the latest action, by `partition:broker:offset`, from the engine's events. */
+export function arrivalsOf(events: REvent[]): Map<string, "producer" | "copy"> {
+  const out = new Map<string, "producer" | "copy">();
+  for (const e of events) {
+    if (e.type === "produced") out.set(`${e.partition}:${e.leader}:${e.offset}`, "producer");
+    // A follower fetched [from, to) from the leader.
+    if (e.type === "replicated") for (let o = e.from; o < e.to; o++) out.set(`${e.partition}:${e.broker}:${o}`, "copy");
+  }
+  return out;
+}
+
+/**
+ * Turns a replication state into what ClusterStage draws. Records at or past the HW look dim.
+ * Pass the latest action's events to let new records travel the way they really came.
+ */
 export function toStage(
   s: RState,
-  opts: { brokerName: (id: number) => string; showHw?: boolean; dimUncommitted?: boolean; roof?: (id: number) => Tint },
+  opts: { brokerName: (id: number) => string; showHw?: boolean; dimUncommitted?: boolean; roof?: (id: number) => Tint; events?: REvent[] },
 ): { brokers: StageBroker[]; partitions: StagePartition[] } {
+  const arrivals = arrivalsOf(opts.events ?? []);
+  // A reassignment copies the whole log from the leader onto the brokers it adds.
+  const reassigned = new Map<number, number[]>();
+  for (const e of opts.events ?? []) if (e.type === "reassigned") reassigned.set(e.partition, e.to.filter((b) => !e.from.includes(b)));
   const brokers: StageBroker[] = s.brokers.map((b) => ({
     id: b.id,
     name: opts.brokerName(b.id),
@@ -146,6 +164,7 @@ export function toStage(
           offset: r.offset,
           kind: kinds[p.index % kinds.length],
           state: opts.dimUncommitted && r.offset >= p.hw ? ("dim" as const) : ("normal" as const),
+          arrived: reassigned.get(p.index)?.includes(b) ? ("copy" as const) : arrivals.get(`${p.index}:${b}:${r.offset}`),
         })),
       };
     }),

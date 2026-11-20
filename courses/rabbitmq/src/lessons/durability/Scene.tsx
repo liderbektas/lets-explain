@@ -86,6 +86,7 @@ export const scene = makeBrokerScene({
     <BrokerStage
       broker={b}
       last={info.last}
+      prev={info.prev}
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={{ producers: info.sandbox ? [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: JOBS }] : producers(b, info.t, ["orders", "temp", "payments"]) }}

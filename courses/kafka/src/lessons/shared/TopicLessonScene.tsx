@@ -113,11 +113,11 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
   const topic = state.topics[c.topic];
   const partitions = topic?.partitions ?? [];
 
-  const marks = new Map<string, { state: ParcelState; tint?: Tint }>();
+  const marks = new Map<string, { state: ParcelState; tint?: Tint; to?: string }>();
   for (const e of last) {
     if (e.type !== "delivered") continue;
     const index = e.tp.slice(e.tp.lastIndexOf("-") + 1);
-    marks.set(`${index}:${e.offset}`, { state: e.duplicate ? "dup" : "read", tint: c.tintOf(e.group, e.member) });
+    marks.set(`${index}:${e.offset}`, { state: e.duplicate ? "dup" : "read", tint: c.tintOf(e.group, e.member), to: e.member });
   }
 
   const produced = last.some((e) => e.type === "produced");

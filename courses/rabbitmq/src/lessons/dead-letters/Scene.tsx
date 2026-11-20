@@ -125,6 +125,7 @@ export const scene = makeBrokerScene({
         <BrokerStage
           broker={b}
           last={info.last}
+          prev={info.prev}
           labels={labels(info.t)}
           kindOf={kindOf}
           box={{ x: 0, y: 0, w: 620, h: 470 }}

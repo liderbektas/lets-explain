@@ -43,6 +43,7 @@ const BELT_END = WINDOW * SLOT + 0.75;
 const at = (x: number, y: number, z = 0) => project(F, x, y, z);
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 const APP: [number, number] = [214, 118];
+const CHANGELOG_AT: [number, number] = [318, 10];
 
 const KIND: Record<City, "order" | "payment" | "cancel"> = { İstanbul: "order", Ankara: "payment", İzmir: "cancel" };
 const FILL: Record<City, string> = { İstanbul: "var(--mint)", Ankara: "var(--sky)", İzmir: "var(--peach)" };
@@ -328,10 +329,12 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
           {t(text.library)}
         </text>
       </g>
-      <StoreCard x={14} y={10} state={state} t={t} lang={lang} />
+      {/* On restart the store is rebuilt by reading the changelog back, so its rows come from there. */}
+      <StoreCard x={14} y={10} state={state} t={t} lang={lang} from={restoredNow ? CHANGELOG_AT : undefined} />
 
-      <UpdatesCard x={318} y={10} w={250} title={t(text.changelog)} updates={state.changelog} lang={lang} />
-      <UpdatesCard x={584} y={10} w={262} title={t(text.output)} updates={state.output} lang={lang} />
+      {/* The app writes every update to both topics: new entries leave the app. */}
+      <UpdatesCard x={CHANGELOG_AT[0]} y={CHANGELOG_AT[1]} w={250} title={t(text.changelog)} updates={state.changelog} lang={lang} from={APP} />
+      <UpdatesCard x={584} y={10} w={262} title={t(text.output)} updates={state.output} lang={lang} from={APP} />
       <TableCard x={584} y={124} title={t(text.table)} table={table} right={right} rightLabel={t(text.right)} lang={lang} />
 
       <AnimatePresence>
@@ -347,7 +350,7 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
 
 /* ------------------------------------------------------------- pieces */
 
-function StoreCard({ x, y, state, t, lang }: { x: number; y: number; state: StreamsState; t: (x: L) => string; lang: Lang }) {
+function StoreCard({ x, y, state, t, lang, from }: { x: number; y: number; state: StreamsState; t: (x: L) => string; lang: Lang; from?: [number, number] }) {
   const cities = CITIES.filter((c) => state.store[c] !== undefined);
   const w = 160;
   const h = 34 + Math.max(cities.length, 1) * 19 + 4;
@@ -364,22 +367,29 @@ function StoreCard({ x, y, state, t, lang }: { x: number; y: number; state: Stre
         </text>
       ) : (
         cities.map((c, i) => (
-          <g key={c} transform={`translate(10 ${28 + i * 19})`}>
-            <rect width={10} height={10} y={2} rx={3} className="ink" style={{ fill: FILL[c] }} />
-            <text x={16} y={11} className="ks-row">
-              {cityName(c, lang)}
-            </text>
-            <text x={w - 22} y={11} textAnchor="end" className="ks-strong">
-              {state.store[c]}
-            </text>
-          </g>
+          <motion.g
+            key={c}
+            initial={from ? { opacity: 0, x: from[0] - x, y: from[1] - y } : false}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ ...spring, delay: i * 0.08 }}
+          >
+            <g transform={`translate(10 ${28 + i * 19})`}>
+              <rect width={10} height={10} y={2} rx={3} className="ink" style={{ fill: FILL[c] }} />
+              <text x={16} y={11} className="ks-row">
+                {cityName(c, lang)}
+              </text>
+              <text x={w - 22} y={11} textAnchor="end" className="ks-strong">
+                {state.store[c]}
+              </text>
+            </g>
+          </motion.g>
         ))
       )}
     </g>
   );
 }
 
-function UpdatesCard({ x, y, w, title, updates, lang }: { x: number; y: number; w: number; title: string; updates: Update[]; lang: Lang }) {
+function UpdatesCard({ x, y, w, title, updates, lang, from }: { x: number; y: number; w: number; title: string; updates: Update[]; lang: Lang; from: [number, number] }) {
   const perRow = Math.floor((w - 16) / 58);
   const shown = updates.slice(-perRow * 2);
   return (
@@ -397,9 +407,16 @@ function UpdatesCard({ x, y, w, title, updates, lang }: { x: number; y: number; 
       <AnimatePresence initial={false}>
         {shown.map((u, i) => {
           const index = updates.length - shown.length + i;
+          const sx = 10 + (i % perRow) * 58;
+          const sy = 30 + Math.floor(i / perRow) * 28;
           return (
-            <motion.g key={index} initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={spring}>
-              <g transform={`translate(${10 + (i % perRow) * 58} ${30 + Math.floor(i / perRow) * 28})`}>
+            <motion.g
+              key={index}
+              initial={{ opacity: 0, scale: 0.7, x: from[0] - x - sx, y: from[1] - y - sy }}
+              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              transition={spring}
+            >
+              <g transform={`translate(${sx} ${sy})`}>
                 <rect width={54} height={22} rx={8} className={`ks-chip ks-chip-${u.status}`} style={u.status === "committed" ? { fill: FILL[u.city] } : undefined} />
                 <text x={27} y={15} textAnchor="middle" className={`ks-mono ${u.status === "aborted" ? "ks-struck" : ""}`}>
                   {lang === "tr" ? SHORT[u.city] : SHORT[u.city].replace("İ", "I")}={u.count}

@@ -7,7 +7,7 @@ import { Belt, IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes
  * lessons. Each island is drawn around (0, 0), the centre of its top face.
  */
 
-export type IslandId = "kafka" | "rabbitmq" | "kubernetes" | "git" | "transactions" | "docker";
+export type IslandId = "kafka" | "rabbitmq" | "kubernetes" | "git" | "transactions" | "docker" | "cicd";
 
 /** The pastel each technology wears on the hub, in island tops and card headers. */
 export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
@@ -17,6 +17,7 @@ export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
   git: { top: "var(--lilac)", soft: "var(--lilac-soft)" },
   transactions: { top: "var(--mint)", soft: "var(--mint-soft)" },
   docker: { top: "var(--sky-deep)", soft: "#dcebff" },
+  cicd: { top: "var(--tangerine)", soft: "var(--tangerine-soft)" },
 };
 
 const GROUND: Shades = ["#fffdf8", "#efe5d2", "#ddd0b8"];
@@ -180,6 +181,23 @@ function DockerTop({ s }: { s: number }) {
   );
 }
 
+/* ------------------------------------------------------------- CI/CD */
+
+const MINT: Shades = ["var(--mint)", "var(--mint-mid)", "var(--mint-deep)"];
+
+function CicdTop({ s }: { s: number }) {
+  // A belt carrying a commit past three check stations; the last one is lit green.
+  return (
+    <g>
+      <Belt s={s} from={-1.4} to={1.4} slot={0.7} />
+      {[-0.95, 0, 0.95].map((x, i) => (
+        <g key={x}>{at(s, x, -1.0, 0, <IsoBox s={s} at={[-0.25, -0.25, 0]} size={[0.5, 0.5, 0.55 + i * 0.12]} shades={i === 2 ? MINT : i === 1 ? SUN : SKY} />)}</g>
+      ))}
+      {at(s, 0.35, 0, 0, <Parcel s={s} size={0.55} kind="order" />)}
+    </g>
+  );
+}
+
 const TOPS: Record<IslandId, (p: { s: number }) => ReactNode> = {
   kafka: KafkaTop,
   rabbitmq: RabbitTop,
@@ -187,6 +205,7 @@ const TOPS: Record<IslandId, (p: { s: number }) => ReactNode> = {
   git: GitTop,
   transactions: DbTop,
   docker: DockerTop,
+  cicd: CicdTop,
 };
 
 /** A whole island: slab plus its landmark. */
@@ -216,9 +235,10 @@ export function IslandsHero({ labels, live }: { labels: Record<IslandId, string>
   const spots: [IslandId, number, number, number][] = [
     ["git", 120, 120, 0.9],
     ["kubernetes", 330, 95, 0.95],
-    ["rabbitmq", 95, 300, 0.95],
+    ["rabbitmq", 88, 282, 0.9],
     ["transactions", 345, 280, 0.9],
-    ["docker", 222, 352, 0.85],
+    ["docker", 168, 392, 0.76],
+    ["cicd", 318, 392, 0.76],
     ["kafka", 222, 205, 1.25],
   ];
   return (

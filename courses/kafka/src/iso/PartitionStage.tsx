@@ -21,8 +21,12 @@ interface Props {
   producerName: string;
   producerState: PersonState;
   producerPulse?: number;
-  /** Per-offset highlight for this moment: who just read it, or that it was read again. */
-  marks: Map<number, { state: ParcelState; tint?: Tint }>;
+  /**
+   * Per-offset highlight for this moment: who just read it, or that it was read again.
+   * `to` names the reader that fetched it in this action: a copy travels to that reader,
+   * while the record itself stays on the log.
+   */
+  marks: Map<number, { state: ParcelState; tint?: Tint; to?: string }>;
   kindOf: (value: string) => "order" | "cancel" | "payment";
   labels: { next: string; retention: string };
   showShredder?: boolean;
@@ -62,12 +66,21 @@ export function PartitionStage({
   const ghost = at(xOf(partition.logEndOffset), 0);
   const s = FRAME.s;
 
-  // Exit animation: deleted records fall into the shredder, others just slide off.
-  // The latest logStartOffset reaches exiting parcels through AnimatePresence's `custom`.
-  const exitFor = (offset: number) => (logStart: number) =>
-    offset < logStart
-      ? { x: shredderAt[0], y: shredderAt[1] - s * 0.6, opacity: 0, scale: 0.4 }
-      : { x: at(-0.4, 0)[0], y: at(-0.4, 0)[1], opacity: 0 };
+  // Exit animation: a record that no longer exists falls into the shredder; one that is still on
+  // the log but scrolled out of view slides off. The current partition reaches exiting parcels
+  // through AnimatePresence's `custom`.
+  const exitFor = (offset: number) => (now: Partition) =>
+    now.records.some((r) => r.offset === offset)
+      ? { x: at(-0.4, 0)[0], y: at(-0.4, 0)[1], opacity: 0 }
+      : { x: shredderAt[0], y: shredderAt[1] - s * 0.6, opacity: 0, scale: 0.4 };
+
+  const walk = { type: "spring", stiffness: 120, damping: 20 } as const;
+  const placed = readers.map((reader, i) => {
+    const lane = LANES[i] ?? LANES[0]! + i * 1.4;
+    const alive = reader.position !== undefined;
+    const standX = xOf(alive ? reader.position! : (reader.committed ?? first));
+    return { reader, i, lane, alive, standX, at: at(standX, lane) };
+  });
 
   return (
     <g>
@@ -91,7 +104,7 @@ export function PartitionStage({
         </text>
       </motion.g>
 
-      <AnimatePresence initial={false} custom={partition.logStartOffset}>
+      <AnimatePresence initial={false} custom={partition}>
         {visible.map((r) => {
           const [x, y] = at(xOf(r.offset), 0);
           const mark = marks.get(r.offset);
@@ -110,17 +123,12 @@ export function PartitionStage({
         })}
       </AnimatePresence>
 
-      {readers.map((reader, i) => {
-        const lane = LANES[i] ?? LANES[0]! + i * 1.4;
-        const alive = reader.position !== undefined;
-        const standX = xOf(alive ? reader.position! : (reader.committed ?? first));
-        const [px, py] = at(standX, lane);
+      {placed.map(({ reader, i, lane, alive, standX, at: [px, py] }) => {
         // Where the reader is looking: the front edge of the belt at its slot.
         const [fx, fy] = at(standX, 0.68);
         // Seals sit on opposite sides per lane so one reader never hides the other's seal.
         const sealOffset: [number, number] = i % 2 === 0 ? [0.75, -0.35] : [-1.0, 0.3];
         const seal = reader.committed !== undefined ? at(xOf(reader.committed) + sealOffset[0], lane + sealOffset[1]) : null;
-        const walk = { type: "spring", stiffness: 120, damping: 20 } as const;
         return (
           <g key={reader.id}>
             {seal && (
@@ -152,6 +160,24 @@ export function PartitionStage({
               <NameTag y={22} text={reader.name} tint={reader.state === "crashed" ? TINTS.grey : reader.tint} />
             </motion.g>
           </g>
+        );
+      })}
+
+      {/* Reading copies a record to the reader; the original stays where it is. */}
+      {[...marks].map(([offset, mark]) => {
+        const target = mark.to === undefined ? undefined : placed.find((p) => p.reader.id === mark.to && p.alive);
+        const record = visible.find((r) => r.offset === offset);
+        if (!target || !record || (mark.state !== "read" && mark.state !== "dup")) return null;
+        const [rx, ry] = at(xOf(offset), 0);
+        return (
+          <motion.g
+            key={`copy-${offset}-${mark.to}-${target.reader.pulse ?? 0}`}
+            initial={{ x: rx, y: ry - s * 0.3, opacity: 0, scale: 0.6 }}
+            animate={{ x: target.at[0], y: target.at[1] - 50, opacity: [0, 1, 1, 0], scale: 0.6 }}
+            transition={{ duration: 0.75, ease: "easeInOut", opacity: { duration: 0.75, times: [0, 0.15, 0.8, 1] } }}
+          >
+            <Parcel s={s} kind={kindOf(record.value)} />
+          </motion.g>
         );
       })}
 

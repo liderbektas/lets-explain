@@ -80,6 +80,7 @@ export const scene = makeBrokerScene({
     <BrokerStage
       broker={b}
       last={info.last}
+      prev={info.prev}
       labels={labels(info.t)}
       layout={{
         producers: [{ id: "shop", label: info.t(info.sandbox ? l("Yayıncı", "Publisher") : l("Mağaza", "Shop")), exchange: info.sandbox ? NEWS : EX }],

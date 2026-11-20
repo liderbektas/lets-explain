@@ -170,17 +170,23 @@ function TodoPanel({ repo, items, t }: { repo: Repo; items: PlanItem[]; t: (x: L
         const c = repo.commits[item.id];
         const msg = item.action === "reword" || item.action === "squash" ? (item.message ?? c?.message ?? "") : (c?.message ?? "");
         return (
-          <motion.g key={`${item.id}-${item.action}`} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-            <rect x={x + 10} y={y + 42 + i * 30} width={w - 20} height={24} rx={7} className={`todo-row is-${item.action}`} />
-            <text x={x + 18} y={y + 58 + i * 30} className={`todo-action is-${item.action}`} style={{ fill: ACTION_FILL[item.action] }}>
+          // One row per commit: moving a line in the editor moves the row, changing its word changes it in place.
+          <motion.g
+            key={item.id}
+            initial={{ opacity: 0, x: -8, y: i * 30 }}
+            animate={{ opacity: 1, x: 0, y: i * 30 }}
+            transition={{ y: { type: "spring", stiffness: 170, damping: 22 }, opacity: { delay: i * 0.05 }, x: { delay: i * 0.05 } }}
+          >
+            <rect x={x + 10} y={y + 42} width={w - 20} height={24} rx={7} className={`todo-row is-${item.action}`} />
+            <text x={x + 18} y={y + 58} className={`todo-action is-${item.action}`} style={{ fill: ACTION_FILL[item.action] }}>
               {item.action}
             </text>
-            <text x={x + 82} y={y + 58 + i * 30} className="todo-id" style={{ fill: "#b9b2c2" }}>
+            <text x={x + 82} y={y + 58} className="todo-id" style={{ fill: "#b9b2c2" }}>
               {short(item.id)}
             </text>
             <text
               x={x + 146}
-              y={y + 58 + i * 30}
+              y={y + 58}
               className={`todo-line ${item.action === "drop" ? "is-drop" : ""}`}
               style={{ fill: item.action === "drop" ? "#b9b2c2" : "#f4efe6" }}
             >

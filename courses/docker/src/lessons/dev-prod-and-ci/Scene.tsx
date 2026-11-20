@@ -118,7 +118,7 @@ export const scene = makeDockerScene({
     const t = info.t;
     if (info.last.some((e) => e.type === "buildStep") && h.lastBuild && !(!info.sandbox && info.step >= 6)) {
       const b = h.lastBuild;
-      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} />;
+      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} play />;
     }
     if (!info.sandbox && (info.step === 6 || info.step === 7)) {
       return (

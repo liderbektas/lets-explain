@@ -1,7 +1,7 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { aheadBehind, BORA, createRepo, currentBranch, headId, reachable, short, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
+import { GraphStage, graphGeometry } from "../../iso/GraphStage";
 
 /**
  * Your repository and origin side by side. origin is drawn as its own small repo built
@@ -52,14 +52,26 @@ const text = {
   tracking: l("origin/", "origin/"),
 };
 
+/** Where each side draws a commit, so pushed and fetched commits travel from one repo to the other. */
+export function placeIn(repo: Repo | null, box: { x: number; y: number; w: number; h: number }, opts: { showGhosts?: boolean; messages?: boolean } = {}) {
+  if (!repo) return () => undefined;
+  const g = graphGeometry(repo, box, opts);
+  return (id: string) => (g.layout.pos.has(id) ? g.at(id) : undefined);
+}
+
+const LOCAL_BOX = { x: 0, y: 0, w: 440, h: 470 };
+const ORIGIN_BOX = { x: 452, y: 0, w: 396, h: 470 };
+
 export function TwoRepos({ repo, fresh, t }: { repo: Repo; fresh: Set<string>; t: (x: L) => string }) {
-  const origin = originView(repo);
+  const originRepo = originView(repo);
+  const local = recent(repo);
+  const origin = originRepo && recent(originRepo, 3, true);
   return (
     <g>
       <rect x={452} y={14} width={396} height={442} rx={22} className="area-tray" style={{ fill: "var(--lilac-soft)", opacity: 0.6 }} />
       <line x1={444} x2={444} y1={30} y2={440} stroke="var(--ink)" strokeWidth={2} strokeDasharray="6 6" opacity={0.35} />
-      <GraphStage repo={recent(repo)} box={{ x: 0, y: 0, w: 440, h: 470 }} highlight={fresh} title={t(text.local)} showGhosts={false} />
-      {origin && <GraphStage repo={recent(origin, 3, true)} box={{ x: 452, y: 0, w: 396, h: 470 }} highlight={fresh} hideHead title={t(text.origin)} />}
+      <GraphStage repo={local} box={LOCAL_BOX} highlight={fresh} title={t(text.local)} showGhosts={false} arrivals={placeIn(origin, ORIGIN_BOX)} />
+      {origin && <GraphStage repo={origin} box={ORIGIN_BOX} highlight={fresh} hideHead title={t(text.origin)} arrivals={placeIn(local, LOCAL_BOX, { showGhosts: false })} />}
     </g>
   );
 }

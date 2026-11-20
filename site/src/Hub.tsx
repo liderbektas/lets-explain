@@ -1,6 +1,7 @@
 import { CourseProvider } from "@lets-explain/core/course/context";
 import type { Course } from "@lets-explain/core/course/types";
 import { HowItWorks } from "@lets-explain/core/components/HowItWorks";
+import { Credit } from "@lets-explain/core/components/Credit";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
@@ -36,6 +37,7 @@ const islandLabels = (t: (x: { tr: string; en: string }) => string): Record<Isla
   git: "Git",
   transactions: t(l("Transaction", "Transactions")),
   docker: "Docker",
+  cicd: "CI/CD",
 });
 
 export function Hub() {
@@ -95,6 +97,7 @@ export function Hub() {
           ))}
         </div>
       </section>
+      <Credit />
     </div>
   );
 }

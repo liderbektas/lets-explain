@@ -32,7 +32,7 @@ export function BrokersScene({ step, paused, replayKey, controls: frameControls 
   const { t, lang } = useLang();
   const view = useSceneState({ model, run, stepActions, step, sandboxStep: SANDBOX_STEP, paused, replayKey });
   const s = view.state;
-  const stage = toStage(s, { brokerName: brokerName(lang) });
+  const stage = toStage(s, { brokerName: brokerName(lang), events: view.lastEvents });
 
   const produced = view.lastEvents.find((e) => e.type === "produced" || e.type === "rejected");
   const target = produced && (produced.type === "produced" || produced.type === "rejected") ? `p${produced.partition}` : null;

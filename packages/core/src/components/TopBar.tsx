@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLang, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
+import { GITHUB, GITHUB_URL, GitHubMark } from "@lets-explain/core/components/Credit";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { courseHref } from "@lets-explain/core/lib/router";
 
@@ -11,7 +13,7 @@ interface Props {
 }
 
 export function TopBar({ course, onMenu }: Props) {
-  const { lang, setLang, t } = useLang();
+  const { t } = useLang();
 
   return (
     <header className={`topbar ${course ? "has-course" : ""}`}>
@@ -31,15 +33,95 @@ export function TopBar({ course, onMenu }: Props) {
             <span className="hide-sm">{t(ui.lessonsMenu)}</span>
           </button>
         )}
-        <div className="lang-switch" role="group" aria-label={t(ui.language)}>
-          {(["tr", "en"] as Lang[]).map((code) => (
-            <button key={code} aria-pressed={lang === code} onClick={() => setLang(code)}>
-              {code.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        <a className="gh-chip" href={GITHUB_URL} target="_blank" rel="noopener noreferrer" aria-label={`GitHub: @${GITHUB}`}>
+          <span className="gh-chip-icon">
+            <GitHubMark size={16} />
+          </span>
+          <span className="gh-chip-handle">@{GITHUB}</span>
+        </a>
+        <LangMenu />
       </div>
     </header>
+  );
+}
+
+const LANGS: { code: Lang; name: string }[] = [
+  { code: "tr", name: "Türkçe" },
+  { code: "en", name: "English" },
+];
+
+/** The language picker: a button showing the current language that opens a short menu. */
+function LangMenu() {
+  const { lang, setLang, t } = useLang();
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const items = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Close on a click outside or Escape; when it opens, focus the language in use.
+  useEffect(() => {
+    if (!open) return;
+    items.current[LANGS.findIndex((x) => x.code === lang)]?.focus();
+    const onDown = (e: MouseEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open, lang]);
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setOpen(false);
+      trigger.current?.focus();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const at = items.current.findIndex((el) => el === document.activeElement);
+      const next = (at + (e.key === "ArrowDown" ? 1 : -1) + LANGS.length) % LANGS.length;
+      items.current[next]?.focus();
+    }
+  };
+
+  const pick = (code: Lang) => {
+    setLang(code);
+    setOpen(false);
+    trigger.current?.focus();
+  };
+
+  return (
+    <div className="lang-menu" ref={root} onKeyDown={onKey}>
+      <button
+        ref={trigger}
+        className="lang-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${t(ui.language)}: ${LANGS.find((x) => x.code === lang)?.name}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <Icon name="globe" size={17} />
+        <span>{lang.toUpperCase()}</span>
+        <Icon name="down" size={15} />
+      </button>
+      {open && (
+        <ul className="lang-list" role="menu" aria-label={t(ui.language)}>
+          {LANGS.map((x, i) => (
+            <li key={x.code} role="none">
+              <button
+                ref={(el) => {
+                  items.current[i] = el;
+                }}
+                role="menuitemradio"
+                aria-checked={lang === x.code}
+                onClick={() => pick(x.code)}
+              >
+                <span className="lang-code">{x.code.toUpperCase()}</span>
+                {x.name}
+                {lang === x.code && <Icon name="check" size={15} />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

@@ -151,7 +151,7 @@ export const scene = makeGitScene({
       <GraphStage repo={repo} highlight={info.fresh} />
     ) : (
       <g>
-        <AreasStage repo={repo} labels={labels(info.t)} flow={flowOf(info.last)} />
+        <AreasStage repo={repo} labels={labels(info.t)} flow={flowOf(info.last)} last={info.last} />
         {info.sandbox && <TagOverlay repo={repo} />}
       </g>
     ),

@@ -225,10 +225,12 @@ export function DeliverySemanticsScene({ step, paused, replayKey, controls }: Sc
 
   const pulse = sandbox ? extra.length : cursor;
   const lost = lostOffsets(state);
-  const marks = new Map<number, { state: ParcelState; tint?: Tint }>();
+  const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
   for (const o of lost) marks.set(o, { state: "dim" });
   for (const [o, n] of Object.entries(state.sent)) if (n > 1) marks.set(Number(o), { state: "dup" });
-  for (const o of state.hand) marks.set(o, { state: "read", tint: READER_TINT });
+  // Records polled in this action travel to the service; the ones already in hand just stay ticked.
+  const polledNow = new Set(lastEvents.flatMap((e) => (e.type === "read" ? [e.offset] : [])));
+  for (const o of state.hand) marks.set(o, { state: "read", tint: READER_TINT, to: polledNow.has(o) ? "email" : undefined });
 
   const readNow = lastEvents.some((e) => e.type === "read");
   const happyNow = lastEvents.some((e) => e.type === "committed" || (e.type === "sent" && e.times === 1) || e.type === "skipped");

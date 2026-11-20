@@ -1,5 +1,6 @@
+import { AnimatePresence, motion, type Variants } from "motion/react";
 import { l, type L } from "@lets-explain/core/i18n";
-import { ADA, createRepo, currentBranch, short, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, currentBranch, short, simulate, status, type GitAction, type GitEvent, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
 import { makeGitScene, type SandboxRow } from "../shared/GitScene";
 import { missions } from "./missions";
@@ -113,8 +114,21 @@ const text = {
   empty: l("boş", "empty"),
 };
 
-/** The right-hand panel: what is unsaved in the folder, and what is in the stash. */
-function SidePanel({ repo, t }: { repo: Repo; t: (x: L) => string }) {
+/** Where rows sit in the two cards: unsaved changes on top, stash entries below. */
+const FOLDER_ROW = (i: number) => 78 + i * 42;
+const STASH_ROW = (i: number) => 270 + i * 50;
+const glide = { type: "spring", stiffness: 170, damping: 22 } as const;
+/** A row leaving: into the stash (`git stash`), back to the folder (`stash pop`), or just gone. */
+const leave: Variants = { leave: (to: number | null) => (to === null ? { opacity: 0, transition: { duration: 0.2 } } : { y: to, opacity: 0, transition: { duration: 0.55, ease: "easeInOut" } }) };
+
+/**
+ * The right-hand panel: what is unsaved in the folder, and what is in the stash. `git stash`
+ * takes the changes out of the folder and pushes them onto the stack as stash@{0} (older
+ * entries move down a slot); `stash pop` takes the top entry off and puts its changes back.
+ */
+function SidePanel({ repo, t, last }: { repo: Repo; t: (x: L) => string; last: GitEvent[] }) {
+  const stashing = last.some((e) => e.type === "stashed");
+  const popping = last.some((e) => e.type === "stashApplied");
   const st = status(repo);
   const changes = [
     ...st.staged.map((c) => ({ path: c.path, tag: "staged" })),
@@ -141,8 +155,18 @@ function SidePanel({ repo, t }: { repo: Repo; t: (x: L) => string }) {
           {t(text.clean)}
         </text>
       ) : (
-        changes.slice(0, 3).map((c, i) => (
-          <g key={c.path} transform={`translate(${x + 14} ${44 + 34 + i * 42})`}>
+        null
+      )}
+      <AnimatePresence initial={false} custom={stashing ? STASH_ROW(0) : null}>
+        {changes.slice(0, 3).map((c, i) => (
+          <motion.g
+            key={c.path}
+            variants={leave}
+            initial={popping ? { x: x + 14, y: STASH_ROW(0), opacity: 1 } : { x: x + 14, y: FOLDER_ROW(i), opacity: 0 }}
+            animate={{ x: x + 14, y: FOLDER_ROW(i), opacity: 1 }}
+            exit="leave"
+            transition={glide}
+          >
             <rect width={w - 28} height={34} rx={9} className="area-tray" style={{ fill: "var(--card)" }} />
             <text x={12} y={14} className="file-name">
               {c.path}
@@ -150,25 +174,36 @@ function SidePanel({ repo, t }: { repo: Repo; t: (x: L) => string }) {
             <text x={12} y={27} className="file-body">
               {clip(repo.work[c.path] ?? "—", 22)}
             </text>
-          </g>
-        ))
-      )}
+          </motion.g>
+        ))}
+      </AnimatePresence>
       {card(232, 200, t(text.stash), "var(--lilac-soft)")}
       {repo.stash.length === 0 ? (
         <text x={x + 16} y={284} className="area-empty">
           {t(text.empty)}
         </text>
       ) : (
-        repo.stash.slice(0, 3).map((e, i) => (
-          <g key={`${i}-${e.base}`} transform={`translate(${x + 14} ${232 + 38 + i * 50})`}>
+        null
+      )}
+      <AnimatePresence initial={false} custom={popping ? FOLDER_ROW(0) : null}>
+        {repo.stash.slice(0, 3).map((e, i) => (
+          // Keyed by depth from the bottom of the stack: an entry keeps its key as others are pushed on top.
+          <motion.g
+            key={`stash-${repo.stash.length - i}-${e.base}`}
+            variants={leave}
+            initial={stashing && i === 0 ? { x: x + 14, y: FOLDER_ROW(0), opacity: 1 } : { x: x + 14, y: STASH_ROW(i), opacity: 0 }}
+            animate={{ x: x + 14, y: STASH_ROW(i), opacity: 1 }}
+            exit="leave"
+            transition={stashing && i === 0 ? { duration: 0.55, ease: "easeInOut" } : glide}
+          >
             <rect width={w - 28} height={40} rx={9} className="area-tray" style={{ fill: "var(--card)" }} />
             <text x={12} y={16} className="file-name">{`stash@{${i}}`}</text>
             <text x={12} y={31} className="file-body">
               {clip(`${Object.keys(e.work).join(", ")} · ${short(e.base)}`, 24)}
             </text>
-          </g>
-        ))
-      )}
+          </motion.g>
+        ))}
+      </AnimatePresence>
     </g>
   );
 }
@@ -185,7 +220,7 @@ export const scene = makeGitScene({
   view: (repo, info) => (
     <g>
       <GraphStage repo={repo} box={{ x: 0, y: 0, w: 640, h: 470 }} highlight={info.fresh} />
-      <SidePanel repo={repo} t={info.t} />
+      <SidePanel repo={repo} t={info.t} last={info.last} />
     </g>
   ),
   metrics: (repo, t) => {

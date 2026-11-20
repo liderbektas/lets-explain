@@ -99,7 +99,7 @@ export const scene = makeDockerScene({
     const t = info.t;
     if (info.last.some((e) => e.type === "buildStep") && h.lastBuild) {
       const b = h.lastBuild;
-      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} />;
+      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} play />;
     }
     if (!info.sandbox && info.step === 0) {
       return <ProjectPanel files={contextOf(h)} ignore={[]} title={t(l("Proje klasörün", "Your project folder"))} ignoredLabel={t(l("dışarıda", "left out"))} sentLabel={t(l("build'e gider", "sent to build"))} />;

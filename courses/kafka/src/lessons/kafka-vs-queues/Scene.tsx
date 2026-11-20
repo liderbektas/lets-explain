@@ -252,10 +252,12 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
   const yours = sandbox ? ` ${t(text.yours)}` : "";
 
   if (view === "queue") {
-    const marks = new Map<number, { state: ParcelState; tint?: Tint }>();
+    const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
     for (const w of ["a", "b", "c"] as Worker[]) {
       const id = q.inflight[w];
-      if (id !== null) marks.set(id, { state: "read", tint: WORKER_TINT[w] });
+      // A message taken in this action is delivered to its worker; the broker keeps it until the ack.
+      const takenNow = lastEvents.some((e) => e.type === "taken" && e.w === w && e.id === id);
+      if (id !== null) marks.set(id, { state: "read", tint: WORKER_TINT[w], to: takenNow ? w : undefined });
     }
     const readers: Reader[] = (["a", "b", "c"] as Worker[])
       .filter((w) => q.joined[w])
@@ -297,10 +299,10 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
     );
   } else if (view === "kafka") {
     const part = kafkaPartition(state);
-    const marks = new Map<number, { state: ParcelState; tint?: Tint }>();
+    const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
     for (const e of lastEvents) {
       if (e.type !== "kafka") continue;
-      for (const x of e.events) if (x.type === "delivered") marks.set(x.offset, { state: x.duplicate ? "dup" : "read", tint: GROUP_TINT[x.group] });
+      for (const x of e.events) if (x.type === "delivered") marks.set(x.offset, { state: x.duplicate ? "dup" : "read", tint: GROUP_TINT[x.group], to: x.group });
     }
     const groups: GroupRef[] = [BILLING, ANALYTICS].filter((g) => state.kafka.groups[g.group]);
     const readers: Reader[] = groups.map((g) => {
