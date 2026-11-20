@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "prefetch";
 export const QUEUE = "jobs";
@@ -32,32 +32,13 @@ export const steps: BrokerAction[][] = [
   [],
 ];
 
-const names = (t: (x: L) => string) => ({ fast: t(l("Hızlı işçi", "Fast worker")), slow: t(l("Yavaş işçi", "Slow worker")) });
-
-const sandboxStart = (): Broker => simulate(setup, createBroker()).states[setup.length]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const worker = (tag: "fast" | "slow", name: string): SandboxRow => {
-    const connect = tag === "fast" ? fast : slow;
-    return {
-      label: name,
-      buttons: b.consumers[tag]
-        ? [{ label: tr ? "Ayrıl" : "Disconnect", action: { type: "cancel", tag } }]
-        : [
-            { label: tr ? "Bağlan (prefetch 1)" : "Connect (prefetch 1)", action: connect(1), tone: "go" },
-            { label: tr ? "Bağlan (sınırsız)" : "Connect (no limit)", action: connect(0), tone: "go" },
-          ],
-    };
-  };
-  return [
-    { label: tr ? "Uygulama" : "App", buttons: [{ label: tr ? "İş gönder" : "Send job", action: send(`j${sent + 1}`), tone: "producer", disabled: sent >= 6 }] },
-    worker("fast", tr ? "Hızlı" : "Fast"),
-    worker("slow", tr ? "Yavaş" : "Slow"),
-    { label: tr ? "Zaman" : "Time", buttons: [{ label: tr ? "Bir tur bekle" : "Wait one tick", action: tick }] },
-  ];
-}
+const names = (t: (x: L) => string) => ({
+  fast: t(l("Hızlı işçi", "Fast worker")),
+  slow: t(l("Yavaş işçi", "Slow worker")),
+  // Typed: the scripts' consumer tags.
+  fast_worker: t(l("Hızlı işçi", "Fast worker")),
+  slow_worker: t(l("Yavaş işçi", "Slow worker")),
+});
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -73,15 +54,18 @@ export const scene = makeBrokerScene({
       layout={{ producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: QUEUE }], consumerNames: names(info.t) }}
     />
   ),
-  metrics: (b, t) => {
-    const held = (tag: string) => b.consumers[tag]?.unacked.length ?? 0;
-    const done = (tag: string) => b.consumers[tag]?.done.length ?? 0;
+  metrics: (b, t, info) => {
+    // In the try-it step the workers are the scripts, tagged after their files.
+    const tag = (x: "fast" | "slow") => (info.sandbox ? `${x}_worker` : x);
+    const held = (x: "fast" | "slow") => b.consumers[tag(x)]?.unacked.length ?? 0;
+    const done = (x: "fast" | "slow") => b.consumers[tag(x)]?.done.length ?? 0;
     return [
       { label: t(l("Kuyrukta bekleyen", "Waiting")), value: depth(b, QUEUE).ready, tone: depth(b, QUEUE).ready ? "warn" : "plain" },
       { label: t(l("Hızlının bitirdiği", "Fast done")), value: done("fast"), tone: "plain" },
       { label: t(l("Yavaşın elinde", "Slow holds")), value: held("slow"), tone: held("slow") > 1 ? "danger" : "plain" },
-      { label: t(l("Hızlı boşta", "Fast idle")), value: b.consumers.fast ? (held("fast") === 0 ? t(l("evet", "yes")) : t(l("hayır", "no"))) : "—", tone: b.consumers.fast && held("fast") === 0 && depth(b, QUEUE).total > 0 ? "danger" : "plain" },
+      { label: t(l("Hızlı boşta", "Fast idle")), value: b.consumers[tag("fast")] ? (held("fast") === 0 ? t(l("evet", "yes")) : t(l("hayır", "no"))) : "—", tone: b.consumers[tag("fast")] && held("fast") === 0 && depth(b, QUEUE).total > 0 ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the reports project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

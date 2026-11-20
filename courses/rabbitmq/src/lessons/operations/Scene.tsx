@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 import { AlarmPanel, ChecklistPanel, ConnectionsPanel } from "./OpsPanels";
 
 export const SLUG = "operations";
@@ -44,41 +44,8 @@ const names = (t: (x: L) => string): Record<string, string> => ({
   w2: t(l("İşçi 2", "Worker 2")),
   w3: t(l("İşçi 3", "Worker 3")),
   w4: t(l("İşçi 4", "Worker 4")),
+  worker: t(l("İşçi", "Worker")),
 });
-
-/**
- * The sandbox: 4 orders already in, Worker 1 handles one per tick, Worker 2 is stuck and
- * never acks. Both hold two orders each.
- */
-export const sandboxStart = (): Broker =>
-  simulate([{ type: "declareQueue", name: QUEUE }, worker("w1"), worker("w2", 0), order(1), order(2), order(3), order(4)], createBroker()).states[7]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const added = history.filter((a) => a.type === "consume").length;
-  const nextTag = `w${3 + added}`;
-  const out: SandboxRow[] = [
-    {
-      label: tr ? "Mağaza" : "Shop",
-      buttons: [{ label: tr ? "Sipariş geldi" : "New order", action: order(5 + sent), tone: "producer", disabled: sent >= 4 }],
-    },
-    {
-      label: tr ? "Zaman" : "Time",
-      buttons: [{ label: "1 tick", action: tick() }],
-    },
-    {
-      label: tr ? "İşçiler" : "Workers",
-      buttons: [
-        { label: tr ? "İşçi ekle" : "Add worker", action: worker(nextTag), tone: "go", disabled: added >= 2 },
-        ...Object.keys(b.consumers)
-          .sort()
-          .map((tag) => ({ label: `${tr ? "Çökert" : "Crash"} ${tag}`, action: { type: "crashConsumer", tag } as BrokerAction, tone: "danger" as const })),
-      ],
-    },
-  ];
-  return out;
-}
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -111,5 +78,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Bağlı işçilerin bitirdiği", "Done by connected workers")), value: done },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: a few orders and a worker; each scenario brings its own project.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

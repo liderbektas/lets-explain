@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const DX = "docker exec rabbitmq";
@@ -35,7 +35,7 @@ export const operations: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Büyüyen ready'nin yavaş consumer demek olduğunu görmek", "See that growing ready means consumers are too slow"), step: 2 },
     { text: l("Düşmeyen unacked ile takılan consumer'ı bulmak", "Find a stuck consumer from unacked that never drops"), step: 4 },
@@ -338,15 +338,15 @@ export const operations: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Kuyrukta 4 sipariş var. İşçi 1 (`w1`) tick başına bir tane bitiriyor; İşçi 2 (`w2`) bir yerde takılmış, hiç ack göndermiyor. İkisi de 2'şer sipariş tutuyor.",
-          "There are 4 orders in the queue. Worker 1 (`w1`) finishes one per tick; Worker 2 (`w2`) is stuck and never acks. Each holds 2 orders.",
+          "Sıra sende. Aşağıda nöbetten **4 senaryo** var: tüketicisiz kalmış bir kuyruk, ack göndermeyen bir işçi, yetişemeyen işçiler ve temizlenmesi gereken bir test kuyruğu. Her birinde önce ölç, sonra müdahale et.",
+          "Your turn. Below are **4 scenarios** from being on call: a queue left without consumers, a worker that never acks, workers that can't keep up, and a test queue to clean out. In each, measure first, then act.",
         ),
         l(
-          "Sipariş ekleyebilir, zamanı ilerletebilir, işçi ekleyebilir ve işçileri çökertebilirsin. **3 görev** var; sayaçları izleyerek çöz.",
-          "You can add orders, move time forward, add workers and crash them. There are **3 missions**; solve them by watching the counters.",
+          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers` ile bak; işçiyi `python worker.py` ile başlat (birden fazla kez de olur), `pkill -f worker.py` ile durdur, `sleep` ile zamanı ilerlet.",
+          "Look with `rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers`; start the worker with `python worker.py` (more than once if you like), stop it with `pkill -f worker.py`, move time on with `sleep`.",
         ),
       ],
     },

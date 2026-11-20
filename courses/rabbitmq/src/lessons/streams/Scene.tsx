@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 import { OffsetPanel } from "./OffsetPanel";
 
 export const SLUG = "streams";
@@ -31,41 +31,19 @@ export const steps: BrokerAction[][] = [
 
 const names = (t: (x: L) => string, sandbox: boolean): Record<string, string> =>
   sandbox
-    ? { a: t(l("Okuyucu A", "Reader A")), b: t(l("Okuyucu B", "Reader B")) }
+    ? {
+        analytics: t(l("Analitik", "Analytics")),
+        "analytics-2": t(l("Analitik (2.)", "Analytics (2nd)")),
+        billing: t(l("Fatura", "Billing")),
+        audit: t(l("Denetim", "Audit")),
+        reader: t(l("Okuyucu", "Reader")),
+      }
     : {
         analytics: t(l("Analitik", "Analytics")),
         billing: t(l("Fatura", "Billing")),
         audit: t(l("Denetim", "Audit")),
         replay: t(l("Yeniden oynat", "Replay")),
       };
-
-/** The sandbox: a stream with three events already in it and two readers. */
-const sandboxStart = (): Broker => simulate([{ type: "declareQueue", name: STREAM, queueType: "stream" }, send("e1"), send("e2"), send("e3")], createBroker()).states[4]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const reader = (tag: string, name: string): SandboxRow => {
-    const c = b.consumers[tag];
-    return {
-      label: name,
-      buttons: c
-        ? [
-            { label: tr ? "hepsine ack" : "ack all", action: ackAll(tag), tone: "ok", disabled: c.unacked.length === 0 },
-            { label: tr ? "Ayrıl" : "Leave", action: { type: "cancel", tag } },
-          ]
-        : [
-            { label: tr ? "Bağlan: first" : "Connect: first", action: read(tag, "first"), tone: "go" },
-            { label: tr ? "Bağlan: next" : "Connect: next", action: read(tag, "next"), tone: "go" },
-          ],
-    };
-  };
-  return [
-    { label: tr ? "Uygulama" : "App", buttons: [{ label: tr ? "Event gönder" : "Send event", action: send(`e${sent + 4}`), tone: "producer", disabled: sent >= 4 }] },
-    reader("a", tr ? "Okuyucu A" : "Reader A"),
-    reader("b", tr ? "Okuyucu B" : "Reader B"),
-  ];
-}
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -94,5 +72,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Toplam teslim", "Deliveries")), value: b.deliveries.length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the stream with three events and a reader; each scenario brings its own project.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const CONNECT = 'import pika\n\nconn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))\nch = conn.channel()';
@@ -16,7 +16,7 @@ export const fanoutExchange: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Fanout'un her bağlı kuyruğa bir kopya verdiğini görmek", "See fanout give a copy to every bound queue"), step: 1 },
     { text: l("Routing key'in fanout'ta işe yaramadığını görmek", "See that the routing key does nothing in fanout"), step: 2 },
@@ -220,10 +220,16 @@ export const fanoutExchange: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
-        l("`news` adında bir fanout exchange ve bağlı olmayan üç kuyruk var: `a`, `b`, `c`. Kuyrukları bağlayıp çıkarabilir ve haber yayınlayabilirsin.", "There is a fanout exchange `news` and three unbound queues: `a`, `b`, `c`. You can bind and unbind them and publish news."),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Sıra sende. Mağazanın `orders` fanout exchange'ine `email` ve `sms` kuyrukları bağlı; `setup.py` kurar, `order.py` sipariş yayınlar. Aşağıda gerçek işten **4 senaryo** var: yeni abone, kapanan abone, kuyruğu paylaşan servis, yanlış anlaşılan routing key.",
+          "Your turn. The shop's `orders` fanout exchange has the `email` and `sms` queues bound; `setup.py` builds it and `order.py` publishes an order. Below are **4 scenarios** from real work: a new subscriber, one that leaves, a service sharing a queue it shouldn't, a misunderstood routing key.",
+        ),
+        l(
+          "`rabbitmqctl list_bindings source_name destination_name` aboneleri gösterir; `nano` ile kodu düzelt, `python` ile çalıştır. Az komutla bitirirsen 3 yıldız.",
+          "`rabbitmqctl list_bindings source_name destination_name` shows the subscribers; fix the code with `nano`, run it with `python`. Few commands earn 3 stars.",
+        ),
       ],
     },
   ],

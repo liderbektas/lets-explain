@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const LIST = "docker exec rabbitmq rabbitmqctl list_queues name durable messages";
@@ -16,7 +16,7 @@ export const durability: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Geçici bir kuyruğun restart'ta tamamen silindiğini görmek", "See a transient queue vanish on restart"), step: 2 },
     { text: l("Durable kuyrukta bile geçici mesajların kaybolduğunu görmek", "See transient messages lost even in a durable queue"), step: 4 },
@@ -256,13 +256,16 @@ export const durability: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Boş bir broker'dasın. `jobs` kuyruğunu durable ya da geçici tanımlayabilir, geçici ya da persistent mesaj gönderebilir ve broker'ı yeniden başlatabilirsin.",
-          "You start with an empty broker. Declare `jobs` as durable or transient, send transient or persistent messages, and restart the broker.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: restart'ta kaybolan kuyruklar ve mesajlar, ve canlıdaki bir kuyruğa kod değiştirmeden sınır koymak. Proje klasöründe kurulumu yapan `setup.py` ve mesaj gönderen küçük Python dosyaları var.",
+          "Your turn. Below are **4 scenarios** from real work: queues and messages lost in a restart, and capping a live queue without changing code. The project folder has `setup.py`, which declares the queues, and small Python files that send messages.",
         ),
-        l("Sahnenin altında **3 görev** var.", "There are **3 missions** under the scene."),
+        l(
+          "`rabbitmqctl list_queues name durable messages` ile bak, `nano` ile kodu düzelt, `python` ile çalıştır, `docker restart rabbitmq` ile broker'ı yeniden başlat. Az komutla bitirirsen 3 yıldız.",
+          "Look with `rabbitmqctl list_queues name durable messages`, fix the code with `nano`, run it with `python`, restart the broker with `docker restart rabbitmq`. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

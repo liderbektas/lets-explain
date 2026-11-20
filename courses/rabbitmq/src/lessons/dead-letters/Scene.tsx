@@ -4,9 +4,9 @@ import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
+import { makeBrokerScene } from "../shared/BrokerScene";
 import { DeathPanel } from "./DeathPanel";
-import { missions } from "./missions";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "dead-letters";
 
@@ -70,46 +70,14 @@ const VIEW: { queues: string[]; exchanges: string[]; dead: string[] }[] = [
 
 const PRODUCER_QUEUE = ["work", "work", "waiting", "work", "box", "strict", "payments", "jobs", "jobs"];
 
+/** The try-it view: the project's queues and exchanges; `dead` and `errors` are where dead letters collect. */
+function sandboxView(b: Broker) {
+  const queues = Object.keys(b.queues).sort((x, y) => Number(["dead", "errors"].includes(x)) - Number(["dead", "errors"].includes(y)));
+  return { queues, exchanges: Object.keys(b.exchanges).filter((n) => n && !n.startsWith("amq.")), dead: queues.filter((q) => q === "dead" || q === "errors") };
+}
+
 /** Dead or retried messages are coral, everything else mint. */
 export const kindOf = (m: Message) => (m.deaths.length ? "cancel" : "order");
-
-/* Sandbox: `work` holds at most 2 waiting messages (drop-head) and dead-letters to `dead`. */
-const sandboxStart = (): Broker =>
-  simulate(
-    [
-      { type: "declareExchange", name: "dlx", kind: "fanout" },
-      { type: "declareQueue", name: "dead" },
-      { type: "bind", exchange: "dlx", queue: "dead" },
-      { type: "declareQueue", name: "work", args: { dlx: "dlx", maxLength: 2 } },
-      { type: "consume", tag: "worker", queue: "work", prefetch: 1 },
-    ],
-    createBroker(),
-  ).states[5]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const n = history.filter((a) => a.type === "publish").length + 1;
-  const holding = (b.consumers.worker?.unacked.length ?? 0) > 0;
-  const ticks = history.filter((a) => a.type === "tick").length;
-  return [
-    {
-      label: tr ? "Gönder" : "Send",
-      buttons: [
-        { label: tr ? "mesaj" : "message", action: send("work", `m${n}`), tone: "producer", disabled: n > 5 },
-        { label: tr ? "TTL'li mesaj (2 tik)" : "message with TTL (2 ticks)", action: send("work", `m${n}`, 2), tone: "producer", disabled: n > 5 },
-      ],
-    },
-    {
-      label: tr ? "İşçi" : "Worker",
-      buttons: [
-        { label: "ack", action: { type: "ack", tag: "worker" }, tone: "ok", disabled: !holding },
-        { label: tr ? "reddet" : "reject", action: { type: "nack", tag: "worker", requeue: false }, tone: "danger", disabled: !holding },
-        { label: tr ? "geri koy" : "requeue", action: { type: "nack", tag: "worker", requeue: true }, disabled: !holding },
-      ],
-    },
-    { label: tr ? "Zaman" : "Time", buttons: [{ label: tr ? "1 tik" : "1 tick", action: { type: "tick" }, disabled: ticks >= 4 }] },
-  ];
-}
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -117,8 +85,9 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Reddedilen, süresi dolan ve sığmayan mesajlar dead letter exchange'e gider", "Rejected, expired and overflowing messages go to a dead letter exchange"),
   view: (b, info) => {
-    const v = info.sandbox ? { queues: ["work", "dead"], exchanges: ["dlx"], dead: ["dead"] } : VIEW[Math.min(info.step, VIEW.length - 1)]!;
-    const queue = info.sandbox ? "work" : PRODUCER_QUEUE[Math.min(info.step, PRODUCER_QUEUE.length - 1)]!;
+    // In the try-it step: every queue and exchange of the scenario's project; `dead` and `errors` collect the dead.
+    const v = info.sandbox ? sandboxView(b) : VIEW[Math.min(info.step, VIEW.length - 1)]!;
+    const queue = info.sandbox ? (v.queues.find((q) => !v.dead.includes(q)) ?? "work") : PRODUCER_QUEUE[Math.min(info.step, PRODUCER_QUEUE.length - 1)]!;
     const consumers = Object.keys(b.consumers).filter((tag) => v.queues.includes(b.consumers[tag]!.queue));
     return (
       <g>
@@ -142,7 +111,7 @@ export const scene = makeBrokerScene({
     );
   },
   metrics: (b, t, info) => {
-    const deadQ = info.sandbox ? "dead" : (VIEW[Math.min(info.step, VIEW.length - 1)]!.dead[0] ?? "dead");
+    const deadQ = info.sandbox ? (sandboxView(b).dead[0] ?? "dead") : (VIEW[Math.min(info.step, VIEW.length - 1)]!.dead[0] ?? "dead");
     const out: Metric[] = [
       { label: t(l(`${deadQ}'de`, `In ${deadQ}`)), value: depth(b, deadQ).ready, tone: depth(b, deadQ).ready ? "warn" : "plain" },
       { label: t(l("Zaman", "Time")), value: b.time },
@@ -154,5 +123,6 @@ export const scene = makeBrokerScene({
     { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="order" /></g>, label: t(l("normal mesaj", "normal message")) },
     { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="cancel" /></g>, label: t(l("dead letter olmuş (x-death taşıyor)", "dead-lettered (carries x-death)")) },
   ],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is a work queue with a rejecting worker; each scenario brings its own project.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

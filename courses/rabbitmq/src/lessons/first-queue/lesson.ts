@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const LIST = "docker exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged";
@@ -16,7 +16,7 @@ export const firstQueue: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kuyrukta dinleyen yokken mesajların beklediğini görmek", "See messages wait when nobody is listening"), step: 1 },
     { text: l("Teslim edilen mesajın ack gelene kadar broker'da durduğunu görmek", "See a delivered message stay with the broker until acked"), step: 2 },
@@ -272,13 +272,16 @@ export const firstQueue: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Boş bir `tasks` kuyruğu ve iki işçi var. Mesaj gönderebilir, işçileri bağlayabilir, ack gönderebilir ve çökertebilirsin. İşçiler sınırsız prefetch ile bağlanır.",
-          "There is an empty `tasks` queue and two workers. You can send messages, connect workers, ack, and crash them. Workers connect with unlimited prefetch.",
+          "Sıra sende. Bir fotoğraf servisi var: `send.py` `tasks` kuyruğuna iş gönderir, `worker.py` her işi bitirince ack'ler. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a photo service: `send.py` sends work to the `tasks` queue, and `worker.py` acks each task once it's done. Below are **4 scenarios** from real work.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged` kuyruğun durumunu gösterir. İşçiler arka planda çalışır: `jobs` listeler, `pkill -f worker.py` durdurur. Az komutla bitirirsen 3 yıldız.",
+          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows the queue's state. Workers run in the background: `jobs` lists them, `pkill -f worker.py` stops them. Few commands earn 3 stars.",
+        ),
       ],
     },
   ],

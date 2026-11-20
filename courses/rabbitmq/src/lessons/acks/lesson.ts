@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const LIST = "docker exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged";
@@ -16,7 +16,7 @@ export const acks: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("auto-ack'in çökmede mesaj kaybettirdiğini görmek", "See auto-ack lose messages on a crash"), step: 2 },
     { text: l("nack + requeue ile mesajı geri vermek", "Hand a message back with nack + requeue"), step: 4 },
@@ -281,13 +281,16 @@ export const acks: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Boş bir `orders` kuyruğu ve arkasında `dead` kuyruğu var. İşçiyi manuel ack ya da auto-ack ile bağlayabilir; ack, nack, reject gönderebilir ve çökertebilirsin. \"Bir tur bekle\" zamanı ilerletir.",
-          "There is an empty `orders` queue with a `dead` queue behind it. Connect the worker with manual ack or auto-ack; send ack, nack, reject, or crash it. \"Wait one tick\" moves time.",
+          "Sıra sende. Bir `orders` kuyruğu ve arkasında, geri çevrilenlerin düştüğü `dead` kuyruğu var; `send.py` sipariş gönderir, `worker.py` işler. Aşağıda gerçek işten **4 senaryo** var: kaybolan siparişler, bozuk bir sipariş, bir deploy.",
+          "Your turn. There's an `orders` queue with a `dead` queue behind it for turned-back messages; `send.py` sends orders and `worker.py` processes them. Below are **4 scenarios** from real work: lost orders, a broken order, a deploy.",
         ),
-        l("Sahnenin altında **3 görev** var.", "Under the scene there are **3 missions**."),
+        l(
+          "İşçinin ack'lerini `nano worker.py` ile düzelt. İşçi arka planda çalışır: `pkill -f worker.py` temiz durdurur, `kill -9 worker.py` çöker gibi öldürür; `sleep` zamanı ilerletir. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` ne olduğunu gösterir.",
+          "Fix the worker's acks with `nano worker.py`. The worker runs in the background: `pkill -f worker.py` stops it cleanly, `kill -9 worker.py` kills it like a crash; `sleep` moves time forward. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows what happened.",
+        ),
       ],
     },
   ],

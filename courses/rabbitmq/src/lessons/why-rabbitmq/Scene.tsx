@@ -1,10 +1,10 @@
 import { l } from "@lets-explain/core/i18n";
-import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
+import { createBroker, depth, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
+import { makeBrokerScene } from "../shared/BrokerScene";
 import { DirectCall } from "./DirectCall";
-import { missions } from "./missions";
+import { FREE, scenarios } from "./scenarios";
 import "./why.css";
 
 export const SLUG = "why-rabbitmq";
@@ -27,31 +27,11 @@ export const steps: BrokerAction[][] = [
   [],
 ];
 
-/** The sandbox: an empty emails queue, two mail workers that handle one email per second. */
-const sandboxStart = (): Broker => simulate([{ type: "declareQueue", name: QUEUE }], createBroker()).states[1]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const worker = (tag: string, name: string): SandboxRow => ({
-    label: name,
-    buttons: b.consumers[tag]
-      ? [{ label: tr ? "Çökert" : "Crash", action: { type: "crashConsumer", tag }, tone: "danger" }]
-      : [{ label: tr ? "Bağlan" : "Connect", action: mailer(tag), tone: "go" }],
-  });
-  return [
-    { label: tr ? "Sipariş" : "Orders", buttons: [{ label: tr ? "Sipariş ver" : "Place order", action: order(sent + 1), tone: "producer", disabled: sent >= 6 }] },
-    worker("w1", tr ? "E-posta 1" : "Email 1"),
-    worker("w2", tr ? "E-posta 2" : "Email 2"),
-    { label: tr ? "Zaman" : "Time", buttons: [{ label: tr ? "1 saniye geçir" : "Wait 1 second", action: tick }] },
-  ];
-}
-
 const names = (t: (x: { tr: string; en: string }) => string) => ({
   "mailer-1": t(l("E-posta 1", "Email 1")),
   "mailer-2": t(l("E-posta 2", "Email 2")),
-  w1: t(l("E-posta 1", "Email 1")),
-  w2: t(l("E-posta 2", "Email 2")),
+  // Typed: mailer.py run once is "mailer", run again "mailer-2".
+  mailer: t(l("E-posta 1", "Email 1")),
 });
 
 export const scene = makeBrokerScene({
@@ -96,5 +76,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Kaybolan", "Lost")), value: b.lost.length, tone: b.lost.length ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the email project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

@@ -3,8 +3,8 @@ import { Parcel } from "@lets-explain/core/iso/shapes";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage, type ProducerSpec } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "durability";
 
@@ -47,36 +47,6 @@ function producers(b: Broker, t: (x: L) => string, names: string[]): ProducerSpe
     .map((q) => ({ id: `app-${q}`, label: t(APP_NAMES[q] ?? l("Uygulama", "App")), exchange: "", queue: q }));
 }
 
-/* Sandbox: declare `jobs` one way or the other, send either kind of message, restart. */
-const JOBS = "jobs";
-const sandboxStart = (): Broker => createBroker();
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const has = Boolean(b.queues[JOBS]);
-  const n = history.filter((a) => a.type === "publish").length + 1;
-  return [
-    {
-      label: tr ? "Kuyruk" : "Queue",
-      buttons: [
-        { label: tr ? "jobs: durable" : "jobs: durable", action: { type: "declareQueue", name: JOBS, durable: true }, tone: "go", disabled: has },
-        { label: tr ? "jobs: geçici" : "jobs: transient", action: { type: "declareQueue", name: JOBS, durable: false }, disabled: has },
-      ],
-    },
-    {
-      label: tr ? "Gönder" : "Send",
-      buttons: [
-        { label: tr ? "geçici mesaj" : "transient message", action: send(JOBS, `j${n}`, false), tone: "producer", disabled: !has || n > 4 },
-        { label: tr ? "persistent mesaj" : "persistent message", action: send(JOBS, `j${n}`, true), tone: "producer", disabled: !has || n > 4 },
-      ],
-    },
-    {
-      label: "Broker",
-      buttons: [{ label: tr ? "Yeniden başlat" : "Restart", action: { type: "restart" }, tone: "danger", disabled: history.filter((a) => a.type === "restart").length >= 2 }],
-    },
-  ];
-}
-
 export const scene = makeBrokerScene({
   slug: SLUG,
   start: START,
@@ -89,14 +59,20 @@ export const scene = makeBrokerScene({
       prev={info.prev}
       labels={labels(info.t)}
       kindOf={kindOf}
-      layout={{ producers: info.sandbox ? [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: JOBS }] : producers(b, info.t, ["orders", "temp", "payments"]) }}
+      layout={{
+        // In the try-it step every queue gets an app sending straight to it.
+        producers: info.sandbox
+          ? Object.keys(b.queues).sort().map((q) => ({ id: `app-${q}`, label: info.t(APP_NAMES[q] ?? l("Uygulama", "App")), exchange: "", queue: q }))
+          : producers(b, info.t, ["orders", "temp", "payments"]),
+      }}
     />
   ),
   metrics: (b, t, info) => {
     if (info.sandbox) {
       return [
-        { label: t(l("jobs'ta", "In jobs")), value: depth(b, JOBS).ready },
-        { label: t(l("Kuyruk", "Queue")), value: b.queues[JOBS] ? (b.queues[JOBS]!.durable ? "durable" : t(l("geçici", "transient"))) : "—" },
+        ...Object.keys(b.queues)
+          .sort()
+          .map((q) => ({ label: `${q} (${b.queues[q]!.type === "classic" ? (b.queues[q]!.durable ? "durable" : t(l("geçici", "transient"))) : b.queues[q]!.type})`, value: depth(b, q).ready })),
         { label: t(l("Kaybolan", "Lost")), value: b.lost.length, tone: b.lost.length ? "danger" : "plain" },
       ];
     }
@@ -110,5 +86,6 @@ export const scene = makeBrokerScene({
     { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="order" /></g>, label: t(l("persistent mesaj", "persistent message")) },
     { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="neutral" /></g>, label: t(l("geçici mesaj", "transient message")) },
   ],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is a small project with its files; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

@@ -1,4 +1,4 @@
-import type { Broker, BrokerEvent, Message } from "../engine/broker";
+import { effectiveArgs, type Broker, type BrokerEvent, type Message } from "../engine/broker";
 
 /**
  * Turns what the broker did in one action into motion on the stage, so every message moves
@@ -303,7 +303,8 @@ export function choreograph(opts: { prev: Broker; cur: Broker; last: BrokerEvent
           break;
         }
         leave(from, "leave", t0);
-        const dlx = (prev.queues[e.from] ?? cur.queues[e.from])?.args.dlx;
+        const fromQ = prev.queues[e.from] ?? cur.queues[e.from];
+        const dlx = fromQ ? effectiveArgs(prev.queues[e.from] ? prev : cur, fromQ).dlx : undefined;
         const ex = dlx ? here.exchange(dlx) : null;
         let at = from.xy;
         let t = t0;

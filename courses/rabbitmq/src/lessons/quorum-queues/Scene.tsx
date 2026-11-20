@@ -1,9 +1,10 @@
+import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, queueAvailable, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene, type ViewInfo } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 import { NodesPanel, shownLeader, type NodesLabels } from "./NodesPanel";
 
 export const SLUG = "quorum-queues";
@@ -46,33 +47,9 @@ export const nodeLabels = (t: (x: L) => string): NodesLabels => ({
   only: t(l("tek kopya", "only copy")),
 });
 
-/** The sandbox: a quorum queue "jobs", a classic queue "cache" on rabbit@1, three nodes to break. */
-const sandboxStart = (): Broker =>
-  simulate(
-    [
-      { type: "declareQueue", name: "cache", node: "rabbit@1" },
-      { type: "declareQueue", name: "jobs", queueType: "quorum" },
-    ],
-    createBroker({ nodes: 3 }),
-  ).states[2]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  return [
-    {
-      label: tr ? "Uygulama" : "App",
-      buttons: [
-        { label: tr ? "→ jobs (quorum)" : "→ jobs (quorum)", action: send("jobs", `j${sent + 1}`), tone: "producer" },
-        { label: tr ? "→ cache (classic)" : "→ cache (classic)", action: send("cache", `c${sent + 1}`), tone: "producer" },
-      ],
-    },
-    ...b.nodes.map((n) => ({
-      label: n.name,
-      buttons: [n.alive ? { label: tr ? "Çökert" : "Take down", action: down(n.name), tone: "danger" as const } : { label: tr ? "Başlat" : "Bring up", action: up(n.name), tone: "ok" as const }],
-    })),
-  ];
-}
+/** The quorum queue to watch: `orders` in the lesson; in the try-it step whichever quorum queue the project has. */
+const quorumOf = (b: Broker, info: Pick<ViewInfo, "sandbox">) =>
+  info.sandbox ? (Object.values(b.queues).find((q) => q.type === "quorum")?.name ?? Object.keys(b.queues)[0] ?? "orders") : "orders";
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -80,7 +57,8 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Üç node'luk bir cluster: tek kopyalı classic kuyruk ve üç kopyalı quorum kuyruğu", "A three-node cluster: a single-copy classic queue and a three-copy quorum queue"),
   view: (b, info) => {
-    const quorum = info.sandbox ? "jobs" : "orders";
+    const quorum = quorumOf(b, info);
+    const queues = info.sandbox ? Object.keys(b.queues).sort() : ["cache", quorum];
     return (
       <g>
         <BrokerStage
@@ -92,30 +70,30 @@ export const scene = makeBrokerScene({
           kindOf={(m) => (m.routingKey === "cache" ? "neutral" : "order")}
           layout={{
             producers: [
-              { id: "app-cache", label: info.t(l("Önbellek", "Cache app")), exchange: "", queue: "cache" },
-              { id: "app-quorum", label: info.t(info.sandbox ? l("İşler", "Jobs app") : l("Sipariş", "Orders app")), exchange: "", queue: quorum },
+              ...queues.filter((q) => q !== quorum).map((q) => ({ id: `app-${q}`, label: q === "cache" ? info.t(l("Önbellek", "Cache app")) : q, exchange: "", queue: q })),
+              { id: "app-quorum", label: info.t(quorum === "payments" ? l("Ödeme", "Payments app") : l("Sipariş", "Orders app")), exchange: "", queue: quorum },
             ],
-            queues: ["cache", quorum],
+            queues,
             consumerNames: { "cache-1": info.t(l("Önbellek işçisi", "Cache worker")), "orders-1": info.t(l("Sipariş işçisi", "Order worker")) },
           }}
         />
-        <NodesPanel broker={b} last={info.last} queues={["cache", quorum]} labels={nodeLabels(info.t)} box={{ x: 24, y: 318, w: 812, h: 132 }} />
+        <NodesPanel broker={b} last={info.last} queues={queues} labels={nodeLabels(info.t)} box={{ x: 24, y: 318, w: 812, h: 132 }} />
       </g>
     );
   },
   metrics: (b, t, info) => {
-    const quorum = info.sandbox ? "jobs" : "orders";
+    const quorum = quorumOf(b, info);
     const alive = b.nodes.filter((n) => n.alive).length;
-    const qq = b.queues[quorum]!;
-    const cq = b.queues.cache!;
+    const qq = b.queues[quorum];
+    const cq = b.queues.cache;
     const lost = b.lost.length;
-    return [
-      { label: t(l("Çalışan node", "Nodes up")), value: `${alive}/${b.nodes.length}`, tone: alive < b.nodes.length ? "warn" : "plain" },
-      { label: t(l("Quorum leader", "Quorum leader")), value: shownLeader(b, quorum) ?? t(l("yok", "none")), tone: queueAvailable(b, qq) ? "ok" : "danger" },
-      { label: "cache", value: queueAvailable(b, cq) ? t(l("çalışıyor", "up")) : t(l("kapalı", "down")), tone: queueAvailable(b, cq) ? "plain" : "danger" },
-      { label: t(l(`${quorum} hazır`, `${quorum} ready`)), value: depth(b, quorum).ready },
-      { label: t(l("Kayıp", "Lost")), value: lost, tone: lost ? "danger" : "plain" },
-    ];
+    const out: Metric[] = [{ label: t(l("Çalışan node", "Nodes up")), value: `${alive}/${b.nodes.length}`, tone: alive < b.nodes.length ? "warn" : "plain" }];
+    if (qq && qq.type === "quorum") out.push({ label: t(l("Quorum leader", "Quorum leader")), value: shownLeader(b, quorum) ?? t(l("yok", "none")), tone: queueAvailable(b, qq) ? "ok" : "danger" });
+    if (cq) out.push({ label: "cache", value: queueAvailable(b, cq) ? t(l("çalışıyor", "up")) : t(l("kapalı", "down")), tone: queueAvailable(b, cq) ? "plain" : "danger" });
+    if (qq) out.push({ label: t(l(`${quorum} hazır`, `${quorum} ready`)), value: depth(b, quorum).ready });
+    out.push({ label: t(l("Kayıp", "Lost")), value: lost, tone: lost ? "danger" : "plain" });
+    return out;
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the cluster with a quorum `orders` and a classic `cache`; each scenario brings its own project.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

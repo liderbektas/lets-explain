@@ -2,8 +2,8 @@ import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Binding, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "topic-exchange";
 const EX = "events";
@@ -53,40 +53,6 @@ export function mergedForDrawing(b: Broker): Broker {
   return { ...b, bindings: [...groups.values()] };
 }
 
-/* ------------------------------------------------------------------ sandbox */
-
-export const TARGET = "target";
-export const PATTERNS = ["order.*.eu", "order.#", "#", "*.created.*", "user.#", "*.*.us"];
-export const KEYS: { key: string; body: string }[] = [
-  { key: "order.created.eu", body: "ce" },
-  { key: "order.paid.eu", body: "pe" },
-  { key: "order.created.us", body: "cu" },
-  { key: "user.signup.eu", body: "su" },
-];
-
-const sandboxStart = (): Broker =>
-  simulate([{ type: "declareExchange", name: EX, kind: "topic" }, { type: "declareQueue", name: TARGET }], createBroker()).states[2]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = new Set(history.flatMap((a) => (a.type === "publish" ? [a.routingKey] : [])));
-  const bound = (key: string) => b.bindings.some((x) => x.queue === TARGET && x.key === key);
-  return [
-    {
-      label: tr ? "Gönder" : "Publish",
-      buttons: KEYS.map((k) => ({ label: k.key, action: pub(k.key, k.body), tone: "producer" as const, disabled: sent.has(k.key) })),
-    },
-    {
-      label: tr ? "target'a bağla" : "Bind target",
-      buttons: PATTERNS.map((p) =>
-        bound(p)
-          ? { label: `− ${p}`, action: { type: "unbind", exchange: EX, queue: TARGET, key: p } as BrokerAction, tone: "danger" as const }
-          : { label: `+ ${p}`, action: bind(TARGET, p), tone: "go" as const },
-      ),
-    },
-  ];
-}
-
 export const scene = makeBrokerScene({
   slug: SLUG,
   start: START,
@@ -101,16 +67,17 @@ export const scene = makeBrokerScene({
       kindOf={kindOf}
       layout={{
         producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: EX }],
-        queues: info.sandbox ? [TARGET] : ["eu-orders", "all-orders", "audit", "refunds"],
+        queues: info.sandbox ? Object.keys(b.queues) : ["eu-orders", "all-orders", "audit", "refunds"],
       }}
     />
   ),
   metrics: (b, t, info) => {
-    const qs = info.sandbox ? [TARGET] : ["eu-orders", "all-orders", "audit", "refunds"].filter((q) => b.queues[q]);
+    const qs = info.sandbox ? Object.keys(b.queues) : ["eu-orders", "all-orders", "audit", "refunds"].filter((q) => b.queues[q]);
     return [
       ...qs.map((q) => ({ label: q, value: depth(b, q).ready })),
       { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? ("danger" as const) : ("plain" as const) },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the events project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

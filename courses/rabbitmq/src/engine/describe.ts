@@ -111,6 +111,15 @@ export function describeBroker(e: BrokerEvent, lang: Lang): Line {
       return { text: tr ? `'${e.queue}' için yeni leader: ${e.to} (${e.from} yerine)` : `New leader for '${e.queue}': ${e.to} (was ${e.from})`, tone: "ok" };
     case "queueUnavailable":
       return { text: tr ? `'${e.queue}' şu an kullanılamıyor` : `'${e.queue}' is unavailable now`, tone: "bad" };
+    case "policySet":
+      return {
+        text: tr
+          ? `'${e.name}' policy'si kuruldu${e.queues.length ? `: ${e.queues.join(", ")} artık onun ayarlarıyla çalışıyor` : " (henüz eşleşen kuyruk yok)"}`
+          : `Policy '${e.name}' set${e.queues.length ? `: ${e.queues.join(", ")} now run with its settings` : " (no queue matches yet)"}`,
+        tone: "ok",
+      };
+    case "policyCleared":
+      return { text: tr ? `'${e.name}' policy'si kaldırıldı` : `Policy '${e.name}' cleared`, tone: "plain" };
     case "error":
       return { text: `RabbitMQ: ${e.message}`, tone: "bad" };
   }

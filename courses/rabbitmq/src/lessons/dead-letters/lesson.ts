@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const DLX_SETUP = `ch.exchange_declare(exchange="dlx", exchange_type="fanout", durable=True)
@@ -24,7 +24,7 @@ export const deadLetters: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Reddedilen mesajın DLX'e gittiğini görmek", "See a rejected message go to the DLX"), step: 1 },
     { text: l("Süresi dolan mesajın kuyruğun başında atıldığını görmek", "See an expired message leave from the head of the queue"), step: 2 },
@@ -300,13 +300,16 @@ export const deadLetters: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`work` kuyruğu en fazla **2 bekleyen** mesaj alıyor ve DLX'i `dlx`. İşçinin prefetch'i 1: aynı anda tek mesaj tutar. Mesaj ya da 2 tik ömürlü mesaj gönderebilir, işçiye ack, reddet veya geri koy dedirtebilir, zamanı ilerletebilirsin.",
-          "`work` takes at most **2 waiting** messages and dead-letters to `dlx`. The worker's prefetch is 1: it holds one message at a time. Send messages or 2-tick messages, have the worker ack, reject or requeue, and move time forward.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: reddedilen, süresi dolan ve taşan mesajlar iz bırakmadan kayboluyor ya da yanlış yere gidiyor. Kuyruklar canlıda; çoğu durumda kodu değiştirip kuyruğu yeniden kurmak yerine bir **policy** yeter.",
+          "Your turn. Below are **4 scenarios** from real work: rejected, expired and overflowing messages vanish without a trace or go to the wrong place. The queues are live; most of the time a **policy** is enough, instead of changing the code and recreating the queue.",
         ),
-        l("Sahnenin altında **3 görev** var.", "There are **3 missions** under the scene."),
+        l(
+          "`rabbitmqctl set_policy`, `list_policies` ve `list_queues name messages` ile çalış; `python` ile mesaj gönder, `sleep` ile zamanı ilerlet. Sağdaki x-death paneli her ölü mektubun neden öldüğünü gösterir.",
+          "Work with `rabbitmqctl set_policy`, `list_policies` and `list_queues name messages`; send with `python`, move time on with `sleep`. The x-death panel on the right shows why each dead letter died.",
+        ),
       ],
     },
   ],

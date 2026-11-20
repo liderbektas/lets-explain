@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const CONFIRM = `ch.confirm_delivery()
@@ -30,7 +30,7 @@ export const publisherConfirms: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Broker'ın her mesaja ack ya da nack verdiğini görmek", "See the broker answer every message with an ack or a nack"), step: 1 },
     { text: l("Kuyruğa ulaşmayan mesajın bile ack aldığını ve `mandatory`'nin işini görmek", "See that even a message reaching no queue is acked, and what `mandatory` does"), step: 2 },
@@ -276,13 +276,16 @@ export const publisherConfirms: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`orders` exchange'inde iki kuyruk var: normal `billing` (key `order`) ve en fazla 2 mesaj alan `limited` (key `limited`, reject-publish). `refund` key'inin kuyruğu yok.",
-          "The `orders` exchange has two queues: plain `billing` (key `order`) and `limited` (key `limited`, at most 2 messages, reject-publish). Key `refund` has no queue.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: sessizce kaybolan mesajlar, dolu bir kuyruktan gelen nack, çoğunluğunu kaybetmiş bir cluster ve ack almasına rağmen kaybolan bir sipariş. Script'lerde `ch.confirm_delivery()` açık: broker hayır derse `basic_publish` hata fırlatır.",
+          "Your turn. Below are **4 scenarios** from real work: messages that vanish silently, a nack from a full queue, a cluster that lost its majority, and an order lost despite its ack. The scripts have `ch.confirm_delivery()` on: when the broker says no, `basic_publish` raises.",
         ),
-        l("Üstteki sayaç broker'ın son cevabını gösterir. Sahnenin altında **3 görev** var.", "The counter on top shows the broker's last answer. There are **3 missions** under the scene."),
+        l(
+          "`nano` ile kodu düzelt, `python` ile çalıştır; `docker ps -a`, `docker start` ve `rabbitmqctl` ile broker'a bak. Az komutla bitirirsen 3 yıldız.",
+          "Fix the code with `nano`, run it with `python`; look at the broker with `docker ps -a`, `docker start` and `rabbitmqctl`. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

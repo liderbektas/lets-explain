@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
-import type { Change, Mission, SceneProps } from "@lets-explain/core/course/types";
+import type { Change, Mission, Scenario, SceneProps } from "@lets-explain/core/course/types";
 import { starsFor } from "@lets-explain/core/course/types";
 import { useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { useGame } from "@lets-explain/core/lib/storage";
+import { project as makeProject, rabbitShell, replayProject, type Files, type Project, type ProjectAction } from "../../engine/cli";
 import { describeBroker } from "../../engine/describe";
 import { simulate, type BrokerAction, type BrokerEvent, type Broker } from "../../engine/broker";
 import { BROKER_STAGE } from "../../iso/BrokerStage";
@@ -26,6 +28,30 @@ export interface BrokerCtx {
   actions: BrokerAction[];
   events: BrokerEvent[][];
   states: Broker[];
+}
+
+/** What a typed scenario's check sees: the broker run, plus the project (files, workers) around it. */
+export interface RabbitCtx extends BrokerCtx {
+  project: Project;
+  startProject: Project;
+  typed: ProjectAction[];
+}
+
+export type RabbitScenario = Scenario<RabbitCtx, Project>;
+
+/** The context for a typed run, shared by the scene and the tests. */
+export function typedCtx(start: Project, actions: ProjectAction[]): RabbitCtx {
+  const r = replayProject(start, actions);
+  return {
+    start: start.broker,
+    state: r.project.broker,
+    actions: actions.filter((a): a is BrokerAction => !["writeFile", "removeFile", "startWorker", "stopWorker", "nextGen"].includes(a.type)),
+    events: r.events,
+    states: r.states,
+    project: r.project,
+    startProject: start,
+    typed: actions,
+  };
 }
 
 export interface SandboxButton {
@@ -66,8 +92,13 @@ export interface BrokerSceneConfig {
   sandbox?: {
     /** Where the try-it step starts. Defaults to the state at the end of the lesson. */
     start?: (end: Broker) => Broker;
-    rows: (repo: Broker, lang: Lang, history: BrokerAction[]) => SandboxRow[];
-    missions: Mission<BrokerCtx>[];
+    /** Button rows, for a lesson whose try-it step is played with buttons. */
+    rows?: (repo: Broker, lang: Lang, history: BrokerAction[]) => SandboxRow[];
+    missions?: Mission<BrokerCtx>[];
+    /** Scenarios played by typing in a terminal (code and rabbitmqctl). They replace the buttons. */
+    scenarios?: RabbitScenario[];
+    /** The project's files in free play. */
+    files?: Files;
   };
   /** Extra "what changed" lines for a step, added after the computed ones. */
   extraChanges?: (step: number) => Change[];
@@ -99,7 +130,10 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
   const end = run.states[run.states.length - 1]!;
   const sandboxStart = config.sandbox?.start ? config.sandbox.start(end) : end;
   const moves = (repo: Broker, history: BrokerAction[]) =>
-    config.sandbox ? config.sandbox.rows(repo, "en", history).flatMap((r) => r.buttons.filter((b) => !b.disabled).map((b) => b.action)) : [];
+    config.sandbox?.rows ? config.sandbox.rows(repo, "en", history).flatMap((r) => r.buttons.filter((b) => !b.disabled).map((b) => b.action)) : [];
+  const scenarios = config.sandbox?.scenarios ?? [];
+  const typed = scenarios.length > 0;
+  const freeProject = makeProject(sandboxStart, config.sandbox?.files ?? {});
 
   const changesFor = (step: number): Change[] => {
     if (step >= sandboxStep && config.sandbox) return [];
@@ -125,10 +159,27 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
       return missions.length ? (i < 0 ? 0 : i) : null;
     });
 
+    const typedBox = useTypedSandbox({
+      slug: config.slug,
+      active: typed && sandbox,
+      scenarios,
+      freeStart: freeProject,
+      shell: rabbitShell,
+      replay: (start: Project, actions: ProjectAction[]) => replayProject(start, actions),
+      final: (r) => r.project,
+      context: (start, actions) => typedCtx(start, actions),
+    });
+    const typedRun = typedBox.run;
+
     let state: Broker;
     let last: BrokerEvent[];
     let shown: BrokerEvent[];
-    if (sandRun) {
+    if (typedRun) {
+      state = typedRun.project.broker;
+      // The last broker action's events: file edits and worker bookkeeping have none.
+      last = [...typedRun.events].reverse().find((e) => e.length > 0) ?? [];
+      shown = typedRun.events.flat();
+    } else if (sandRun) {
       state = sandRun.states[sandRun.states.length - 1]!;
       last = sandRun.events[sandRun.events.length - 1] ?? [];
       shown = sandRun.events.flat();
@@ -138,7 +189,14 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
       last = cursor > 0 ? run.events[s0 + cursor - 1]! : [];
       shown = run.events.slice(s0, s0 + cursor).flat();
     }
-    const prev = sandRun ? (sandRun.states[sandRun.states.length - 2] ?? sandboxStart) : run.states[Math.max(0, stepStart(Math.min(step, sandboxStep)) + cursor - 1)]!;
+    const prev = typedRun
+      ? (() => {
+          const i = typedRun.events.length - 1 - [...typedRun.events].reverse().findIndex((e) => e.length > 0);
+          return i >= 0 && i < typedRun.events.length ? typedRun.states[i]! : typedBox.start.broker;
+        })()
+      : sandRun
+        ? (sandRun.states[sandRun.states.length - 2] ?? sandboxStart)
+        : run.states[Math.max(0, stepStart(Math.min(step, sandboxStep)) + cursor - 1)]!;
     const fresh = new Set(last.flatMap((e) => ("id" in e ? [e.id] : [])));
     const info: ViewInfo = { step, sandbox, last, fresh, prev, t, lang };
 
@@ -156,7 +214,7 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
       <div className="events" aria-live="polite">
         <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
         {lines.length === 0 ? (
-          <p>{t(sandbox ? text.nothing : text.waiting)}</p>
+          <p>{t(sandbox ? (typed ? text.nothingTyped : text.nothing) : text.waiting)}</p>
         ) : (
           <ol>
             {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
@@ -171,7 +229,13 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
     );
 
     const footer =
-      sandbox && config.sandbox ? (
+      sandbox && typed ? (
+        <div className="sandbox">
+          {typedBox.panel}
+          {typedBox.terminal}
+          {eventList}
+        </div>
+      ) : sandbox && config.sandbox?.rows ? (
         <div className="sandbox">
           {missions.length > 0 && (
             <MissionPanel
@@ -243,6 +307,7 @@ const text = {
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
   nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothingTyped: l("Bir komut yaz; broker'da ne olduğunu burada sade bir dille gör.", "Type a command; see what happened in the broker here, in plain words."),
   undo: l("Geri al", "Undo"),
   reset: l("Sıfırla", "Reset"),
 };

@@ -1,8 +1,8 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage, type BrokerLabels } from "../../iso/BrokerStage";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "first-queue";
 const QUEUE = "hello";
@@ -37,32 +37,8 @@ export const labels = (t: (x: L) => string): BrokerLabels => ({
 
 const names = (t: (x: L) => string) => ({ "worker-1": t(l("İşçi 1", "Worker 1")), "worker-2": t(l("İşçi 2", "Worker 2")) });
 
-/** The sandbox: a fresh queue called "tasks", two workers that can join, ack and crash. */
+/** The try-it step's queue: the photo project's `tasks`. */
 const TASKS = "tasks";
-const sandboxStart = (): Broker => simulate([{ type: "declareQueue", name: TASKS }], createBroker()).states[1]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const worker = (tag: string, name: string): SandboxRow => {
-    const c = b.consumers[tag];
-    return {
-      label: name,
-      buttons: c
-        ? [
-            { label: "ack", action: ack(tag), tone: "ok", disabled: c.unacked.length === 0 },
-            { label: tr ? "hepsine ack" : "ack all", action: ack(tag, true), tone: "ok", disabled: c.unacked.length < 2 },
-            { label: tr ? "Çökert" : "Crash", action: { type: "crashConsumer", tag }, tone: "danger" },
-          ]
-        : [{ label: tr ? "Bağlan" : "Connect", action: consume(tag, TASKS), tone: "go" }],
-    };
-  };
-  return [
-    { label: tr ? "Uygulama" : "App", buttons: [{ label: tr ? "Mesaj gönder" : "Send message", action: send(`t${sent + 1}`, TASKS), tone: "producer", disabled: sent >= 5 }] },
-    worker("w1", tr ? "İşçi 1" : "Worker 1"),
-    worker("w2", tr ? "İşçi 2" : "Worker 2"),
-  ];
-}
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -77,7 +53,10 @@ export const scene = makeBrokerScene({
       labels={labels(info.t)}
       layout={{
         producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: info.sandbox ? TASKS : QUEUE }],
-        consumerNames: info.sandbox ? { w1: info.t(l("İşçi 1", "Worker 1")), w2: info.t(l("İşçi 2", "Worker 2")) } : names(info.t),
+        // Typed: worker.py run once is "worker", run again "worker-2".
+        consumerNames: info.sandbox
+          ? { worker: info.t(l("İşçi 1", "Worker 1")), "worker-2": info.t(l("İşçi 2", "Worker 2")), slow_worker: info.t(l("Yavaş işçi", "Slow worker")) }
+          : names(info.t),
       }}
     />
   ),
@@ -92,5 +71,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Bağlı işçinin bitirdiği", "Done by connected")), value: done },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the photo project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

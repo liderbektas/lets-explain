@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 import { PatternsPanel } from "./PatternsPanel";
 
 export const SLUG = "rpc-and-patterns";
@@ -66,49 +66,8 @@ const names = (t: (x: L) => string): Record<string, string> => ({
   "server-1": t(l("Sunucu 1", "Server 1")),
   "server-2": t(l("Sunucu 2", "Server 2")),
   client: t(l("İstemci (cevaplar)", "Client (answers)")),
+  server: t(l("Fiyat sunucusu", "Price server")),
 });
-
-/** The sandbox: two servers and the client, nothing sent yet. */
-const sandboxStart = (): Broker => START;
-
-/** Requests the sandbox has sent so far. */
-const sent = (history: BrokerAction[]) => history.filter((a) => a.type === "publish" && a.routingKey === RPC).length;
-
-/** Has this server already sent the answer for the request it holds? */
-function answered(history: BrokerAction[], corr: string | undefined) {
-  return history.some((a) => a.type === "publish" && a.routingKey === REPLY && a.correlationId === corr);
-}
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const n = sent(history);
-  const serverRow = (tag: string, name: string): SandboxRow => {
-    const c = b.consumers[tag];
-    if (!c) return { label: name, buttons: [{ label: tr ? "Bağlan" : "Connect", action: server(tag), tone: "go" }] };
-    const held = c.unacked[0];
-    const done = held ? answered(history, held.correlationId) : false;
-    return {
-      label: name,
-      buttons: [
-        { label: tr ? "Cevapla" : "Answer", action: held ? answer(held) : answer({ replyTo: REPLY, correlationId: "c0" }), tone: "producer", disabled: !held || done },
-        { label: tr ? "İsteğe ack" : "Ack request", action: ack(tag), tone: "ok", disabled: !held || !done },
-        { label: tr ? "Çökert" : "Crash", action: { type: "crashConsumer", tag }, tone: "danger" },
-      ],
-    };
-  };
-  const client = b.consumers.client;
-  return [
-    {
-      label: tr ? "İstemci" : "Client",
-      buttons: [
-        { label: tr ? "İstek gönder" : "Send request", action: ask(n + 1), tone: "producer", disabled: n >= 3 },
-        { label: tr ? "Cevaba ack" : "Ack answer", action: ack("client"), tone: "ok", disabled: !client || client.unacked.length === 0 },
-      ],
-    },
-    serverRow("server-1", tr ? "Sunucu 1" : "Server 1"),
-    serverRow("server-2", tr ? "Sunucu 2" : "Server 2"),
-  ];
-}
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -128,11 +87,17 @@ export const scene = makeBrokerScene({
         layout={{
           producers: [
             { id: "client", label: info.t(l("İstemci (istek)", "Client (request)")), exchange: "", queue: RPC },
-            { id: "server-out", label: info.t(l("Sunucu (cevap)", "Server (answer)")), exchange: "", queue: REPLY },
+            // In the try-it step answers may go to any of the project's reply queues.
+            ...(info.sandbox ? Object.keys(b.queues).filter((q) => q !== RPC).sort() : [REPLY]).map((q) => ({
+              id: `server-out-${q}`,
+              label: info.t(l(`Sunucu (cevap → ${q})`, `Server (answer → ${q})`)),
+              exchange: "",
+              queue: q,
+            })),
           ],
-          queues: [RPC, REPLY],
+          queues: info.sandbox ? [RPC, ...Object.keys(b.queues).filter((q) => q !== RPC).sort()] : [RPC, REPLY],
           // Servers next to the request queue, the client next to its reply queue: no crossing roads.
-          consumers: ["server-1", "server-2", "client"],
+          consumers: info.sandbox ? undefined : ["server-1", "server-2", "client"],
           consumerNames: names(info.t),
         }}
       />
@@ -148,5 +113,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the queues, a price server and a client; each scenario brings its own project.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

@@ -2,9 +2,9 @@ import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
+import { makeBrokerScene } from "../shared/BrokerScene";
 import { mergeBindings } from "./mergeBindings";
-import { missions } from "./missions";
+import { LOGS as LOGS_PROJECT, scenarios } from "./scenarios";
 
 export const SLUG = "direct-exchange";
 const LOGS = "logs";
@@ -41,31 +41,6 @@ export const steps: BrokerAction[][] = [
   [],
 ];
 
-const TASKS = "tasks";
-/** The sandbox: a `tasks` direct exchange with an images queue and an emails queue, unbound. */
-const sandboxStart = (): Broker =>
-  simulate(
-    [
-      { type: "declareExchange", name: TASKS, kind: "direct" },
-      { type: "declareQueue", name: "images" },
-      { type: "declareQueue", name: "emails" },
-    ],
-    createBroker(),
-  ).states[3]!;
-
-const isBound = (b: Broker, queue: string, key: string) => b.bindings.some((x) => x.exchange === TASKS && x.queue === queue && x.key === key);
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const b1 = (queue: string, key: string) => ({ label: `${queue} ← ${key}`, action: bind(TASKS, queue, key), disabled: isBound(b, queue, key) });
-  const p = (key: string) => ({ label: key, action: { type: "publish", exchange: TASKS, routingKey: key, body: `${key[0]}${sent + 1}` } as BrokerAction, tone: "producer" as const, disabled: sent >= 6 });
-  return [
-    { label: "Binding", buttons: [b1("images", "image"), b1("emails", "email"), b1("images", "video")] },
-    { label: tr ? "Gönder" : "Publish", buttons: [p("image"), p("email"), p("video")] },
-  ];
-}
-
 const kindOf = (m: Message) => {
   const k = m.routingKey;
   if (k === "error" || k === "ERROR" || k === "video") return "cancel" as const;
@@ -87,17 +62,19 @@ export const scene = makeBrokerScene({
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={{
-        producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: info.sandbox ? TASKS : LOGS }],
+        // In the try-it step the app publishes to whichever exchange the scenario's project has.
+        producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: info.sandbox && b.exchanges.tasks ? "tasks" : LOGS }],
         consumerNames: { alerts: info.t(l("Alarm", "Alerts")), archive: info.t(l("Arşiv", "Archive")) },
       }}
     />
   ),
   metrics: (b, t, info) => {
-    const qs = info.sandbox ? ["images", "emails"] : ["errors", "all-logs"];
+    const qs = info.sandbox ? Object.keys(b.queues).sort() : ["errors", "all-logs"];
     return [
       ...qs.map((q) => ({ label: q, value: depth(b, q).total })),
       { label: t(l("Kaybolan", "Lost")), value: b.lost.length, tone: b.lost.length ? ("danger" as const) : ("plain" as const) },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the logs project with its files; each scenario brings its own project.
+  sandbox: { start: () => LOGS_PROJECT.broker, files: LOGS_PROJECT.files, scenarios },
 });

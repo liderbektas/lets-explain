@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "acks";
 export const QUEUE = "orders";
@@ -35,36 +35,7 @@ export const steps: BrokerAction[][] = [
   [],
 ];
 
-const names = (t: (x: L) => string) => ({ auto: t(l("Auto-ack işçi", "Auto-ack worker")), manual: t(l("Manuel işçi", "Manual worker")), w: t(l("İşçi", "Worker")) });
-
-const sandboxStart = (): Broker => simulate(setup, createBroker()).states[setup.length]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const c = b.consumers.w;
-  const worker: SandboxRow = {
-    label: tr ? "İşçi" : "Worker",
-    buttons: !c
-      ? [
-          { label: tr ? "Bağlan (manuel ack)" : "Connect (manual ack)", action: { type: "consume", tag: "w", queue: QUEUE, prefetch: 0 }, tone: "go" },
-          { label: tr ? "Bağlan (auto-ack)" : "Connect (auto-ack)", action: { type: "consume", tag: "w", queue: QUEUE, autoAck: true, speed: 1 }, tone: "go" },
-        ]
-      : c.autoAck
-        ? [{ label: tr ? "Çökert" : "Crash", action: { type: "crashConsumer", tag: "w" }, tone: "danger" }]
-        : [
-            { label: "ack", action: { type: "ack", tag: "w" }, tone: "ok", disabled: c.unacked.length === 0 },
-            { label: "nack (requeue)", action: { type: "nack", tag: "w", requeue: true }, disabled: c.unacked.length === 0 },
-            { label: "reject", action: { type: "nack", tag: "w", requeue: false }, tone: "danger", disabled: c.unacked.length === 0 },
-            { label: tr ? "Çökert" : "Crash", action: { type: "crashConsumer", tag: "w" }, tone: "danger" },
-          ],
-  };
-  return [
-    { label: tr ? "Uygulama" : "App", buttons: [{ label: tr ? "Mesaj gönder" : "Send message", action: send(`t${sent + 1}`), tone: "producer", disabled: sent >= 4 }] },
-    worker,
-    { label: tr ? "Zaman" : "Time", buttons: [{ label: tr ? "Bir tur bekle" : "Wait one tick", action: { type: "tick" } }] },
-  ];
-}
+const names = (t: (x: L) => string) => ({ auto: t(l("Auto-ack işçi", "Auto-ack worker")), manual: t(l("Manuel işçi", "Manual worker")), worker: t(l("İşçi", "Worker")) });
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -96,5 +67,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the orders project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

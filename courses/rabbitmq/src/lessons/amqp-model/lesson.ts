@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const CTL = "docker exec rabbitmq rabbitmqctl";
@@ -16,7 +16,7 @@ export const amqpModel: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Connection ile channel arasındaki farkı bilmek", "Know the difference between a connection and a channel"), step: 0 },
     { text: l("Mesajın exchange → binding → kuyruk yolunu izlemek", "Follow a message from exchange through binding to queue"), step: 2 },
@@ -264,13 +264,16 @@ export const amqpModel: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bir `shop` exchange'i (direct) ve iki kuyruk var: `billing` ve `shipping`. Hiç binding yok. Binding ekleyebilir ve iki farklı key ile mesaj gönderebilirsin.",
-          "There is a `shop` exchange (direct) and two queues, `billing` and `shipping`, with no bindings. You can add bindings and send messages with two different keys.",
+          "Sıra sende. Bir mağaza projesi var: `setup.py` bir `shop` exchange'i (direct) ile `billing` ve `shipping` kuyruklarını tanımlar, diğer dosyalar mesaj gönderir. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a shop project: `setup.py` declares a `shop` exchange (direct) and the `billing` and `shipping` queues, and the other files send messages. Below are **4 scenarios** from real work.",
         ),
-        l("Sahnenin altında **3 görev** var.", "Under the scene there are **3 missions**."),
+        l(
+          "`rabbitmqctl list_bindings source_name destination_name routing_key` ile neyin neye bağlı olduğuna bak, `nano` ile kodu düzelt, `python` ile çalıştır. Hata çıkarsa oku: RabbitMQ neyi neden reddettiğini söyler.",
+          "Use `rabbitmqctl list_bindings source_name destination_name routing_key` to see what is bound to what, fix the code with `nano`, run it with `python`. If you get an error, read it: RabbitMQ says what it refused and why.",
+        ),
       ],
     },
   ],

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const poisonMessages: Lesson = {
@@ -14,7 +14,7 @@ export const poisonMessages: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Requeue'nun bozuk mesajı sonsuz döngüye soktuğunu görmek", "See requeue trap a broken message in a loop"), step: 1 },
     { text: l("Quorum queue'nun teslim sayısını tutup mesajı park ettiğini görmek", "See a quorum queue count deliveries and park the message"), step: 4 },
@@ -280,13 +280,16 @@ export const poisonMessages: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bir quorum `orders` kuyruğu (delivery limit **2**), arkasında `parking` ve bir işçi (prefetch 1) var. Bozuk ya da sağlam mesaj gönderip işçiye ack, nack ya da reject ettirebilirsin.",
-          "There is a quorum `orders` queue (delivery limit **2**) with `parking` behind it and one worker (prefetch 1). Send bad or good messages and have the worker ack, nack or reject.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: sonsuza kadar dönen ya da iz bırakmadan kaybolan bozuk mesajlar. Bir işçi arka planda çalışıyor; bir mesajı onaylıyor, geri koyuyor ya da reddediyor. Kodunu değiştirirsen yeniden başlatman gerekir (`pkill -f worker.py`, sonra `python worker.py`).",
+          "Your turn. Below are **4 scenarios** from real work: broken messages that go round forever or vanish without a trace. A worker runs in the background, acking, requeueing or rejecting each message. If you change its code, restart it (`pkill -f worker.py`, then `python worker.py`).",
         ),
-        l("Sahnenin altında **3 görev** var.", "Under the scene there are **3 missions**."),
+        l(
+          "`rabbitmqctl set_policy` ile limit ve DLX ver, `list_queues name type messages` ile bak, `python` ile mesaj gönder. Sahnedeki sayaç bir mesajın kaç kez teslim edildiğini gösterir.",
+          "Set limits and a DLX with `rabbitmqctl set_policy`, look with `list_queues name type messages`, send with `python`. The counter on the scene shows how often a message was delivered.",
+        ),
       ],
     },
   ],

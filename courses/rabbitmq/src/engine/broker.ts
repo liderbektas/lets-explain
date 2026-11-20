@@ -66,6 +66,20 @@ export interface QueueArgs {
   overflow?: Overflow;
   /** Quorum queues only. RabbitMQ 4 sets 20 by default. */
   deliveryLimit?: number;
+  /** The delivery limit above is RabbitMQ's default, not one the declare asked for (a policy may then set it). */
+  deliveryLimitDefault?: boolean;
+}
+
+/** `rabbitmqctl set_policy`: settings for every queue whose name matches the pattern. */
+export interface Policy {
+  name: string;
+  /** A regular expression, matched against queue names. */
+  pattern: string;
+  applyTo: "queues" | "exchanges" | "all";
+  priority: number;
+  definition: QueueArgs;
+  /** The definition as it was written (JSON), for list_policies. */
+  raw: string;
 }
 
 export interface Queue {
@@ -122,6 +136,8 @@ export interface Broker {
   deliveries: { tag: string; id: string; redelivered: boolean; time: number }[];
   /** Messages that left the system without being processed, and why. */
   lost: { id: string; reason: LostReason }[];
+  /** Policies set with rabbitmqctl; absent on brokers made before policies existed. */
+  policies?: Policy[];
 }
 
 export type LostReason = "unroutable" | "expired" | "maxlen" | "rejected" | "restart" | "queue-down" | "delivery_limit" | "auto-ack-crash";
@@ -148,6 +164,7 @@ export function createBroker(opts: { nodes?: number } = {}): Broker {
     nodes: NODES.slice(0, Math.max(1, n)).map((name) => ({ name, alive: true })),
     deliveries: [],
     lost: [],
+    policies: [],
   };
 }
 
@@ -181,7 +198,9 @@ export type BrokerAction =
   | { type: "tick"; count?: number }
   | { type: "restart" }
   | { type: "nodeDown"; node: string }
-  | { type: "nodeUp"; node: string };
+  | { type: "nodeUp"; node: string }
+  | { type: "setPolicy"; policy: Policy }
+  | { type: "clearPolicy"; name: string };
 
 export type BrokerEvent =
   | { type: "exchangeDeclared"; name: string; kind: ExchangeType }
@@ -207,6 +226,8 @@ export type BrokerEvent =
   | { type: "nodeChanged"; node: string; alive: boolean }
   | { type: "leaderMoved"; queue: string; from: string; to: string }
   | { type: "queueUnavailable"; queue: string }
+  | { type: "policySet"; name: string; queues: string[] }
+  | { type: "policyCleared"; name: string; queues: string[] }
   | { type: "error"; message: string };
 
 export interface StepResult {
@@ -257,6 +278,49 @@ export function route(s: Broker, exchange: string, routingKey: string, headers: 
 }
 
 /* ----------------------------------------------------------------- reads */
+
+/** The policy that applies to a queue: the matching one with the highest priority, as in RabbitMQ. */
+export function policyFor(s: Broker, queue: string): Policy | null {
+  let best: Policy | null = null;
+  for (const p of s.policies ?? []) {
+    if (p.applyTo === "exchanges") continue;
+    let hit = false;
+    try {
+      hit = new RegExp(p.pattern).test(queue);
+    } catch {
+      hit = false;
+    }
+    if (hit && (!best || p.priority > best.priority)) best = p;
+  }
+  return best;
+}
+
+/**
+ * A queue's settings with its policy applied. Where both set a value, RabbitMQ keeps the
+ * queue's own argument for the dead letter exchange, its key and overflow, and the lower
+ * number for TTL, max length and delivery limit.
+ */
+export function effectiveArgs(s: Broker, q: Queue): QueueArgs {
+  const p = policyFor(s, q.name)?.definition;
+  if (!p) return q.args;
+  const a = q.args;
+  const low = (x: number | undefined, y: number | undefined) => (x === undefined ? y : y === undefined ? x : Math.min(x, y));
+  const out: QueueArgs = {
+    dlx: a.dlx ?? p.dlx,
+    dlxKey: a.dlxKey ?? p.dlxKey,
+    overflow: a.overflow ?? p.overflow,
+    ttl: low(a.ttl, p.ttl),
+    maxLength: low(a.maxLength, p.maxLength),
+    deliveryLimit: a.deliveryLimitDefault && p.deliveryLimit !== undefined ? p.deliveryLimit : low(a.deliveryLimit, q.type === "quorum" ? p.deliveryLimit : undefined),
+  };
+  for (const k of Object.keys(out) as (keyof QueueArgs)[]) if (out[k] === undefined) delete out[k];
+  return out;
+}
+
+/** Queues a policy matches right now (by name), for the event. */
+function matchedBy(s: Broker, name: string): string[] {
+  return Object.keys(s.queues).filter((q) => policyFor(s, q)?.name === name);
+}
 
 export const nodeAlive = (s: Broker, node: string) => s.nodes.find((n) => n.name === node)?.alive ?? false;
 
@@ -312,7 +376,10 @@ export function apply(prev: Broker, action: BrokerAction): StepResult {
       const node = action.node ?? s.nodes[0]!.name;
       const members = type === "classic" ? [node] : s.nodes.length >= 3 ? s.nodes.slice(0, 3).map((n) => n.name) : s.nodes.map((n) => n.name);
       const args: QueueArgs = { ...action.args };
-      if (type === "quorum" && args.deliveryLimit === undefined) args.deliveryLimit = 20;
+      if (type === "quorum" && args.deliveryLimit === undefined) {
+        args.deliveryLimit = 20;
+        args.deliveryLimitDefault = true;
+      }
       s.queues[action.name] = { name: action.name, durable: action.durable ?? true, type, args, ready: [], log: [], node, members };
       s.order[action.name] = [];
       s.rr[action.name] = 0;
@@ -493,6 +560,26 @@ export function apply(prev: Broker, action: BrokerAction): StepResult {
       return { state: s, events };
     }
 
+    case "setPolicy": {
+      try {
+        new RegExp(action.policy.pattern);
+      } catch {
+        return fail(`Validation failed: ${action.policy.pattern} is not a valid regular expression`);
+      }
+      s.policies = [...(s.policies ?? []).filter((p) => p.name !== action.policy.name), action.policy];
+      events.push({ type: "policySet", name: action.policy.name, queues: matchedBy(s, action.policy.name) });
+      for (const q of Object.values(s.queues)) expireHead(s, q, events);
+      break;
+    }
+
+    case "clearPolicy": {
+      if (!(s.policies ?? []).some((p) => p.name === action.name)) return fail(`Parameter does not exist`);
+      const queues = matchedBy(s, action.name);
+      s.policies = (s.policies ?? []).filter((p) => p.name !== action.name);
+      events.push({ type: "policyCleared", name: action.name, queues });
+      break;
+    }
+
     case "nodeDown":
     case "nodeUp": {
       const node = s.nodes.find((n) => n.name === action.node);
@@ -585,9 +672,10 @@ function enqueue(s: Broker, q: Queue, msg: Message, events: BrokerEvent[]): { ok
     q.log.push(msg);
     return { ok: true };
   }
-  const max = q.args.maxLength;
+  const eff = effectiveArgs(s, q);
+  const max = eff.maxLength;
   if (max !== undefined && q.ready.length >= max) {
-    if ((q.args.overflow ?? "drop-head") === "reject-publish") {
+    if ((eff.overflow ?? "drop-head") === "reject-publish") {
       s.lost.push({ id: msg.id, reason: "maxlen" });
       events.push({ type: "dropped", id: msg.id, queue: q.name, reason: "maxlen" });
       return { ok: false, reason: "queue full (reject-publish)" };
@@ -601,7 +689,8 @@ function enqueue(s: Broker, q: Queue, msg: Message, events: BrokerEvent[]): { ok
 
 /** Sends a message to the queue's dead letter exchange, or drops it when there is none. */
 function deadLetter(s: Broker, q: Queue, msg: Message, reason: DeathReason, events: BrokerEvent[]) {
-  const dlx = q.args.dlx;
+  const eff = effectiveArgs(s, q);
+  const dlx = eff.dlx;
   if (dlx === undefined || (dlx !== DEFAULT_EXCHANGE && !s.exchanges[dlx])) {
     const lostReason: LostReason = reason === "rejected" ? "rejected" : reason === "expired" ? "expired" : reason === "maxlen" ? "maxlen" : "delivery_limit";
     s.lost.push({ id: msg.id, reason: lostReason });
@@ -612,7 +701,7 @@ function deadLetter(s: Broker, q: Queue, msg: Message, reason: DeathReason, even
   const deaths = prior
     ? msg.deaths.map((d) => (d === prior ? { ...d, count: d.count + 1 } : d))
     : [{ reason, queue: q.name, count: 1 }, ...msg.deaths];
-  const routingKey = q.args.dlxKey ?? msg.routingKey;
+  const routingKey = eff.dlxKey ?? msg.routingKey;
   const dead: Message = { ...msg, exchange: dlx, routingKey, deaths, redelivered: false, deliveryCount: 0, publishedAt: s.time, ttl: undefined };
   const targets = route(s, dlx, routingKey, dead.headers);
   events.push({ type: "deadLettered", id: msg.id, from: q.name, reason, to: targets[0] ?? null });
@@ -627,7 +716,7 @@ function requeue(s: Broker, q: Queue, msgs: Message[], why: "nack" | "crash" | "
   const back: Message[] = [];
   for (const m of msgs) {
     const again = { ...m, redelivered: true, deliveryCount: m.deliveryCount + 1 };
-    const limit = q.args.deliveryLimit;
+    const limit = effectiveArgs(s, q).deliveryLimit;
     if (q.type === "quorum" && limit !== undefined && again.deliveryCount > limit) {
       deadLetter(s, q, again, "delivery_limit", events);
       continue;
@@ -654,8 +743,8 @@ function removeConsumer(s: Broker, c: Consumer, crashed: boolean, events: Broker
   if (q && q.type !== "stream" && c.unacked.length) requeue(s, q, c.unacked, crashed ? "crash" : "cancel", events);
 }
 
-function expiry(q: Queue, m: Message): number | undefined {
-  const a = q.args.ttl;
+function expiry(s: Broker, q: Queue, m: Message): number | undefined {
+  const a = effectiveArgs(s, q).ttl;
   const b = m.ttl;
   if (a === undefined) return b;
   if (b === undefined) return a;
@@ -667,7 +756,7 @@ function expireHead(s: Broker, q: Queue, events: BrokerEvent[]) {
   if (q.type === "stream") return;
   while (q.ready.length) {
     const m = q.ready[0]!;
-    const ttl = expiry(q, m);
+    const ttl = expiry(s, q, m);
     if (ttl === undefined || s.time - m.publishedAt < ttl) return;
     q.ready.shift();
     deadLetter(s, q, m, "expired", events);

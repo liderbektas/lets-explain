@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const DECLARE = 'ch.queue_declare(\n    queue="orders",\n    durable=True,\n    arguments={"x-queue-type": "quorum"},\n)';
@@ -16,7 +16,7 @@ export const quorumQueues: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Classic kuyruğun tek bir node'da yaşadığını görmek", "See that a classic queue lives on one node"), step: 2 },
     { text: l("Quorum kuyruğunda leader'ın başka node'a geçtiğini görmek", "See a quorum queue's leader move to another node"), step: 2 },
@@ -285,13 +285,16 @@ export const quorumQueues: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Üç node'luk bir cluster'da `jobs` (quorum) ve `rabbit@1`'de yaşayan `cache` (classic) kuyrukları var. İki kuyruğa da mesaj gönderebilir, node'ları çökertip geri getirebilirsin.",
-          "A three-node cluster holds `jobs` (quorum) and `cache` (classic, living on `rabbit@1`). You can send to both queues and take nodes down and up.",
+          "Sıra sende. Aşağıda üç node'luk bir cluster ve gerçek işten **4 senaryo** var: bakım için node durdurmak, yanlış türde tanımlanmış bir kuyruk, ve bir leader'ı taşımak. Node'lar Docker container'ı: `rabbit1`, `rabbit2`, `rabbit3`.",
+          "Your turn. Below is a three-node cluster and **4 scenarios** from real work: stopping nodes for maintenance, a queue declared with the wrong type, and moving a leader. The nodes are Docker containers: `rabbit1`, `rabbit2`, `rabbit3`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`docker stop`, `docker start`, `docker restart` ve `docker ps -a` ile node'ları yönet; `docker exec rabbit1 rabbitmq-queues quorum_status orders` ile kopyalara, `rabbitmqctl list_queues name type leader members` ile kuyruklara bak.",
+          "Manage the nodes with `docker stop`, `docker start`, `docker restart` and `docker ps -a`; look at the copies with `docker exec rabbit1 rabbitmq-queues quorum_status orders` and at the queues with `rabbitmqctl list_queues name type leader members`.",
+        ),
       ],
     },
   ],

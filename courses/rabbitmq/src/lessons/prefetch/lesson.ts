@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const prefetch: Lesson = {
@@ -14,7 +14,7 @@ export const prefetch: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Sınırsız prefetch'te işlerin işçi hızına bakılmadan dağıldığını görmek", "See jobs handed out regardless of speed with unlimited prefetch"), step: 1 },
     { text: l("Yavaş işçinin işleri istiflerken hızlının boşta kaldığını görmek", "See the fast worker idle while the slow one hoards"), step: 2 },
@@ -224,13 +224,16 @@ export const prefetch: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Hızlı (turda 3 iş) ve yavaş (elindekinde takılan) iki işçi, sınırsız prefetch ile bağlı. İş gönderebilir, işçileri ayırıp prefetch 1 ya da sınırsız ile yeniden bağlayabilir ve zamanı ilerletebilirsin.",
-          "A fast worker (3 jobs a tick) and a slow one (stuck on what it holds) are connected with no prefetch limit. Send jobs, disconnect and reconnect a worker with prefetch 1 or no limit, and move time.",
+          "Sıra sende. Bir rapor servisi var: `send.py` `jobs` kuyruğuna rapor gönderir; `fast_worker.py` her raporu hemen bitirir, eski makinedeki `slow_worker.py` her birine 10 saniye harcar. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a report service: `send.py` sends reports to the `jobs` queue; `fast_worker.py` finishes each at once, while `slow_worker.py`, on an old machine, spends 10 seconds on each. Below are **4 scenarios** from real work.",
         ),
-        l("Sahnenin altında **3 görev** var.", "Under the scene there are **3 missions**."),
+        l(
+          "`nano slow_worker.py` ile prefetch'i ayarla, işçiyi `pkill -f slow_worker.py` ve `python slow_worker.py` ile yeniden başlat. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` kimin ne tuttuğunu gösterir.",
+          "Set the prefetch with `nano slow_worker.py`, restart the worker with `pkill -f slow_worker.py` and `python slow_worker.py`. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows who holds what.",
+        ),
       ],
     },
   ],

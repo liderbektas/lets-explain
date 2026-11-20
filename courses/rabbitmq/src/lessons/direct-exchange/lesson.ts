@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const CTL = "docker exec rabbitmq rabbitmqctl";
@@ -16,7 +16,7 @@ export const directExchange: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Direct exchange'in birebir eşleşmeyle yönlendirdiğini görmek", "See a direct exchange route on an exact match"), step: 1 },
     { text: l("Bir key'i birden fazla kuyruğa bağlamak", "Bind one key to several queues"), step: 1 },
@@ -191,13 +191,16 @@ export const directExchange: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bir `tasks` direct exchange'i ve iki kuyruk var: `images` ve `emails`. Hiç binding yok. Binding ekleyebilir ve `image`, `email`, `video` key'leriyle mesaj gönderebilirsin.",
-          "There is a `tasks` direct exchange and two queues, `images` and `emails`, with no bindings. You can add bindings and send messages with keys `image`, `email` and `video`.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: mesajlar yanlış yere gidiyor ya da hiç gitmiyor. Proje klasöründe kurulumu yapan `setup.py` ve mesaj gönderen küçük Python dosyaları var; gerçekte de binding'ler böyle, uygulamanın kodunda durur.",
+          "Your turn. Below are **5 scenarios** from real work: messages go to the wrong place, or nowhere. The project folder has `setup.py`, which builds the topology, and small Python files that send messages; in real life bindings live in the app's code like this too.",
         ),
-        l("Sahnenin altında **3 görev** var.", "Under the scene there are **3 missions**."),
+        l(
+          "`rabbitmqctl list_bindings` ile neyin neye bağlı olduğuna bak, `nano` ile kodu düzelt, `python` ile çalıştır. Sahne her komutta ne olduğunu gösterir; az komutla bitirirsen 3 yıldız.",
+          "Use `rabbitmqctl list_bindings` to see what is bound to what, fix the code with `nano`, run it with `python`. The scene shows what each command does; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

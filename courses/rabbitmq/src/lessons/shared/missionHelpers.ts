@@ -1,6 +1,8 @@
+import { typeLines } from "@lets-explain/core/components/TypedSandbox";
 import { shortestWin } from "@lets-explain/core/lib/missionSearch";
-import { apply, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import type { BrokerCtx, BrokerScene } from "./BrokerScene";
+import { apply, createBroker, simulate, type Broker, type BrokerAction } from "../../engine/broker";
+import { applyAll, project, rabbitShell, type Files, type Project } from "../../engine/cli";
+import { typedCtx, type BrokerCtx, type BrokerScene, type RabbitCtx } from "./BrokerScene";
 
 /** The mission context for a list of moves from the try-it step's start. */
 export function ctxFor(scene: BrokerScene, actions: BrokerAction[]): BrokerCtx {
@@ -32,3 +34,32 @@ export function eventsOf<T extends import("../../engine/broker").BrokerEvent["ty
 export function lostSince(ctx: BrokerCtx) {
   return ctx.state.lost.slice(ctx.start.lost.length);
 }
+
+/* -------------------------------------------------------------- scenarios */
+
+/** The usual top of every script: a connection and a channel called `ch`. */
+export const CONNECT = `import pika
+
+connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
+ch = connection.channel()
+`;
+
+/** A script: the connection lines, the body, and a close. */
+export const script = (body: string) => `${CONNECT}\n${body.trim()}\n\nconnection.close()`;
+
+/**
+ * A scenario's starting project: these files, after typing these lines (usually
+ * `python setup.py`), so the broker is exactly what the files describe.
+ */
+export function projectAfter(files: Files, typed: string[] = [], broker: Broker = createBroker()): Project {
+  return typeLines(rabbitShell, applyAll, project(broker, files), typed).state;
+}
+
+/** Types lines into a scenario the way a reader would; returns what its check sees and the commands counted. */
+export function typeInto(start: Project, typed: string[], edits: ((text: string) => string)[] = []): { ctx: RabbitCtx; moves: number; output: string[] } {
+  const r = typeLines(rabbitShell, applyAll, start, typed, edits);
+  return { ctx: typedCtx(start, r.actions), moves: r.moves, output: r.output };
+}
+
+/** A message with this routing key reached this queue during the scenario. */
+export const reached = (ctx: BrokerCtx, key: string, queue: string) => eventsOf(ctx, "routed").some((e) => e.routingKey === key && e.queues.includes(queue));

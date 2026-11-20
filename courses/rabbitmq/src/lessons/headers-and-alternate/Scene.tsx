@@ -2,8 +2,8 @@ import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "headers-and-alternate";
 const DOCS = "documents";
@@ -83,62 +83,11 @@ function RulePills({ broker, queues }: { broker: Broker; queues: string[] }) {
 
 export const kindOf = (m: Message) => (m.headers.format === "csv" ? "payment" : m.exchange === "orders" ? "cancel" : "order");
 
-/* ------------------------------------------------------------------ sandbox */
-
+/** The try-it step's headers exchange. */
 export const SDOCS = "docs";
-export const DOCS_KEYS: { format: string; region: string; body: string }[] = [
-  { format: "pdf", region: "eu", body: "pe" },
-  { format: "pdf", region: "us", body: "pu" },
-  { format: "csv", region: "eu", body: "ce" },
-  { format: "csv", region: "us", body: "cu" },
-];
 
-const sandboxStart = (): Broker =>
-  simulate(
-    [
-      { type: "declareExchange", name: SDOCS, kind: "headers" },
-      { type: "declareExchange", name: "unrouted", kind: "fanout" },
-      { type: "declareQueue", name: "pdf" },
-      { type: "declareQueue", name: "pdf-eu" },
-      { type: "declareQueue", name: "lost-found" },
-      { type: "bind", exchange: SDOCS, queue: "pdf", headers: { format: "pdf" }, match: "all" },
-      { type: "bind", exchange: "unrouted", queue: "lost-found" },
-    ],
-    createBroker(),
-  ).states[7]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = new Set(history.flatMap((a) => (a.type === "publish" ? [a.body] : [])));
-  const bound = b.bindings.some((x) => x.exchange === SDOCS && x.queue === "pdf-eu");
-  const hasAlt = Boolean(b.exchanges[SDOCS]?.alternate);
-  return [
-    {
-      label: tr ? "Gönder" : "Publish",
-      buttons: DOCS_KEYS.map((k) => ({ label: `${k.format}/${k.region}`, action: doc(k.format, k.region, k.body, SDOCS), tone: "producer" as const, disabled: sent.has(k.body) })),
-    },
-    {
-      label: "pdf-eu",
-      buttons: bound
-        ? [{ label: tr ? "binding'i kaldır" : "remove binding", action: { type: "unbind", exchange: SDOCS, queue: "pdf-eu" }, tone: "danger" }]
-        : [
-            { label: "+ all (pdf, eu)", action: { type: "bind", exchange: SDOCS, queue: "pdf-eu", headers: BOTH, match: "all" }, tone: "go" },
-            { label: "+ any (pdf, eu)", action: { type: "bind", exchange: SDOCS, queue: "pdf-eu", headers: BOTH, match: "any" }, tone: "go" },
-          ],
-    },
-    {
-      label: "docs",
-      buttons: [
-        {
-          label: tr ? "alternate → unrouted" : "alternate → unrouted",
-          action: { type: "declareExchange", name: SDOCS, kind: "headers", alternate: "unrouted" },
-          tone: "ok",
-          disabled: hasAlt,
-        },
-      ],
-    },
-  ];
-}
+/** Queues to draw in the try-it step: whatever the scenario's project declared. */
+const sandboxQueues = (b: Broker) => Object.keys(b.queues);
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -155,7 +104,14 @@ export const scene = makeBrokerScene({
       kindOf={kindOf}
       layout={
         info.sandbox
-          ? { producers: [{ id: "archive", label: info.t(l("Arşiv", "Archive")), exchange: SDOCS }], exchanges: [SDOCS, "unrouted"], queues: ["pdf", "pdf-eu", "lost-found"] }
+          ? {
+              producers: [
+                { id: "archive", label: info.t(l("Arşiv", "Archive")), exchange: SDOCS },
+                ...(b.exchanges.orders ? [{ id: "shop", label: info.t(l("Mağaza", "Shop")), exchange: "orders" }] : []),
+              ],
+              exchanges: [SDOCS, "unrouted", "orders"].filter((x) => b.exchanges[x]),
+              queues: sandboxQueues(b),
+            }
           : {
               producers: [
                 { id: "archive", label: info.t(l("Arşiv", "Archive")), exchange: DOCS },
@@ -166,15 +122,16 @@ export const scene = makeBrokerScene({
             }
       }
     />
-    <RulePills broker={b} queues={info.sandbox ? ["pdf", "pdf-eu", "lost-found"] : ["pdf-eu", "pdf-or-eu", "unrouted", "billing"]} />
+    <RulePills broker={b} queues={info.sandbox ? sandboxQueues(b) : ["pdf-eu", "pdf-or-eu", "unrouted", "billing"]} />
     </g>
   ),
   metrics: (b, t, info) => {
-    const qs = info.sandbox ? ["pdf", "pdf-eu", "lost-found"] : ["pdf-eu", "pdf-or-eu", "unrouted"].filter((q) => b.queues[q]);
+    const qs = info.sandbox ? sandboxQueues(b) : ["pdf-eu", "pdf-or-eu", "unrouted"].filter((q) => b.queues[q]);
     return [
       ...qs.map((q) => ({ label: q, value: depth(b, q).ready })),
       { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? ("danger" as const) : ("plain" as const) },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the docs project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

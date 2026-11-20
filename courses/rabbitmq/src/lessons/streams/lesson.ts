@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const CONSUME = (offset: string) =>
@@ -17,7 +17,7 @@ export const streams: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Stream'de okunan mesajın silinmediğini görmek", "See that a stream keeps messages after they are read"), step: 2 },
     { text: l("Birden fazla okuyucunun aynı mesajları aldığını görmek", "See several readers get the same messages"), step: 3 },
@@ -247,13 +247,16 @@ export const streams: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`events` stream'inde üç event zaten duruyor. İki okuyucu `first` ya da `next` ile bağlanabilir, ack gönderebilir ve ayrılabilir; sen de yeni event'ler gönderebilirsin.",
-          "The `events` stream already holds three events. Two readers can connect with `first` or `next`, ack, and leave; you can send new events.",
+          "Sıra sende. Aşağıda içinde üç event olan bir `events` stream'i ve gerçek işten **4 senaryo** var: geçmişi okumayan bir servis, stream'e çevrilmiş bir classic okuyucu, hatalı hesabı yeniden yapmak ve belli bir yerden okumaya başlamak.",
+          "Your turn. Below is an `events` stream with three events in it and **4 scenarios** from real work: a service that doesn't read the past, a classic reader pointed at a stream, redoing a buggy computation, and starting to read from a given point.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Okuyucular Python dosyaları: `nano` ile düzelt, `python` ile başlat (arka planda çalışırlar), `pkill -f` ile durdur. Alttaki panel her okuyucunun stream'de nerede olduğunu gösterir.",
+          "Readers are Python files: fix them with `nano`, start them with `python` (they keep running in the background), stop them with `pkill -f`. The panel below shows where each reader is in the stream.",
+        ),
       ],
     },
   ],

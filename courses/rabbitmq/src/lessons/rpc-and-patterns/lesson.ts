@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const CLIENT = `import pika, uuid
@@ -72,7 +72,7 @@ export const rpcAndPatterns: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("İsteğin cevabın nereye gideceğini (reply_to) taşıdığını görmek", "See a request carry where its answer goes (reply_to)"), step: 1 },
     { text: l("Cevapları sıraya değil correlation id'ye göre eşleştirmek", "Match answers by correlation id, not by order"), step: 4 },
@@ -313,13 +313,16 @@ export const rpcAndPatterns: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "İstek gönderebilir, her sunucuya cevap verdirebilir, isteği ve cevabı ack'leyebilir ve sunucuları çökertebilirsin. İstekler sunuculara sırayla dağılır: önce Sunucu 1, sonra Sunucu 2.",
-          "You can send requests, make each server answer, ack the request and the answer, and crash servers. Requests go to the servers in turn: Server 1 first, then Server 2.",
+          "Sıra sende. Aşağıda bir fiyat servisi ve gerçek işten **4 senaryo** var: istekler `rpc` kuyruğuna gidiyor, sunucu cevabı isteğin `reply_to`'suna, aynı `correlation_id` ile yazıyor. Senaryolarda bu zincirin bir halkası kopuk.",
+          "Your turn. Below is a price service and **4 scenarios** from real work: requests go to the `rpc` queue, and the server writes each answer to the request's `reply_to`, with the same `correlation_id`. In each scenario one link of that chain is broken.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`rabbitmqctl list_queues name messages consumers` ile bak, `nano` ile `server.py` ya da `client.py`'yi düzelt, `python` ile çalıştır. Sunucu başlatılınca arka planda çalışır.",
+          "Look with `rabbitmqctl list_queues name messages consumers`, fix `server.py` or `client.py` with `nano`, run with `python`. Once started, the server keeps running in the background.",
+        ),
       ],
     },
   ],

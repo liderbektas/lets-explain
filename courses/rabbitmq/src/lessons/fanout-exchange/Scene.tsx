@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "fanout-exchange";
 export const EX = "orders";
@@ -46,30 +46,7 @@ export const steps: BrokerAction[][] = [
   [],
 ];
 
-const names = (t: (x: L) => string) => ({ mailer: t(l("E-posta", "Email")), texter: "SMS" });
-
-/** The sandbox: a fanout exchange `news` and three unbound queues. */
-export const NEWS = "news";
-export const QUEUES = ["a", "b", "c"];
-const sandboxStart = (): Broker =>
-  simulate([{ type: "declareExchange", name: NEWS, kind: "fanout" }, ...QUEUES.map((q): BrokerAction => ({ type: "declareQueue", name: q }))], createBroker()).states[4]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const bound = (q: string) => b.bindings.some((x) => x.exchange === NEWS && x.queue === q);
-  return [
-    { label: tr ? "Yayıncı" : "Publisher", buttons: [{ label: tr ? "Haber yayınla" : "Publish news", action: { type: "publish", exchange: NEWS, routingKey: "", body: `n${sent + 1}` }, tone: "producer", disabled: sent >= 3 }] },
-    {
-      label: tr ? "Binding" : "Bindings",
-      buttons: QUEUES.map((q) =>
-        bound(q)
-          ? { label: tr ? `${q} çıkar` : `unbind ${q}`, action: { type: "unbind", exchange: NEWS, queue: q } as BrokerAction, tone: "danger" as const }
-          : { label: tr ? `${q} bağla` : `bind ${q}`, action: bind(q, NEWS), tone: "go" as const },
-      ),
-    },
-  ];
-}
+const names = (t: (x: L) => string) => ({ mailer: t(l("E-posta", "Email")), texter: "SMS", push: t(l("Bildirim", "Push")) });
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -83,22 +60,29 @@ export const scene = makeBrokerScene({
       prev={info.prev}
       labels={labels(info.t)}
       layout={{
-        producers: [{ id: "shop", label: info.t(info.sandbox ? l("Yayıncı", "Publisher") : l("Mağaza", "Shop")), exchange: info.sandbox ? NEWS : EX }],
-        queues: info.sandbox ? QUEUES : ["email", "sms", "analytics", "tmp-dashboard"],
+        producers: info.sandbox
+          ? [
+              { id: "shop", label: info.t(l("Mağaza", "Shop")), exchange: EX },
+              // A script can also send straight to one queue through the default exchange.
+              { id: "marketing", label: info.t(l("Pazarlama", "Marketing")), exchange: "", queue: "email" },
+            ]
+          : [{ id: "shop", label: info.t(l("Mağaza", "Shop")), exchange: EX }],
+        queues: info.sandbox ? Object.keys(b.queues) : ["email", "sms", "analytics", "tmp-dashboard"],
         consumerNames: names(info.t),
       }}
     />
   ),
   metrics: (b, t, info) => {
-    const qs = info.sandbox ? QUEUES : ["email", "sms", "analytics"];
+    const qs = info.sandbox ? Object.keys(b.queues) : ["email", "sms", "analytics"];
     const copies = qs.reduce((n, q) => n + (b.queues[q] ? depth(b, q).total : 0), 0);
     const routed = b.deliveries.length;
     return [
-      { label: t(l("Bağlı kuyruk", "Bound queues")), value: b.bindings.filter((x) => x.exchange === (info.sandbox ? NEWS : EX)).length },
+      { label: t(l("Bağlı kuyruk", "Bound queues")), value: b.bindings.filter((x) => x.exchange === EX).length },
       { label: t(l("Kuyruklardaki kopya", "Copies in queues")), value: copies },
       { label: t(l("Teslim edilen", "Delivered")), value: routed },
       { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the orders project; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

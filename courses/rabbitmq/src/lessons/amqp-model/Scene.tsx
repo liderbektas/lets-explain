@@ -1,11 +1,11 @@
 import { l } from "@lets-explain/core/i18n";
-import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
+import { createBroker, depth, type Broker, type BrokerAction } from "../../engine/broker";
 import { BrokerStage } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
+import { makeBrokerScene } from "../shared/BrokerScene";
 import { Channels } from "./Channels";
 import { mergeBindings } from "../direct-exchange/mergeBindings";
-import { missions } from "./missions";
+import { FREE, scenarios } from "./scenarios";
 import "./amqp.css";
 
 export const SLUG = "amqp-model";
@@ -34,39 +34,6 @@ export const steps: BrokerAction[][] = [
 export const EXPECTED_ERRORS: Record<number, string> = { 5: "PRECONDITION_FAILED" };
 
 const SHOP = "shop";
-/** The sandbox: a `shop` exchange and two queues, with no bindings yet. */
-const sandboxStart = (): Broker =>
-  simulate(
-    [
-      { type: "declareExchange", name: SHOP, kind: "direct" },
-      { type: "declareQueue", name: "billing" },
-      { type: "declareQueue", name: "shipping" },
-    ],
-    createBroker(),
-  ).states[3]!;
-
-const isBound = (b: Broker, queue: string, key: string) => b.bindings.some((x) => x.exchange === SHOP && x.queue === queue && x.key === key);
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const bind = (queue: string, key: string) => ({
-    label: `${queue} ← ${key}`,
-    action: { type: "bind", exchange: SHOP, queue, key } as BrokerAction,
-    disabled: isBound(b, queue, key),
-  });
-  return [
-    { label: "Binding", buttons: [bind("billing", "order.paid"), bind("shipping", "order.paid"), bind("shipping", "order.shipped")] },
-    {
-      label: tr ? "Gönder" : "Publish",
-      buttons: [
-        { label: "order.paid", action: pub(SHOP, "order.paid", `p${sent + 1}`), tone: "producer", disabled: sent >= 6 },
-        { label: "order.shipped", action: pub(SHOP, "order.shipped", `s${sent + 1}`), tone: "producer", disabled: sent >= 6 },
-      ],
-    },
-  ];
-}
-
 const kindOf = (m: { routingKey: string }) => (m.routingKey.endsWith("cancelled") ? "cancel" : m.routingKey.endsWith("shipped") ? "payment" : "order") as "order";
 
 export const scene = makeBrokerScene({
@@ -93,7 +60,13 @@ export const scene = makeBrokerScene({
         labels={labels(info.t)}
         kindOf={kindOf}
         layout={{
-          producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: info.sandbox ? SHOP : "orders" }],
+          producers: info.sandbox
+            ? [
+                { id: "app", label: info.t(l("Uygulama", "App")), exchange: SHOP },
+                // A test script can also publish straight to a queue through the default exchange.
+                { id: "test", label: "Test", exchange: "", queue: "shipping" },
+              ]
+            : [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "orders" }],
           consumerNames: { "billing-1": info.t(l("Fatura", "Billing")) },
         }}
       />
@@ -113,5 +86,6 @@ export const scene = makeBrokerScene({
     step === 4 ? [{ kind: "good", text: l("Hiçbir şey değişmedi: aynı ayarlarla tekrar declare etmek zararsızdır", "Nothing changed: declaring again with the same settings is harmless") }]
     : step === 5 ? [{ kind: "bad", text: l("Broker reddetti: `PRECONDITION_FAILED` (406), kanal kapanır", "The broker refused: `PRECONDITION_FAILED` (406), and the channel closes") }]
     : [],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play is the shop project with no bindings; each scenario brings its own.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

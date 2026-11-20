@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { rel } from "@lets-explain/core/iso/geometry";
 import { IsoBox, Parcel, Person, TINTS, type Shades, type Tint } from "@lets-explain/core/iso/shapes";
-import { depth, queueAvailable, type Broker, type BrokerEvent, type ExchangeType, type Message } from "../engine/broker";
+import { effectiveArgs, depth, queueAvailable, type Broker, type BrokerEvent, type ExchangeType, type Message } from "../engine/broker";
 import { choreograph, hKey, qKey, type Fate, type Ghost, type Places, type Pt, type Token } from "./choreography";
 import "./broker-stage.css";
 
@@ -220,9 +220,11 @@ export function BrokerStage({ broker, layout, labels, last, prev, confirms, kind
         const shown = items.slice(0, SLOTS);
         const chips: string[] = [];
         if (q.type !== "classic") chips.push(q.type);
-        if (q.args.ttl !== undefined) chips.push(`TTL ${q.args.ttl}`);
-        if (q.args.maxLength !== undefined) chips.push(`max ${q.args.maxLength}`);
-        if (q.args.dlx !== undefined) chips.push(`DLX → ${q.args.dlx || "default"}`);
+        // What the queue really runs with: its own arguments plus a matching policy.
+        const args = effectiveArgs(broker, q);
+        if (args.ttl !== undefined) chips.push(`TTL ${args.ttl}`);
+        if (args.maxLength !== undefined) chips.push(`max ${args.maxLength}`);
+        if (args.dlx !== undefined) chips.push(`DLX → ${args.dlx || "default"}`);
         if (!q.durable) chips.push("transient");
         const shift = plan.shift.get(name) ?? 0;
         return (

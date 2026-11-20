@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
 import { BrokerStage, type ProducerSpec } from "../../iso/BrokerStage";
 import { labels } from "../first-queue/Scene";
-import { makeBrokerScene, type SandboxRow } from "../shared/BrokerScene";
-import { missions } from "./missions";
+import { makeBrokerScene } from "../shared/BrokerScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "poison-messages";
 export const OLD = "orders-v1";
@@ -39,40 +39,7 @@ export const steps: BrokerAction[][] = [
 
 export const kindOf = (m: Message) => (m.body.startsWith("bad") ? "cancel" : m.body === "late" ? "payment" : "order");
 
-const names = (t: (x: L) => string) => ({ w1: t(l("İşçi", "Worker")), w2: t(l("İşçi", "Worker")), w: t(l("İşçi", "Worker")) });
-
-const SANDBOX_LIMIT = 2;
-const sandboxSetup: BrokerAction[] = [
-  { type: "declareExchange", name: "dlx", kind: "fanout" },
-  { type: "declareQueue", name: PARKING },
-  { type: "bind", exchange: "dlx", queue: PARKING },
-  { type: "declareQueue", name: QQ, queueType: "quorum", args: { deliveryLimit: SANDBOX_LIMIT, dlx: "dlx" } },
-  { type: "consume", tag: "w", queue: QQ, prefetch: 1 },
-];
-const sandboxStart = (): Broker => simulate(sandboxSetup, createBroker()).states[sandboxSetup.length]!;
-
-function rows(b: Broker, lang: "tr" | "en", history: BrokerAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const sent = history.filter((a) => a.type === "publish").length;
-  const held = b.consumers.w?.unacked.length ?? 0;
-  return [
-    {
-      label: tr ? "Uygulama" : "App",
-      buttons: [
-        { label: tr ? "Bozuk mesaj" : "Bad message", action: to(QQ, `bad${sent + 1}`), tone: "danger", disabled: sent >= 3 },
-        { label: tr ? "Sağlam mesaj" : "Good message", action: to(QQ, `ok${sent + 1}`), tone: "producer", disabled: sent >= 3 },
-      ],
-    },
-    {
-      label: tr ? "İşçi" : "Worker",
-      buttons: [
-        { label: "ack", action: { type: "ack", tag: "w" }, tone: "ok", disabled: held === 0 },
-        { label: "nack (requeue)", action: nack("w", true), disabled: held === 0 },
-        { label: "reject", action: nack("w", false), tone: "danger", disabled: held === 0 },
-      ],
-    },
-  ];
-}
+const names = (t: (x: L) => string) => ({ w1: t(l("İşçi", "Worker")), w2: t(l("İşçi", "Worker")), w: t(l("İşçi", "Worker")), worker: t(l("İşçi", "Worker")) });
 
 export const scene = makeBrokerScene({
   slug: SLUG,
@@ -80,8 +47,10 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Bozuk bir mesaj, onu sayan bir quorum queue ve park kuyruğu", "A broken message, a quorum queue that counts it, and a parking queue"),
   view: (b, info) => {
+    // In the try-it step the app sends to the project's work queue (`orders` or `jobs`).
+    const work = ["orders", "jobs"].find((q) => b.queues[q]) ?? QQ;
     const producers: ProducerSpec[] = info.sandbox
-      ? [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: QQ }]
+      ? [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: work }]
       : info.step <= 2
         ? [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: OLD }]
         : info.step >= 6
@@ -97,7 +66,12 @@ export const scene = makeBrokerScene({
         prev={info.prev}
         labels={labels(info.t)}
         kindOf={kindOf}
-        layout={{ producers, exchanges: ["dlx"], queues: [OLD, QQ, RETRY, PARKING], consumerNames: names(info.t) }}
+        layout={{
+          producers,
+          exchanges: info.sandbox ? undefined : ["dlx"],
+          queues: info.sandbox ? [work, RETRY, PARKING] : [OLD, QQ, RETRY, PARKING],
+          consumerNames: names(info.t),
+        }}
       />
     );
   },
@@ -109,5 +83,6 @@ export const scene = makeBrokerScene({
       { label: t(l("Kayıp", "Lost")), value: b.lost.length, tone: b.lost.length ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: a quorum `orders` with a delivery limit and a parking queue; each scenario brings its own project.
+  sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },
 });

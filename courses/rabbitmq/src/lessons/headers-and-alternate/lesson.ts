@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const headersAndAlternate: Lesson = {
@@ -14,7 +14,7 @@ export const headersAndAlternate: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`x-match: all` ile `any` farkını görmek", "See the difference between `x-match: all` and `any`"), step: 2 },
     { text: l("Hiçbir kuyruğa uymayan mesajın kaybolduğunu görmek", "See a message that matches no queue get lost"), step: 3 },
@@ -193,13 +193,16 @@ export const headersAndAlternate: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "`docs` adında bir headers exchange var. `pdf` kuyruğu `format=pdf` ile bağlı; `pdf-eu` kuyruğunu `all` ya da `any` ile sen bağlayacaksın. `docs`'a `unrouted` alternate'ini ekleyebilir ve dört farklı belge gönderebilirsin.",
-          "There is a headers exchange `docs`. The `pdf` queue is bound with `format=pdf`; you bind `pdf-eu` with `all` or `any`. You can give `docs` the `unrouted` alternate and send four different documents.",
+          "Sıra sende. Bir belge arşivi var: `upload.py` `docs` headers exchange'ine `format` ve `region` header'lı dört belge gönderir (`pdf/eu`, `pdf/us`, `csv/eu`, `csv/us`); `setup.py` exchange'leri ve kuyrukları kurar. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a document archive: `upload.py` sends four documents with `format` and `region` headers to the `docs` headers exchange (`pdf/eu`, `pdf/us`, `csv/eu`, `csv/us`); `setup.py` builds the exchanges and queues. Below are **4 scenarios** from real work.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "`nano` ile kodu düzelt, `python` ile çalıştır. `rabbitmqctl list_bindings source_name destination_name arguments` headers binding'lerini gösterir. Hata çıkarsa oku: sıranın önemli olduğu bir senaryo var.",
+          "Fix the code with `nano`, run it with `python`. `rabbitmqctl list_bindings source_name destination_name arguments` shows the headers bindings. If you get an error, read it: in one scenario the order matters.",
+        ),
       ],
     },
   ],

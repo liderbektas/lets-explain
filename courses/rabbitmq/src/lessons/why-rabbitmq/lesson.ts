@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const LIST = "docker exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers";
@@ -16,7 +16,7 @@ export const whyRabbitmq: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Doğrudan çağrının neden kırılgan olduğunu görmek", "See why a direct call is fragile"), step: 1 },
     { text: l("Kuyruğun, alan kapalıyken mesajları beklettiğini görmek", "See a queue hold messages while the receiver is down"), step: 2 },
@@ -232,13 +232,16 @@ export const whyRabbitmq: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Boş bir `emails` kuyruğu ve iki e-posta servisi var. Sipariş verebilir, servisleri bağlayabilir ya da çökertebilir ve zamanı ilerletebilirsin. Her servis saniyede bir e-posta gönderir ve aynı anda tek e-posta tutar.",
-          "There is an empty `emails` queue and two email services. You can place orders, connect or crash the services, and move time forward. Each service sends one email a second and holds one email at a time.",
+          "Sıra sende. Proje klasöründe kuyruğu kuran `setup.py`, sipariş gönderen `order.py` ve e-posta servisi `mailer.py` var. Aşağıda gerçek işten **4 senaryo** var: kesinti, taşıma, ani yük, bakım.",
+          "Your turn. The project folder has `setup.py`, which creates the queue, `order.py`, which sends an order, and the email service `mailer.py`. Below are **4 scenarios** from real work: an outage, a move, a spike, a maintenance break.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Dosyaları `python` ile çalıştır, kuyruğa `rabbitmqctl list_queues name messages` ile bak, zamanı `sleep` ile ilerlet. Servis arka planda çalışır; `pkill -f mailer.py` durdurur. Az komutla bitirirsen 3 yıldız.",
+          "Run files with `python`, look at the queue with `rabbitmqctl list_queues name messages`, move time forward with `sleep`. The service runs in the background; `pkill -f mailer.py` stops it. Few commands earn 3 stars.",
+        ),
       ],
     },
   ],

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const three = l("`eu-orders`, `all-orders` ve `audit`", "`eu-orders`, `all-orders` and `audit`");
@@ -16,7 +16,7 @@ export const topicExchange: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Noktalı routing key'leri ve kalıpları okumak", "Read dotted routing keys and patterns"), step: 1 },
     { text: l("`*`'ın tam bir kelime olduğunu görmek", "See that `*` is exactly one word"), step: 2 },
@@ -171,10 +171,16 @@ export const topicExchange: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene: doğru kalıbı bul", "Now you try: find the right pattern"),
+      title: l("Şimdi sen yaz: doğru kalıbı bul", "Now you type: find the right pattern"),
       body: [
-        l("Tek bir `target` kuyruğu var. Ona kalıp ekleyip çıkarabilir ve dört farklı anahtarla mesaj gönderebilirsin (her biri bir kez).", "There is one `target` queue. You can add and remove patterns on it, and publish with four different keys (once each)."),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Sıra sende. Uygulama `events` topic exchange'ine `order.created.eu`, `order.paid.eu.vip`, `user.signup.eu` gibi key'lerle gönderiyor; `events.py` bunlardan birer tane yollar. Aşağıda **4 senaryo** var: her birinde bir ekip kuyruğuna doğru olayları istiyor.",
+          "Your turn. The app sends to the `events` topic exchange with keys like `order.created.eu`, `order.paid.eu.vip`, `user.signup.eu`; `events.py` sends one of each. Below are **4 scenarios**: in each, a team wants the right events in its queue.",
+        ),
+        l(
+          "`setup.py`'deki kalıbı `nano` ile düzelt, `python setup.py` ile uygula, `python events.py` ile dene. `rabbitmqctl list_queues name messages` neyin nereye düştüğünü gösterir.",
+          "Fix the pattern in `setup.py` with `nano`, apply it with `python setup.py`, try it with `python events.py`. `rabbitmqctl list_queues name messages` shows what landed where.",
+        ),
       ],
     },
   ],
