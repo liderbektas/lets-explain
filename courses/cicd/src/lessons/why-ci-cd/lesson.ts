@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { CI, CICD, scene } from "./Scene";
 
 export const whyCiCd: Lesson = {
@@ -15,7 +15,7 @@ export const whyCiCd: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kontrolsüz bir main'de hatanın neden geç fark edildiğini görmek", "See why a bug on an unchecked main is found late"), step: 1 },
     { text: l("CI'ın her push'u kendi commit'inde kontrol ettiğini görmek", "See CI check every push on its own commit"), step: 2 },
@@ -212,13 +212,16 @@ export const whyCiCd: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Repoda henüz workflow yok, staging ilk commit'i çalıştırıyor. Sadece CI ya da CI + deploy ekleyebilir, workflow'u silebilir, sağlam, hatalı ya da düzeltme commit'leri push'layabilirsin.",
-          "The repo has no workflow yet, and staging runs the first commit. You can add CI only or CI + deploy, delete the workflow, and push good, broken or fixing commits.",
+          "Sıra sende. Aşağıda mağaza projesi ve gerçek işten **4 senaryo** var: hiç push'lanmamış bir workflow, kırmızı bir main, staging'e elle kopyalanan build'ler. Komutları terminale **kendin yaz**; dosyaları `nano` ile düzenle, `git push` ile GitHub'a gönder.",
+          "Your turn. Below is the shop project and **4 scenarios** from real work: a workflow that was never pushed, a red main, builds copied to staging by hand. **Type the commands yourself** in the terminal; edit files with `nano`, send them to GitHub with `git push`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Bir run'ın neden kırıldığını `gh run view --log-failed` söyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`gh run view --log-failed` tells you why a run broke. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

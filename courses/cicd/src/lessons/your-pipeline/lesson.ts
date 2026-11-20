@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { pagesWf, scene } from "./Scene";
 
 const BUILD_YAML = workflowYaml(pagesWf({ test: true, upload: false, deploy: false, onlyMain: false }));
@@ -74,7 +74,7 @@ export const yourPipeline: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir projenin script'lerinden CI adımlarını çıkarmak", "Turn a project's scripts into CI steps"), step: 1 },
     { text: l("Build ile deploy'u iki job'a ayırıp artifact ile bağlamak", "Split build and deploy into two jobs joined by an artifact"), step: 2 },
@@ -265,13 +265,13 @@ export const yourPipeline: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Pipeline yarım kalmış: build job'ında test yok, `dist/` hiçbir yere yüklenmiyor ve deploy job'ı her yerden çalışıyor. Eksik parçaları ekle, main'e ya da bir `feature` branch'ine push'la, PR aç.",
-          "The pipeline is half done: the build job has no tests, `dist/` is not uploaded anywhere and the deploy job runs from anywhere. Add the missing pieces, push to main or a `feature` branch, open a PR.",
+          "Aşağıda bu sitenin kendi pipeline'ından **4 senaryo** var: yarım kalmış bir Pages workflow'u, PR'ların yayına çıkması, test adımı olmayan bir build ve PR'la gelen yeni bir workflow. `nano .github/workflows/pages.yml` ile **kendin düzenle**; `git`, `gh pr create`, `gh pr merge` ve `gh run view` ile gönder ve izle.",
+          "Below are **4 scenarios** from this site's own pipeline: a half-finished Pages workflow, PRs that go live, a build with no test step, and a new workflow that arrives through a PR. **Edit it yourself** with `nano .github/workflows/pages.yml`; send and watch it with `git`, `gh pr create`, `gh pr merge` and `gh run view`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l("İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.", "Hints open one at a time; finish in few commands for 3 stars."),
       ],
     },
   ],

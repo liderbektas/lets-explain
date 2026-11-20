@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { CI, scene } from "./Scene";
 
 const FILE = workflowYaml(CI);
@@ -17,7 +17,7 @@ export const prChecks: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir PR'daki check'lerin nereden geldiğini bilmek", "Know where a PR's checks come from"), step: 0 },
     { text: l("Korumasız bir main'e kırık kodun nasıl girdiğini görmek", "See how broken code gets into an unprotected main"), step: 1 },
@@ -178,13 +178,16 @@ export const prChecks: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "main korumasız ve PR #1 kırmızı: gerçek bir test hatası var. Korumayı açıp kapatabilir, zorunlu check'in adını seçebilir, düzeltmeyi push'layıp merge etmeyi deneyebilirsin.",
-          "main is unprotected and PR #1 is red: a real test fails. You can turn protection on and off, choose the required check's name, push the fix and try to merge.",
+          "Aşağıda gerçek işten **4 senaryo** var: Bora'nın PR'ı kırmızı, `main` korumasız ya da zorunlu check hiç gelmiyor. Komutları terminale **kendin yaz**: `gh pr checks`, `gh run view --log-failed`, `git switch`, `nano`, `git push`, `gh pr merge`.",
+          "Below are **4 scenarios** from real work: Bora's PR is red, `main` is unprotected, or the required check never arrives. **Type the commands yourself**: `gh pr checks`, `gh run view --log-failed`, `git switch`, `nano`, `git push`, `gh pr merge`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Korumayı ayar ekranı yerine GitHub'ın API'siyle kuracaksın: `gh api -X PUT repos/{owner}/{repo}/branches/main/protection`. Gövdeyi `nano protection.json` ile yazıp `--input` ile verebilirsin. Bir `nano` kaydı da bir komut sayılır; az komutla bitirirsen 3 yıldız.",
+          "You'll set protection with GitHub's API instead of the settings page: `gh api -X PUT repos/{owner}/{repo}/branches/main/protection`. Write the body with `nano protection.json` and pass it with `--input`. A `nano` save counts as a command too; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

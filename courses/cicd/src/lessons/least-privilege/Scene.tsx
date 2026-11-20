@@ -2,8 +2,9 @@ import { motion } from "motion/react";
 import { l } from "@lets-explain/core/i18n";
 import { YamlPanel } from "../../iso/panels";
 import { cut, StatusDot, Sticker } from "../../iso/parts";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec, type ViewInfo } from "../shared/SimScene";
-import { missions } from "./missions";
+import { makeSimScene, resolveSteps, type Spec, type ViewInfo } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
+import { lpTyped } from "./shell";
 import { BAD_SHA, codeOf, freshLp, GOOD_SHA, lpSim, lpYaml, scopes, type LP, type LpAction, type LpEvent, type Perms } from "./model";
 
 export const SLUG = "least-privilege";
@@ -24,23 +25,6 @@ const specs: Spec<LP, LpAction>[][] = [
 ];
 
 export const steps = resolveSteps(lpSim, START, specs);
-
-/** The try-it step: the tag has already been moved; nobody has noticed yet. */
-export const sandboxStart = (): LP => freshLp({ tagMoved: true });
-
-const PERMS: Perms[] = ["write-all", "read-all", "per-job"];
-
-function rows(s: LP, lang: "tr" | "en"): SandboxRow<LpAction>[] {
-  const tr = lang === "tr";
-  return [
-    { label: "permissions", buttons: PERMS.map((p) => ({ label: p === "per-job" ? (tr ? "job başına en az yetki" : "least per job") : p, action: perms(p), tone: "producer" as const, disabled: s.perms === p })) },
-    {
-      label: "acme/lint-action",
-      buttons: [{ label: s.pinned ? (tr ? "@v1 etiketine dön" : "back to the @v1 tag") : tr ? `SHA'ya sabitle (@${GOOD_SHA.slice(0, 7)})` : `pin to SHA (@${GOOD_SHA.slice(0, 7)})`, action: pin(!s.pinned), tone: "ok" }],
-    },
-    { label: "Git", buttons: [{ label: "git push", action: push, tone: "go" }] },
-  ];
-}
 
 function Row({ x, y, ok, text }: { x: number; y: number; ok: boolean | null; text: string }) {
   return (
@@ -161,5 +145,6 @@ export const scene = makeSimScene({
     { label: t(l("Action", "Action")), value: s.pinned ? `@${GOOD_SHA.slice(0, 7)}` : "@v1" },
     { label: "main", value: s.tampered ? t(l("kirli", "tampered")) : t(l("temiz", "clean")), tone: s.tampered ? ("danger" as const) : ("ok" as const) },
   ],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Typed: the workflow is a real file; a push runs it against this model.
+  sandbox: { typed: lpTyped(scenarios) },
 });

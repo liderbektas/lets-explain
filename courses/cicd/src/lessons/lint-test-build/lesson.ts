@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { GOOD, scene, wf } from "./Scene";
 
 const FINAL = workflowYaml(wf(GOOD));
@@ -26,7 +26,7 @@ export const lintTestBuild: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir adımı neyin kırmızı yaptığını bilmek: exit code", "Know what turns a step red: the exit code"), step: 2 },
     { text: l("Kontrolleri ucuzdan pahalıya sıralamak", "Order checks from cheap to expensive"), step: 1 },
@@ -189,13 +189,16 @@ export const lintTestBuild: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu workflow'da sıra ters: test, typecheck, build, en sonda lint. Kodda bir lint ve bir tip hatası var; ilk run typecheck'te 2 dakika 23 saniyede kırıldı. Bir kontrolü öne alabilir, hataları düzeltip push'layabilirsin.",
-          "This workflow has the order backwards: tests, typecheck, build, and lint last. The code has a lint error and a type error; the first run broke on typecheck after 2 minutes 23 seconds. You can move a check to the front and push fixes.",
+          "Sıra sende. Aşağıda mağaza projesi ve gerçek işten **4 senaryo** var: en sonda bekleyen bir lint, aynı push'ta iki hata, hiç yapılmayan bir tip kontrolü, susturulmuş bir lint. Workflow'u `nano .github/workflows/ci.yml` ile, kodu `nano src/...` ile **kendin düzenle**; `git push` ile gönder.",
+          "Your turn. Below is the shop project and **4 scenarios** from real work: a lint waiting at the very end, two mistakes in one push, a type check nobody runs, a silenced lint. **Edit the workflow** with `nano .github/workflows/ci.yml` and the code with `nano src/...` yourself; send it with `git push`.",
         ),
-        l("Sahnenin altında **2 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **2 missions**. Few moves earn 3 stars."),
+        l(
+          "Üstteki sayaç kötü haberin kaçıncı saniyede geldiğini gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "The counter on top shows how many seconds the bad news took. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

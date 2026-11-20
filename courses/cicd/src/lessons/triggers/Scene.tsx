@@ -1,40 +1,16 @@
 import { l } from "@lets-explain/core/i18n";
 import { freshWorld, type CiAction, type Workflow, type World } from "../../engine/ci";
-import { ciJob } from "../../engine/presets";
+import { onOf, trig, type On } from "./workflow";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
 import { YamlPanel } from "../../iso/panels";
 import { ciSim } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+export { onOf, trig, type On } from "./workflow";
+import { ciTyped } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
 import { TriggerBoard } from "./TriggerBoard";
 
 export const SLUG = "triggers";
-
-export interface On {
-  mainOnly?: boolean;
-  pr?: boolean;
-  schedule?: boolean;
-  dispatch?: boolean;
-  ignoreDocs?: boolean;
-}
-
-/** The CI workflow with the triggers switched on. */
-export const trig = (o: On): Workflow => ({
-  name: "CI",
-  on: {
-    push: { ...(o.mainOnly ? { branches: ["main"] } : {}), ...(o.ignoreDocs ? { pathsIgnore: ["docs/**", "**/*.md"] } : {}) },
-    ...(o.pr ? { pull_request: { branches: ["main"] } } : {}),
-    ...(o.schedule ? { schedule: "0 3 * * *" } : {}),
-    ...(o.dispatch ? { dispatch: [] } : {}),
-  },
-  jobs: [ciJob()],
-});
-
-/** Reads the switches back from the current workflow. */
-export const onOf = (w: World): On => {
-  const on = w.workflows[0]?.on ?? {};
-  return { mainOnly: Boolean(on.push?.branches), pr: Boolean(on.pull_request), schedule: Boolean(on.schedule), dispatch: Boolean(on.dispatch), ignoreDocs: Boolean(on.push?.pathsIgnore) };
-};
 
 const set = (w: Workflow): CiAction => ({ type: "setWorkflow", workflow: w });
 export const toggle = (w: World, key: keyof On): CiAction => set(trig({ ...onOf(w), [key]: !onOf(w)[key] }));
@@ -55,35 +31,6 @@ const specs: Spec<World, CiAction>[][] = [
 export const steps = resolveSteps(ciSim, START, specs);
 
 export const FINAL = trig({ mainOnly: true, pr: true, schedule: true, dispatch: true, ignoreDocs: true });
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const o = onOf(w);
-  const hasFeature = Boolean(w.heads.feature);
-  const prOpen = w.prs.some((p) => p.state === "open");
-  return [
-    {
-      label: "on:",
-      buttons: [
-        { label: o.mainOnly ? (tr ? "push: tüm branch'ler" : "push: all branches") : tr ? "push: sadece main" : "push: main only", action: toggle(w, "mainOnly"), tone: "producer" },
-        { label: o.pr ? (tr ? "pull_request'i kaldır" : "remove pull_request") : tr ? "pull_request ekle" : "add pull_request", action: toggle(w, "pr"), tone: "producer" },
-        { label: o.dispatch ? (tr ? "workflow_dispatch'i kaldır" : "remove workflow_dispatch") : tr ? "workflow_dispatch ekle" : "add workflow_dispatch", action: toggle(w, "dispatch"), tone: "producer" },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: "push → main", action: { type: "push" }, tone: "go" },
-        { label: "push → feature", action: { type: "push", branch: "feature" }, tone: "go" },
-        { label: tr ? "PR aç: feature → main" : "open PR: feature → main", action: { type: "openPr", branch: "feature" }, tone: "ok", disabled: !hasFeature || prOpen },
-      ],
-    },
-    {
-      label: tr ? "Elle" : "By hand",
-      buttons: [{ label: "Run workflow", action: { type: "dispatch", workflow: "CI" }, tone: "ok", disabled: !o.dispatch }],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -106,5 +53,6 @@ export const scene = makeSimScene({
     { label: t(l("Run", "Runs")), value: w.runs.length },
     { label: t(l("Run başlatmayan push", "Pushes with no run")), value: w.commits.filter((c) => c.n > 1 && !w.runs.some((r) => r.sha === c.sha)).length },
   ],
-  sandbox: { start: () => ciSim.apply(freshWorld(), set(trig({}))).state, rows, missions },
+  // Free play: the lesson's final workflow, checked out on main.
+  sandbox: { typed: ciTyped(scenarios) },
 });

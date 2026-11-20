@@ -1,9 +1,10 @@
 import { motion } from "motion/react";
 import { l } from "@lets-explain/core/i18n";
 import { cut, Sticker, Terminal, type Box } from "../../iso/parts";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec, type ViewInfo } from "../shared/SimScene";
-import { missions } from "./missions";
-import { compositeYaml, copies, FILE, freshRw, nodeOf, PLACES, rwSim, testYaml, wfYaml, WFS, type Place, type RW, type RwAction, type RwEvent } from "./model";
+import { makeSimScene, resolveSteps, type Spec, type ViewInfo } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
+import { rwTyped } from "./shell";
+import { compositeYaml, copies, FILE, freshRw, nodeOf, rwSim, testYaml, wfYaml, WFS, type Place, type RW, type RwAction, type RwEvent } from "./model";
 
 export const SLUG = "reusable-workflows";
 export const START: RW = freshRw();
@@ -26,32 +27,6 @@ const specs: Spec<RW, RwAction>[][] = [
 export const steps = resolveSteps(rwSim, START, specs);
 
 const short: Record<Place, string> = { ci: "ci.yml", release: "release.yml", nightly: "nightly.yml", test: "test.yml" };
-
-function rows(s: RW, lang: "tr" | "en"): SandboxRow<RwAction>[] {
-  const tr = lang === "tr";
-  return [
-    {
-      label: "Node 22",
-      buttons: [
-        ...PLACES.filter((p) => s.places[p].exists).map((p) => ({ label: short[p], action: node(p, 22), tone: "producer" as const, disabled: s.places[p].setup !== "inline" || s.places[p].node === 22 })),
-        ...(s.composite.exists ? [{ label: "action.yml", action: node("composite", 22), tone: "producer" as const, disabled: s.composite.node === 22 }] : []),
-      ],
-    },
-    {
-      label: "Composite",
-      buttons: s.composite.exists
-        ? PLACES.filter((p) => s.places[p].exists).map((p) => ({ label: tr ? `${short[p]} kullansın` : `use in ${short[p]}`, action: use(p), tone: "ok" as const, disabled: s.places[p].setup === "composite" }))
-        : [{ label: tr ? "action.yml oluştur" : "create action.yml", action: { type: "createComposite" }, tone: "ok" }],
-    },
-    {
-      label: "Reusable",
-      buttons: s.places.test.exists || s.calls.ci || s.calls.release
-        ? (["ci", "release"] as const).map((wf) => ({ label: tr ? `${short[wf]} test.yml'yi çağırsın` : `${short[wf]} calls test.yml`, action: { type: "callReusable", wf } as RwAction, tone: "ok" as const, disabled: s.calls[wf] }))
-        : [{ label: tr ? "test.yml oluştur" : "create test.yml", action: { type: "createReusable" }, tone: "ok" }],
-    },
-    { label: tr ? "Çalıştır" : "Run", buttons: [{ label: tr ? "üç workflow'u çalıştır" : "run all three workflows", action: run, tone: "go" }] },
-  ];
-}
 
 /** A small YAML card with a fixed, readable font; lines that are new since `prev` light up. */
 function MiniYaml({ text, prev, box, title, node, max = 12 }: { text: string; prev?: string; box: Box; title: string; node?: number; max?: number }) {
@@ -197,5 +172,6 @@ export const scene = makeSimScene({
     { label: t(l("Node sürümleri", "Node versions")), value: [...new Set(WFS.map((wf) => nodeOf(s, wf)))].join(" / ") },
     { label: t(l("Dosya düzenlemesi", "File edits")), value: s.edits },
   ],
-  sandbox: { start: () => freshRw(), rows, missions },
+  // Typed: the workflows and the composite action are real files; a push hands them to GitHub.
+  sandbox: { typed: rwTyped(scenarios) },
 });

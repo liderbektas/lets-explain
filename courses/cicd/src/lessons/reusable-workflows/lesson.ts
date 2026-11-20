@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { compositeYaml, testYaml, wfYaml } from "./model";
 import { scene } from "./Scene";
 
@@ -46,7 +46,7 @@ export const reusableWorkflows: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kopyalanan adımların neden sorun olduğunu görmek", "See why copied steps are a problem"), step: 1 },
     { text: l("Tekrar eden adımları bir composite action'a taşımak", "Move repeated steps into a composite action"), step: 2 },
@@ -212,13 +212,16 @@ export const reusableWorkflows: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Baştaki duruma döndük: üç workflow, üç kopya, hepsi Node 20. Bir dosyada Node'u 22 yapabilir, composite action ya da reusable workflow oluşturup kullanabilir ve üçünü çalıştırabilirsin.",
-          "We are back at the start: three workflows, three copies, all on Node 20. You can set Node 22 in a file, create and use a composite action or a reusable workflow, and run all three.",
+          "Aşağıda gerçek işten **5 senaryo** var: Node yükseltmesi, setup'ı tek yerde toplamak, ortak bir test job'ı, çağrılamayan bir workflow. Dosyaları `nano` ile **kendin düzenle**, `git commit` ve `git push` ile gönder; GitHub dosyaları okur, `ci.yml` çalışır ve sahne her workflow'un hangi Node ile çalıştığını gösterir.",
+          "Below are **5 scenarios** from real work: a Node upgrade, gathering the setup in one place, a shared test job, a workflow that can't be called. **Edit the files yourself** with `nano` and send them with `git commit` and `git push`; GitHub reads them, `ci.yml` runs, and the scene shows which Node each workflow runs on.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Dosyalara `cat` ile bak; diğer workflow'ları `gh workflow run release.yml` ile elle çalıştırabilirsin. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "Look at the files with `cat`; run the other workflows by hand with `gh workflow run release.yml`. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

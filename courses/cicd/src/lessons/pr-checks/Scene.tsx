@@ -1,12 +1,12 @@
 import { l } from "@lets-explain/core/i18n";
-import { blockingChecks, freshWorld, headOf, latestRun, simulate, type CiAction, type Workflow, type World } from "../../engine/ci";
+import { blockingChecks, freshWorld, latestRun, type CiAction, type Workflow, type World } from "../../engine/ci";
 import { ciWorkflow, withJob } from "../../engine/presets";
 import { RunStage } from "../../iso/RunStage";
 import { PrPanel } from "../../iso/panels";
 import { Sticker } from "../../iso/parts";
-import { ciSim, focusRun } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "pr-checks";
 
@@ -30,33 +30,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-/** The try-it step: main unprotected, PR #1 from `feature` is open and red (a real test bug). */
-export const SANDBOX: World = simulate([{ type: "push", branch: "feature", add: ["test"], message: "cart: add VAT" }, { type: "openPr", branch: "feature" }], START).states[2]!;
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const req = w.protection?.join(",") ?? "";
-  const pr = w.prs[0];
-  const open = pr?.state === "open";
-  return [
-    {
-      label: tr ? "main koruması" : "Protect main",
-      buttons: [
-        { label: tr ? "zorunlu: CI / ci" : "require: CI / ci", action: { type: "setProtection", required: ["CI / ci"] }, tone: "ok", disabled: req === "CI / ci" },
-        { label: tr ? "zorunlu: CI / test" : "require: CI / test", action: { type: "setProtection", required: ["CI / test"] }, tone: "producer", disabled: req === "CI / test" },
-        { label: tr ? "korumayı kaldır" : "remove protection", action: { type: "setProtection", required: null }, tone: "danger", disabled: !w.protection },
-      ],
-    },
-    {
-      label: "PR #1",
-      buttons: [
-        { label: tr ? "testi düzelt + push" : "fix the test + push", action: { type: "push", branch: "feature", fix: ["test"], message: "fix: VAT rounding" }, tone: "producer", disabled: !open || !headOf(w, "feature").bugs.includes("test") },
-        { label: "Merge", action: { type: "merge", pr: 1 }, tone: "go", disabled: !open },
-      ],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -94,7 +67,8 @@ export const scene = makeSimScene({
       { label: t(l("Merge", "Merge")), value: !pr ? "—" : pr.state === "merged" ? t(l("edildi", "done")) : blockingChecks(w, pr.id).length ? t(l("engelli", "blocked")) : t(l("açık", "allowed")), tone: pr && pr.state === "open" && blockingChecks(w, pr.id).length ? ("warn" as const) : ("plain" as const) },
     ];
   },
-  sandbox: { start: () => SANDBOX, rows, missions },
+  // Free play: main unprotected, PR #1 red on a real test bug, as in the first scenario.
+  sandbox: { typed: ciTyped(scenarios, () => FREE) },
 });
 
 /** A small card for main: the latest run on main and what is merged. */

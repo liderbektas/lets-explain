@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene, SHARED, wf } from "./Scene";
 
 const RETENTION = `      - uses: actions/upload-artifact@v4
@@ -21,7 +21,7 @@ export const artifacts: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir job'ın dosyalarının neden diğerine geçmediğini görmek", "See why one job's files do not reach another"), step: 0 },
     { text: l("`upload-artifact` ve `download-artifact` ile `dist/`'i taşımak", "Move `dist/` with `upload-artifact` and `download-artifact`"), step: 1 },
@@ -158,13 +158,16 @@ export const artifacts: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "build job'ı `dist/` üretiyor, deploy job'ı onu staging'e yüklemek istiyor ama henüz bir köprü yok. Upload ve download adımlarını ekleyip çıkarabilir, deploy'da yeniden build etmeyi deneyebilir ve push'layabilirsin.",
-          "The build job makes `dist/`, the deploy job wants to ship it to staging, but there is no bridge yet. You can add and remove the upload and download steps, try building again inside deploy, and push.",
+          "Aşağıda gerçek işten **4 senaryo** var; her birinde `dist/` bir job'dan diğerine ulaşamıyor. Önce `gh run view --log-failed` ile neyin bulunamadığını oku, sonra workflow'u `nano .github/workflows/ci.yml` ile düzelt, `git commit` ve `git push` ile gönder.",
+          "Below are **4 scenarios** from real work; in each, `dist/` can't get from one job to the next. Read what was not found with `gh run view --log-failed` first, then fix the workflow with `nano .github/workflows/ci.yml` and send it with `git commit` and `git push`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Hedef hep aynı: staging'e giden build, test edilen build olsun ve run'da bir kez derlensin. Sağdaki kart her run'ın hangi artifact'leri tuttuğunu gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "The aim is always the same: the build that reaches staging is the build that was tested, made once per run. The card on the right shows which artifacts each run holds. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

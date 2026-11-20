@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { MATRIX, PAR, scene } from "./Scene";
 
 export const parallelAndMatrix: Lesson = {
@@ -15,7 +15,7 @@ export const parallelAndMatrix: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kontrolleri paralel job'lara bölmek", "Split the checks into parallel jobs"), step: 1 },
     { text: l("Run süresinin en yavaş yol olduğunu görmek", "See that a run lasts as long as its slowest path"), step: 1 },
@@ -160,13 +160,16 @@ export const parallelAndMatrix: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Her şey yine tek `ci` job'ında ve run 5 dakika 43 saniye. Kodda sadece Node 20'de kırılan bir satır var. Bir grup adımı kendi job'ına alabilir (geri kalanı build ile `ci`'da kalır), teste matrix ekleyebilir ve push'layabilirsin.",
-          "Everything is back in one `ci` job and the run takes 5 minutes 43 seconds. The code has a line that only breaks on Node 20. You can move a group of steps into its own job (the rest stays in `ci` with the build), add a matrix to the tests, and push.",
+          "Aşağıda gerçek işten **5 senaryo** var: yavaş bir run, Node 20'de çöken bir kod, beklemeyen bir build. Workflow'u `nano .github/workflows/ci.yml` ile düzenle, gerekiyorsa kodu da düzelt, `git commit` ve `git push` ile gönder.",
+          "Below are **5 scenarios** from real work: a slow run, code that crashes on Node 20, a build that doesn't wait. Edit the workflow with `nano .github/workflows/ci.yml`, fix the code when it needs it, and send it with `git commit` and `git push`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Yeni bir job boş bir makinede başlar: checkout, setup-node ve `npm ci` olmadan hiçbir şey çalışmaz. Sağdaki zaman çizelgesi hangi job'ın ne zaman çalıştığını gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "A new job starts on an empty machine: nothing works without checkout, setup-node and `npm ci`. The timeline on the right shows when each job ran. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

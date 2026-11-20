@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { FINAL, scene, trig } from "./Scene";
 
 export const triggers: Lesson = {
@@ -15,7 +15,7 @@ export const triggers: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`on: push`'un her branch'te çalıştığını görmek", "See that `on: push` runs on every branch"), step: 0 },
     { text: l("`branches:` filtresiyle push'ları main'e sınırlamak", "Limit pushes to main with a `branches:` filter"), step: 1 },
@@ -173,13 +173,16 @@ export const triggers: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Workflow filtresiz `on: push` ile başlıyor. Push'u main'e sınırlayabilir, `pull_request` ya da `workflow_dispatch` ekleyebilir, main'e ve feature'a push'layabilir, PR açabilir ve workflow'u elle çalıştırabilirsin.",
-          "The workflow starts with an unfiltered `on: push`. You can limit push to main, add `pull_request` or `workflow_dispatch`, push to main and to feature, open a PR and run the workflow by hand.",
+          "Sıra sende. Aşağıda mağazanın deposu ve gerçek işten **5 senaryo** var. Workflow dosyasını `nano .github/workflows/ci.yml` ile **kendin düzenle**, `git commit` ve `git push` ile GitHub'a gönder; gerekirse `gh pr create` ya da `gh workflow run` yaz.",
+          "Your turn. Below is the shop's repository and **5 scenarios** from real work. **Edit the workflow yourself** with `nano .github/workflows/ci.yml`, send it to GitHub with `git commit` and `git push`, and type `gh pr create` or `gh workflow run` when needed.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Bir değişiklik ancak push'landığında GitHub'da geçerli olur. Takılırsan `cat .github/workflows/ci.yml` ve `gh run list` yaz; ipuçları adım adım açılır.",
+          "A change only counts on GitHub once it is pushed. If you're stuck, type `cat .github/workflows/ci.yml` and `gh run list`; hints open one at a time.",
+        ),
       ],
     },
   ],

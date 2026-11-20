@@ -1,43 +1,20 @@
 import { l } from "@lets-explain/core/i18n";
-import { commitOf, freshWorld, SHAS, type CiAction, type Workflow, type World } from "../../engine/ci";
-import { CHECKOUT, step } from "../../engine/presets";
+import { commitOf, SHAS, type CiAction, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
 import { RunStage } from "../../iso/RunStage";
 import { RegistryCard } from "../build-once/RegistryCard";
-import { ciSim, focusRun } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow } from "../shared/SimScene";
+import { ciSim, ciTyped, focusRun } from "../shared/ci";
+import { makeSimScene, resolveSteps } from "../shared/SimScene";
 import { MigrationPanel } from "./MigrationPanel";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
+import { freshStart, REDEPLOY } from "./workflow";
+export { DEPLOY, freshStart, REDEPLOY } from "./workflow";
 
 export const SLUG = "rollback";
-
-/** Every push to main: one image, straight to production. */
-export const DEPLOY: Workflow = {
-  name: "Deploy",
-  on: { push: { branches: ["main"] } },
-  permissions: "write",
-  jobs: [
-    { id: "image", steps: [CHECKOUT, step("docker-push")] },
-    { id: "production", needs: ["image"], environment: "production", steps: [step("deploy", { name: "Deploy", with: { env: "production", from: "registry" } })] },
-  ],
-};
-
-/** Put any image from the registry back on production. */
-export const REDEPLOY: Workflow = {
-  name: "Redeploy",
-  on: { dispatch: ["version"] },
-  jobs: [{ id: "production", environment: "production", steps: [step("deploy", { name: "Deploy", with: { env: "production", from: "registry", version: "input:version" } })] }],
-};
-
-export const freshStart = (): World => {
-  const w = freshWorld({ workflows: [DEPLOY, REDEPLOY], envs: [{ name: "production", sha: SHAS[0]! }], secrets: { DEPLOY_TOKEN: "dpl_live" } });
-  return { ...w, registry: { [`sha-${SHAS[0]}`]: SHAS[0]! } };
-};
 
 export const START = freshStart();
 
 export const redeploy = (sha: string): CiAction => ({ type: "dispatch", workflow: REDEPLOY.name, inputs: { version: sha } });
-export const ROLLBACK: CiAction = { type: "rollback", env: "production" };
 
 export const steps = resolveSteps(ciSim, START, [
   [{ type: "push", message: "search filters" }, { type: "push", add: ["crash"], message: "new cart" }],
@@ -50,27 +27,6 @@ export const steps = resolveSteps(ciSim, START, [
 ]);
 
 export const crashed = (w: World, sha: string | null | undefined) => Boolean(sha) && commitOf(w, sha!).bugs.includes("crash");
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const broken = crashed(w, w.heads.main);
-  const prod = w.envs.production!;
-  const prev = prod.history.length >= 2 ? prod.history[prod.history.length - 2]! : "";
-  return [
-    {
-      label: tr ? "Kod" : "Code",
-      buttons: [
-        { label: tr ? "push: değişiklik" : "push: a change", action: { type: "push" }, tone: "producer" },
-        { label: tr ? "push: bug'lı değişiklik" : "push: a buggy change", action: { type: "push", add: ["crash"] }, tone: "danger", disabled: broken },
-        { label: tr ? "push: düzeltme" : "push: a fix", action: { type: "push", fix: ["crash"] }, tone: "ok", disabled: !broken },
-      ],
-    },
-    {
-      label: "Production",
-      buttons: [{ label: prev ? (tr ? `geri al: ${prev}'i yeniden deploy et` : `roll back: redeploy ${prev}`) : tr ? "geri al" : "roll back", action: ROLLBACK, tone: "go", disabled: !prev }],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -97,5 +53,6 @@ export const scene = makeSimScene({
     { label: "production", value: w.envs.production?.sha ?? "—", tone: crashed(w, w.envs.production?.sha) ? "danger" : "ok" },
     { label: "image", value: Object.keys(w.registry).length },
   ],
-  sandbox: { start: freshStart, rows, missions },
+  // Typed: production is down; roll back with gh, or write the redeploy workflow yourself.
+  sandbox: { typed: ciTyped(scenarios) },
 });

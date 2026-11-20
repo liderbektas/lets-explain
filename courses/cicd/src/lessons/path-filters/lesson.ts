@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { IGNORE, MONO, prWorkflow, scene } from "./Scene";
 
 export const pathFilters: Lesson = {
@@ -15,7 +15,7 @@ export const pathFilters: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`paths-ignore` ile dokümana dokunan push'larda CI'ı atlamak", "Skip CI on pushes that only touch docs with `paths-ignore`"), step: 1 },
     { text: l("Bir monorepoda sadece değişen kısmın job'ını çalıştırmak", "Run only the changed part's job in a monorepo"), step: 3 },
@@ -189,13 +189,16 @@ export const pathFilters: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "main korumalı, `CI / test` zorunlu. PR workflow'unda `paths: [src/**]` var ve sadece dokümanı değiştiren PR #1 kilitli. Filtreyi kaldırabilir, `changes` job'ını ekleyebilir, PR'a doküman ya da kod push'layabilir ve merge etmeyi deneyebilirsin.",
-          "main is protected and `CI / test` is required. The PR workflow has `paths: [src/**]`, and PR #1, which only changes docs, is stuck. You can remove the filter, add the `changes` job, push docs or code to the PR, and try to merge.",
+          "Aşağıda gerçek işten **4 senaryo** var: zorunlu check yüzünden kilitlenen bir PR, iki uygulamalı bir repo, unutulan bağımlılıklar ve iç içe dokümanlar. Workflow'u `nano .github/workflows/ci.yml` ile düzenle, `git commit` ve `git push` ile gönder; PR'ı `gh pr merge` ile merge et.",
+          "Below are **4 scenarios** from real work: a PR stuck on a required check, a repo with two apps, forgotten dependencies, and nested docs. Edit the workflow with `nano .github/workflows/ci.yml`, send it with `git commit` and `git push`, and merge the PR with `gh pr merge`.",
         ),
-        l("Sahnenin altında **2 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **2 missions**. Few moves earn 3 stars."),
+        l(
+          "Hatırla: `*` klasör sınırını geçmez, `**` geçer; workflow seviyesindeki bir filtre zorunlu check'i hiç raporlatmaz, job seviyesindeki bir `if` onu atlanmış olarak raporlar. Az komutla bitirirsen 3 yıldız alırsın.",
+          "Remember: `*` doesn't cross folders, `**` does; a filter on the workflow means a required check is never reported, an `if` on the job reports it as skipped. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

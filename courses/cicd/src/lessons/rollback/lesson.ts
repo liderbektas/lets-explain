@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { DEPLOY, REDEPLOY, scene } from "./Scene";
 
 const RENAME_SQL = `-- v5's migration: v4 breaks the moment this runs
@@ -27,7 +27,7 @@ export const rollback: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Rollback'in bir önceki image'ı yeniden deploy etmek olduğunu görmek", "See that a rollback is redeploying the previous image"), step: 1 },
     { text: l("Önce geri alıp sonra düzeltmenin neden daha güvenli olduğunu bilmek", "Know why rolling back first and fixing after is safer"), step: 2 },
@@ -186,13 +186,13 @@ export const rollback: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Her push production'a gidiyor ve production ilk sürümü (`3f2a1c9`) çalıştırıyor. Değişiklik, bug'lı değişiklik ya da düzeltme push'layabilir, production'ı bir önceki image'a geri alabilirsin.",
-          "Every push goes to production, which runs the first version (`3f2a1c9`). You can push a change, a buggy change or a fix, and roll production back to the previous image.",
+          "Aşağıda gerçek işten **4 senaryo** var: production yanıyor ve her birinde onu sağlam bir sürüme geri döndürmen gerekiyor. Komutları **kendin yaz**: son başarılı deploy'ları `gh run list --workflow deploy.yml` gösterir, sağlam image'ı `gh workflow run redeploy.yml -f version=…` geri koyar, eski bir run'ı `gh run rerun <id>` tekrar çalıştırır.",
+          "Below are **4 scenarios** from real work: production is burning, and in each one you have to put it back on a healthy version. **Type the commands yourself**: `gh run list --workflow deploy.yml` shows the latest successful deploys, `gh workflow run redeploy.yml -f version=…` puts the good image back, `gh run rerun <id>` runs an old run again.",
         ),
-        l("Sahnenin altında **2 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **2 missions**. Few moves earn 3 stars."),
+        l("İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.", "Hints open one at a time; finish in few commands for 3 stars."),
       ],
     },
   ],

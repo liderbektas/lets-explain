@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { FULL, scene, wf } from "./Scene";
 
 const FIRST = workflowYaml(wf(["checkout"]));
@@ -19,7 +19,7 @@ export const workflowFile: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Workflow dosyasının nereye konduğunu ve ana anahtarlarını bilmek", "Know where the workflow file goes and its main keys"), step: 0 },
     { text: l("`uses:` ile `run:` arasındaki farkı görmek", "See the difference between `uses:` and `run:`"), step: 1 },
@@ -189,13 +189,16 @@ export const workflowFile: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Elinde `test` job'ı olan ama hiç adımı olmayan bir `ci.yml` var. Adımları istediğin sırayla ekle, istersen sonuncuyu sil, sonra `git push` ile run başlat. Solda dosyanın nasıl değiştiğini, sağda run'ın sonucunu görürsün.",
-          "You have a `ci.yml` with a `test` job that has no steps yet. Add steps in any order, remove the last one if you like, then start a run with `git push`. The file changes on the left, the run's result shows on the right.",
+          "Sıra sende. Aşağıda mağaza projesi ve gerçek işten **5 senaryo** var: hiç CI olmayan bir repo, `npm: command not found`, bulunamayan bir `package.json`, yanlış sırada adımlar. Workflow'u `nano .github/workflows/ci.yml` ile **kendin yaz**, `git push` ile GitHub'a gönder; sahne run'ı ve her adımın sonucunu gösterir.",
+          "Your turn. Below is the shop project and **5 scenarios** from real work: a repo with no CI, `npm: command not found`, a `package.json` that can't be found, steps in the wrong order. **Write the workflow yourself** with `nano .github/workflows/ci.yml` and send it to GitHub with `git push`; the scene shows the run and every step's result.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Kırmızı bir run'da önce `gh run view --log-failed` ile logu oku. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "On a red run, read the log first with `gh run view --log-failed`. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

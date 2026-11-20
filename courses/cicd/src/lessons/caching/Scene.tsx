@@ -4,9 +4,9 @@ import { fmt, freshWorld, latestRun, lockHash, type CiAction, type Run, type Ste
 import { CHECKOUT, INSTALL, SETUP, TEST, step } from "../../engine/presets";
 import { cut, Sticker } from "../../iso/parts";
 import { appearAt, stepTimes, useReplay, visibleBetween } from "../../iso/replay";
-import { ciSim, focusRun, YamlAndRun } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun, YamlAndRun } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "caching";
 
@@ -22,11 +22,6 @@ export function wf(mode: Mode): Workflow {
         : [CHECKOUT, SETUP, step("cache", { with: { path: "node_modules", key: "static" } }), step("install", { if: "cache-miss" }), TEST];
   return { name: "CI", on: { push: { branches: ["main"] } }, jobs: [{ id: "test", steps }] };
 }
-
-export const modeOf = (w: World): Mode => {
-  const c = w.workflows[0]?.jobs[0]?.steps.find((s) => s.kind === "cache");
-  return !c ? "none" : c.with?.path === "node_modules" ? "stale" : "npm";
-};
 
 const set = (m: Mode): CiAction => ({ type: "setWorkflow", workflow: wf(m) });
 const src: CiAction = { type: "push", message: "cart: add VAT" };
@@ -55,35 +50,14 @@ export const installTime = (r?: Run): number | "skipped" | null => {
   return s.status === "skipped" ? "skipped" : s.seconds;
 };
 
-/** Whether a run's cache step found its key. */
+/** Whether a run's cache (an actions/cache step, or setup-node's `cache: npm`) found its key. */
 export const cacheResult = (r?: Run): "hit" | "miss" | null => {
-  const c = r?.jobs[0]?.steps.find((x) => x.kind === "cache");
-  return !c ? null : c.log[0]?.startsWith("Cache restored") ? "hit" : "miss";
+  const steps = r?.jobs[0]?.steps ?? [];
+  const c = steps.find((x) => x.kind === "cache");
+  if (c) return c.log[0]?.startsWith("Cache restored") ? "hit" : "miss";
+  const node = steps.find((x) => x.kind === "setup-node" && x.log.some((y) => y.startsWith("Cache restored") || y === "npm cache is not found"));
+  return !node ? null : node.log.some((y) => y.startsWith("Cache restored")) ? "hit" : "miss";
 };
-
-export const SANDBOX: World = START;
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const m = modeOf(w);
-  return [
-    {
-      label: "Cache",
-      buttons: [
-        { label: tr ? "cache yok" : "no cache", action: set("none"), tone: "danger", disabled: m === "none" },
-        { label: tr ? "~/.npm, anahtar: lockfile hash" : "~/.npm, key: lockfile hash", action: set("npm"), tone: "ok", disabled: m === "npm" },
-        { label: tr ? "node_modules, sabit anahtar" : "node_modules, fixed key", action: set("stale"), tone: "producer", disabled: m === "stale" },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: tr ? "kodu değiştir + push" : "change code + push", action: src, tone: "go" },
-        { label: tr ? "bağımlılık ekle + push" : "add a dependency + push", action: dep, tone: "go" },
-      ],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -111,7 +85,8 @@ export const scene = makeSimScene({
       { label: t(l("Saklanan anahtar", "Stored keys")), value: Object.keys(w.cache).length },
     ];
   },
-  sandbox: { start: () => SANDBOX, rows, missions },
+  // Free play: the story's end, checked out on main.
+  sandbox: { typed: ciTyped(scenarios) },
 });
 
 /** The repository's cache: every key with the lockfile its folder came from. */
@@ -128,10 +103,10 @@ function CacheCard({ world, run, tr }: { world: World; run?: Run; tr: boolean })
     if (!replay || !run) return {};
     for (const j of run.jobs) {
       if (!replay.fresh(j)) continue;
-      const k = j.steps.findIndex((st) => st.kind === "cache" && st.status === "success" && st.log[0]?.endsWith(key));
+      const k = j.steps.findIndex((st) => (st.kind === "cache" || st.kind === "setup-node") && st.status === "success" && st.log.some((x) => x.endsWith(key) || (x === "npm cache is not found" && key.startsWith("node-cache-"))));
       if (k < 0) continue;
       const st = j.steps[k]!;
-      if (st.log[0]!.startsWith("Cache restored")) return { hit: replay.ms(stepTimes(j)[k]!.end) };
+      if (st.log.some((x) => x.startsWith("Cache restored"))) return { hit: replay.ms(stepTimes(j)[k]!.end) };
       if (j.status === "success") return { saved: replay.ms(j.end) + 300 };
     }
     return {};

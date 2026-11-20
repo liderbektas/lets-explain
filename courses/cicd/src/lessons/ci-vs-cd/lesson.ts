@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { CI_ONLY, PIPELINE, scene } from "./Scene";
 
 export const ciVsCd: Lesson = {
@@ -15,7 +15,7 @@ export const ciVsCd: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("CI'ın nerede bittiğini görmek: yeşil bir build", "See where CI ends: a green build"), step: 0 },
     { text: l("Continuous Delivery'de production'ın onay beklediğini görmek", "See production wait for approval in Continuous Delivery"), step: 1 },
@@ -174,13 +174,16 @@ export const ciVsCd: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Pipeline hazır: build, staging, production. Production'da onay şartı açık; iki ortam da ilk commit'i çalıştırıyor. Commit push'layabilir, bekleyen deploy'u onaylayabilir ya da onay şartını açıp kapatabilirsin.",
-          "The pipeline is ready: build, staging, production. Production requires an approval; both environments run the first commit. You can push commits, approve a waiting deploy, or turn the approval rule on and off.",
+          "Sıra sende. Aşağıda mağaza projesinin pipeline'ı ve gerçek işten **4 senaryo** var: onay kuralına takılmadan geçen bir deploy, production'a elle kopyalanan build'ler, testleri kıran bir commit, staging'le yarışan production. Pipeline `.github/workflows/pipeline.yml` dosyasında; `nano` ile **kendin düzenle**, `git push` ile gönder.",
+          "Your turn. Below is the shop's pipeline and **4 scenarios** from real work: a deploy that slips past the approval rule, builds copied to production by hand, a commit that breaks the tests, production racing staging. The pipeline lives in `.github/workflows/pipeline.yml`; **edit it yourself** with `nano` and send it with `git push`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Alttaki şerit staging ve production'da hangi commit'in çalıştığını gösterir; `gh run view` hangi job'ın onay beklediğini söyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "The strip below shows which commit staging and production run; `gh run view` tells you which job is waiting for an approval. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

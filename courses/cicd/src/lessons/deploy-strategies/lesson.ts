@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 const K8S_ROLLING = `# Kubernetes Deployment: rolling is the default
@@ -27,7 +27,7 @@ export const deployStrategies: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Recreate'in neden kesinti yarattığını görmek", "See why recreate causes downtime"), step: 1 },
     { text: l("Rolling deploy'da iki sürümün aynı anda çalıştığını bilmek", "Know that two versions run at once during a rolling deploy"), step: 2 },
@@ -220,13 +220,16 @@ export const deployStrategies: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Dört sunucu v1 çalıştırıyor ve v2 sağlam. İstersen önce v2'ye bir bug koy, sonra bir strateji seç ve deploy'u adım adım ilerlet ya da geri al. Her hamle bir tur, yani 100 istek demek.",
-          "Four servers run v1 and v2 is healthy. If you like, put a bug in v2 first, then pick a strategy and move the deploy forward step by step or roll it back. Every move is one round of 100 requests.",
+          "Aşağıda gerçek işten **5 senaryo** var. Uygulamanın `shop.yaml`'ı bir Kubernetes Deployment'ı (Recreate, RollingUpdate) ya da Argo Rollouts ile bir Rollout (blue-green, canary). Manifest'i `nano shop.yaml` ile **kendin düzenle**, `kubectl apply` ile gönder, geçişi `kubectl rollout status` ile izle ya da `kubectl argo rollouts promote / abort` ile yönet.",
+          "Below are **5 scenarios** from real work. The app's `shop.yaml` is a Kubernetes Deployment (Recreate, RollingUpdate) or an Argo Rollouts Rollout (blue-green, canary). **Edit the manifest yourself** with `nano shop.yaml`, send it with `kubectl apply`, watch the rollout with `kubectl rollout status` or steer it with `kubectl argo rollouts promote / abort`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Kümenin her hareketi bir tur, yani 100 istek; sahne kimin hangi sürümden cevap aldığını sayar. Siteye `curl https://shop.example/health` ile bakabilirsin. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "Every move the cluster makes is one round of 100 requests; the scene counts who got an answer from which version. Check the site with `curl https://shop.example/health`. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

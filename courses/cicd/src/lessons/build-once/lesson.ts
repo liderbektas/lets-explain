@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { CI, PROMOTE, REBUILD, scene } from "./Scene";
 
 export const buildOnce: Lesson = {
@@ -15,7 +15,7 @@ export const buildOnce: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Ortam başına build'in neden tehlikeli olduğunu görmek", "See why a build per environment is dangerous"), step: 1 },
     { text: l("Image'ı bir kez build edip commit SHA'sıyla etiketlemek", "Build the image once and tag it with the commit SHA"), step: 2 },
@@ -188,13 +188,16 @@ export const buildOnce: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "CI ve Promote yerinde; eski \"main'den yeniden build\" düğmesi de duruyor. Her yerde ilk sürüm `3f2a1c9` çalışıyor ve registry'de onun image'ı var. Push'la, bir image'ı staging'e, staging'dekini production'a taşı ya da production'ı main'den yeniden build et.",
-          "CI and Promote are in place; the old \"rebuild from main\" button is still there too. Everything runs the first version, `3f2a1c9`, and its image is in the registry. Push, promote an image to staging, promote staging's to production, or rebuild production from main.",
+          "Aşağıda gerçek işten **4 senaryo** var: test edilen image'ı production'a taşımak, önce staging'den geçirmek, kötü bir sürümden geri dönmek ve eski \"main'den yeniden build\" workflow'unu emekliye ayırmak. Komutları terminale **kendin yaz**: `gh run list`, `gh workflow run promote.yml -f environment=… -f version=…`, `rm`, `git commit -am`, `git push`.",
+          "Below are **4 scenarios** from real work: shipping the tested image to production, going through staging first, rolling back from a bad version, and retiring the old \"rebuild from main\" workflow. **Type the commands yourself**: `gh run list`, `gh workflow run promote.yml -f environment=… -f version=…`, `rm`, `git commit -am`, `git push`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Her image commit'iyle etiketli (`sha-…`); hangi commit'in nerede çalıştığını sahnenin altı gösterir. Az komutla bitirirsen 3 yıldız.",
+          "Every image is tagged with its commit (`sha-…`); the bottom of the scene shows which commit runs where. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

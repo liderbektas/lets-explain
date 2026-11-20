@@ -1,37 +1,19 @@
 import { l } from "@lets-explain/core/i18n";
-import { freshWorld, headOf, SHAS, type CiAction, type Workflow, type World } from "../../engine/ci";
-import { BUILD, LINT, PREP, TEST, step } from "../../engine/presets";
+import { type CiAction, type Workflow, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
 import { RunStage } from "../../iso/RunStage";
-import { ciSim, focusRun, runMetrics, startedNothing } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
+import { ciSim, ciTyped, focusRun, runMetrics, startedNothing } from "../shared/ci";
+import { deskOf } from "../../engine/desk";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { CommitLane } from "./CommitLane";
-import { BUG_MSG, missions } from "./missions";
+import { BUG_MSG, CI, CICD, fresh } from "./model";
+import { scenarios } from "./scenarios";
+export { BUG_MSG, CI, CICD, fresh } from "./model";
 
 export const SLUG = "why-ci-cd";
 
-/** Plain CI: every push to main is linted, tested and built. */
-export const CI: Workflow = {
-  name: "CI",
-  on: { push: { branches: ["main"] } },
-  jobs: [{ id: "ci", steps: [...PREP, LINT, TEST, BUILD] }],
-};
-
-/** CI plus CD: a green build goes to staging by itself. */
-export const CICD: Workflow = {
-  name: "CI",
-  on: { push: { branches: ["main"] } },
-  jobs: [
-    { id: "ci", steps: [...PREP, LINT, TEST, BUILD, step("upload")] },
-    { id: "deploy", needs: ["ci"], steps: [step("download"), step("deploy")] },
-  ],
-};
-
 const set = (w: Workflow): CiAction => ({ type: "setWorkflow", workflow: w });
 const bug: CiAction = { type: "push", add: ["test"], message: BUG_MSG };
-
-/** Staging runs the first commit; someone put it there by hand. */
-export const fresh = (): World => freshWorld({ envs: [{ name: "staging", sha: SHAS[0] }], secrets: { DEPLOY_TOKEN: "dpl_live" } });
 
 export const START: World = fresh();
 
@@ -47,32 +29,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-const kind = (w: World) => (w.workflows.length === 0 ? "none" : w.workflows[0]!.jobs.length > 1 ? "cicd" : "ci");
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const k = kind(w);
-  const broken = headOf(w).bugs.includes("test");
-  return [
-    {
-      label: tr ? "Workflow" : "Workflow",
-      buttons: [
-        { label: tr ? "CI ekle" : "add CI", action: set(CI), tone: "producer", disabled: k === "ci" },
-        { label: tr ? "CI + deploy ekle" : "add CI + deploy", action: set(CICD), tone: "producer", disabled: k === "cicd" },
-        { label: tr ? "workflow'u sil" : "delete the workflow", action: { type: "removeWorkflow", name: "CI" }, tone: "danger", disabled: k === "none" },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: tr ? "push: sağlam commit" : "push: a good commit", action: { type: "push" }, tone: "go" },
-        { label: tr ? "push: hatalı commit" : "push: a broken commit", action: bug, tone: "danger", disabled: broken },
-        { label: tr ? "push: düzeltme" : "push: the fix", action: { type: "push", fix: ["test"] }, tone: "ok", disabled: !broken },
-      ],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -92,5 +48,6 @@ export const scene = makeSimScene({
     { label: t(l("Kontrolsüz commit", "Unchecked commits")), value: w.commits.filter((c) => c.n > 1 && !w.runs.some((r) => r.sha === c.sha)).length, tone: "warn" as const },
     ...runMetrics(w, t).slice(0, 1),
   ],
-  sandbox: { start: () => fresh(), rows, missions },
+  // Free play: the shop with plain CI, staging on the first commit.
+  sandbox: { typed: ciTyped(scenarios, () => deskOf(fresh([CI]))) },
 });

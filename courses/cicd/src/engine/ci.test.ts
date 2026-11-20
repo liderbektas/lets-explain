@@ -171,8 +171,10 @@ describe("ci engine", () => {
 
   it("forks get no secrets", () => {
     const wf: Workflow = { name: "Release", on: { pull_request: {} }, jobs: [{ id: "publish", steps: [...PREP, step("publish")] }] };
-    const own = run([{ type: "push", branch: "f" }, { type: "openPr", branch: "f" }], { workflows: [wf], secrets: { NPM_TOKEN: "t" } }).w;
-    const fork = run([{ type: "push", branch: "f" }, { type: "openPr", branch: "f", fork: true }], { workflows: [wf], secrets: { NPM_TOKEN: "t" } }).w;
+    // A token shaped like npm's: npm turns away anything else with a 401.
+    const secrets = { NPM_TOKEN: "npm_8f2kQx7Lr0aW3mZt9" };
+    const own = run([{ type: "push", branch: "f" }, { type: "openPr", branch: "f" }], { workflows: [wf], secrets }).w;
+    const fork = run([{ type: "push", branch: "f" }, { type: "openPr", branch: "f", fork: true }], { workflows: [wf], secrets }).w;
     expect(latestRun(own)!.status).toBe("success");
     expect(latestRun(fork)!.status).toBe("failure");
   });

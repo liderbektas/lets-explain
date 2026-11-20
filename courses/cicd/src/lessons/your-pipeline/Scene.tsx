@@ -1,43 +1,15 @@
 import { l } from "@lets-explain/core/i18n";
-import { freshWorld, type CiAction, type JobDef, type StepDef, type Workflow, type World } from "../../engine/ci";
-import { BUILD, CHECKOUT, INSTALL, SETUP, TEST, step } from "../../engine/presets";
+import { freshWorld, type CiAction, type Workflow, type World } from "../../engine/ci";
 import { EnvStrip, PrPanel } from "../../iso/panels";
 import { RunStage } from "../../iso/RunStage";
-import { ciSim, focusRun, runMetrics } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun, runMetrics } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
+import { PAGES, pagesWf, type Parts } from "./workflow";
+export { PAGES, pagesWf, type Parts } from "./workflow";
 
 export const SLUG = "your-pipeline";
-export const PAGES = "github-pages";
-
-export interface Parts {
-  test: boolean;
-  upload: boolean;
-  deploy: boolean;
-  onlyMain: boolean;
-}
-
-const UPLOAD = step("upload", { name: "Run actions/upload-pages-artifact@v4" });
-const FETCH = step("download", { name: "fetch the Pages artifact" });
-const DEPLOY_PAGES = step("deploy", { name: "Run actions/deploy-pages@v4", with: { env: PAGES } });
-
-/** This site's own pipeline, built up piece by piece. */
-export function pagesWf(p: Parts): Workflow {
-  const build: StepDef[] = [CHECKOUT, SETUP, INSTALL, ...(p.test ? [TEST] : []), BUILD, ...(p.upload ? [UPLOAD] : [])];
-  const jobs: JobDef[] = [{ id: "build", steps: build }];
-  if (p.deploy) jobs.push({ id: "deploy", needs: ["build"], environment: PAGES, ...(p.onlyMain ? { if: "main" as const } : {}), steps: [FETCH, DEPLOY_PAGES] });
-  return { name: "Pages", on: { push: { branches: ["main"] }, pull_request: {} }, jobs };
-}
-
-export const partsOf = (w: World): Parts => {
-  const wf = w.workflows.find((x) => x.name === "Pages");
-  const build = wf?.jobs.find((j) => j.id === "build")?.steps.map((s) => s.kind) ?? [];
-  const deploy = wf?.jobs.find((j) => j.id === "deploy");
-  return { test: build.includes("test"), upload: build.includes("upload"), deploy: Boolean(deploy), onlyMain: deploy?.if === "main" };
-};
-
 export const set = (p: Parts): CiAction => ({ type: "setWorkflow", workflow: pagesWf(p) });
-export const add = (key: keyof Parts) => (w: World): CiAction => set({ ...partsOf(w), [key]: true });
 
 const world = (workflows: Workflow[]) => freshWorld({ workflows, envs: [{ name: PAGES }], secrets: { DEPLOY_TOKEN: "pages-oidc" } });
 
@@ -60,34 +32,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-/** The try-it step: a half-finished pipeline (no tests, no upload, deploys from anywhere). */
-export const sandboxStart = (): World => world([pagesWf({ test: false, upload: false, deploy: true, onlyMain: false })]);
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const p = partsOf(w);
-  const pr = w.prs.find((x) => x.state === "open");
-  return [
-    {
-      label: "Workflow",
-      buttons: [
-        { label: tr ? "+ npm test" : "+ npm test", action: add("test")(w), tone: "producer", disabled: p.test },
-        { label: "+ upload-pages-artifact", action: add("upload")(w), tone: "producer", disabled: p.upload },
-        { label: tr ? "deploy: sadece main'de (if)" : "deploy: main only (if)", action: add("onlyMain")(w), tone: "producer", disabled: p.onlyMain },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: "push main", action: { type: "push" }, tone: "go" },
-        { label: tr ? "push main: kırık test" : "push main: broken test", action: { type: "push", add: ["test"] }, tone: "danger" },
-        { label: "push feature", action: { type: "push", branch: "feature" }, tone: "go" },
-        { label: tr ? "PR aç: feature → main" : "open PR: feature → main", action: { type: "openPr", branch: "feature" }, tone: "plain", disabled: !w.heads.feature || Boolean(pr) },
-      ],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -118,5 +62,6 @@ export const scene = makeSimScene({
     );
   },
   metrics: (w, t) => [...runMetrics(w, t).slice(0, 2), { label: t(l("Yayında", "Live")), value: w.envs[PAGES]?.sha ?? "—", tone: w.envs[PAGES]?.sha ? "ok" : "plain" }],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Typed: the Pages workflow is a real file; push, open PRs and merge from the terminal.
+  sandbox: { typed: ciTyped(scenarios) },
 });

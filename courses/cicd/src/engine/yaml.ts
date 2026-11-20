@@ -32,6 +32,9 @@ export function condYaml(c: Cond, where: "job" | "step"): string | null {
 /** `src/**` → `src`, `docs/**` → `docs`: the name a paths-filter output gets. */
 export const filterName = (glob: string) => glob.replace(/\/?\*.*$/, "").replace(/[^a-z0-9]+/gi, "-") || "all";
 
+/** A `run:` command as YAML: plain when it can be, single-quoted when ": " or " #" would break it. */
+export const runValue = (cmd: string) => (/: | #|:$|^[&*!|>'"%@`{[,?-]/.test(cmd) ? `'${cmd.replace(/'/g, "''")}'` : cmd);
+
 const q = (s: string) => (/[*:{}[\],&#?|<>=!%@`'"]/.test(s) || s === "" ? `'${s}'` : s);
 const list = (xs: string[]) => `[${xs.map(q).join(", ")}]`;
 
@@ -49,8 +52,9 @@ function filterYaml(name: string, f: Filter, out: string[]) {
 
 export function stepYaml(s: StepDef, job: JobDef, indent = "      "): string[] {
   const out: string[] = [];
-  const first = (line: string) => out.push(`${indent}- ${line}`);
-  const more = (line: string) => out.push(`${indent}  ${line}`);
+  const fix = (line: string) => (line.startsWith("run: ") ? `run: ${runValue(line.slice(5))}` : line);
+  const first = (line: string) => out.push(`${indent}- ${fix(line)}`);
+  const more = (line: string) => out.push(`${indent}  ${fix(line)}`);
   const head = (line: string) => {
     if (s.name) {
       first(`name: ${q(s.name)}`);
@@ -74,12 +78,19 @@ export function stepYaml(s: StepDef, job: JobDef, indent = "      "): string[] {
       head("uses: actions/setup-node@v4");
       more("with:");
       more(`  node-version: ${node}`);
+      if (s.with?.cache) more(`  cache: ${s.with.cache}`);
       break;
     case "cache":
       withId("cache", "uses: actions/cache@v4");
       more("with:");
       more(`  path: ${s.with?.path === "node_modules" ? "node_modules" : "~/.npm"}`);
-      more(s.with?.key === "static" ? `  key: ${s.with?.path === "node_modules" ? "node_modules" : "npm"}-deps` : `  key: ${s.with?.path === "node_modules" ? "node_modules" : "npm"}-\${{ hashFiles('package-lock.json') }}`);
+      more(
+        s.with?.key === "static"
+          ? `  key: ${s.with?.path === "node_modules" ? "node_modules" : "npm"}-deps`
+          : s.with?.key === "sha"
+            ? `  key: ${s.with?.path === "node_modules" ? "node_modules" : "npm"}-\${{ github.sha }}`
+            : `  key: ${s.with?.path === "node_modules" ? "node_modules" : "npm"}-\${{ hashFiles('package-lock.json') }}`,
+      );
       break;
     case "install":
       head("run: npm ci");
@@ -161,8 +172,11 @@ export function stepYaml(s: StepDef, job: JobDef, indent = "      "): string[] {
     }
     case "publish":
       head("run: npm publish");
-      more("env:");
-      more("  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
+      // No env at all (token ""), a value written into the file, or a secret (NPM_TOKEN by default).
+      if (s.with?.token !== "") {
+        more("env:");
+        more(`  NODE_AUTH_TOKEN: ${s.with?.token ?? `\${{ secrets.${s.with?.secret ?? "NPM_TOKEN"} }}`}`);
+      }
       break;
   }
   if (s.if && s.if !== "success") more(`if: ${condYaml(s.if, "step")}`);

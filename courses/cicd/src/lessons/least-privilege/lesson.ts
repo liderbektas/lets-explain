@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { freshLp, GOOD_SHA, lpYaml } from "./model";
 import { scene } from "./Scene";
 
@@ -25,7 +25,7 @@ export const leastPrivilege: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir etiketin (`@v1`) neden güvenilir bir sürüm olmadığını görmek", "See why a tag (`@v1`) is not a fixed version"), step: 1 },
     { text: l("Action'ları commit SHA'sına sabitlemek", "Pin actions to a commit SHA"), step: 2 },
@@ -168,13 +168,16 @@ export const leastPrivilege: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Henüz kimse fark etmedi ama `acme/lint-action`'ın `v1` etiketi zaten kötü koda taşındı. Workflow `write-all` ile ve `@v1` etiketiyle duruyor. İzinleri değiştirebilir, action'ı SHA'ya sabitleyebilir ve push'layabilirsin.",
-          "Nobody has noticed yet, but `acme/lint-action`'s `v1` tag has already been moved to bad code. The workflow has `write-all` and uses the `@v1` tag. You can change the permissions, pin the action to a SHA, and push.",
+          "Aşağıda gerçek işten **4 senaryo** var: taşınmış bir etiket, fazla sıkı izinler, sabit SHA'ları güncel tutmak. Workflow'u `nano .github/workflows/ci.yml` ile **kendin düzenle**, `git commit` ve `git push` ile gönder; her push workflow'u çalıştırır ve sahne hangi kodun çalıştığını, token'ın neye yazabildiğini gösterir.",
+          "Below are **4 scenarios** from real work: a moved tag, permissions that are too tight, keeping pinned SHAs fresh. **Edit the workflow yourself** with `nano .github/workflows/ci.yml` and send it with `git commit` and `git push`; every push runs the workflow, and the scene shows which code ran and what the token could write.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Bir etiketin gösterdiği tam SHA'yı `git ls-remote` verir; bir run'ın ayrıntısını `gh run view --log` gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`git ls-remote` gives the full SHA a tag points at; `gh run view --log` shows a run in detail. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

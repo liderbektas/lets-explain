@@ -1,13 +1,15 @@
-import type { Change } from "@lets-explain/core/course/types";
+import type { Change, Scenario } from "@lets-explain/core/course/types";
 import { l, type L } from "@lets-explain/core/i18n";
-import { apply, fmt, latestRun, totalMinutes, type CiAction, type CiEvent, type Run, type Workflow, type World } from "../../engine/ci";
+import { apply, fmt, globMatch, latestRun, totalMinutes, type CiAction, type CiEvent, type Run, type Workflow, type World } from "../../engine/ci";
 import { describeCi } from "../../engine/describe";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
 import { RunStage } from "../../iso/RunStage";
 import { HOLD_MS } from "../../iso/replay";
 import { YamlPanel } from "../../iso/panels";
 import type { Box } from "../../iso/parts";
-import type { Ctx, Sim, ViewInfo } from "./SimScene";
+import { ciShell } from "../../engine/cli";
+import { deskOf, replayDesk, type Desk, type DeskAction } from "../../engine/desk";
+import type { Ctx, Sim, TypedSim, ViewInfo } from "./SimScene";
 
 /** The course's GitHub Actions model as a scene simulation. */
 export const ciSim: Sim<World, CiAction, CiEvent> = {
@@ -111,3 +113,48 @@ export function runMetrics(w: World, t: (x: L) => string, run?: Run) {
     { label: t(l("Toplam dakika", "Minutes billed")), value: totalMinutes(w) },
   ];
 }
+
+/* -------------------------------------------------------------- typing */
+
+/** What a typed scenario's check sees: the desks (laptop + GitHub) from start to now. */
+export interface DeskCtx {
+  start: Desk;
+  state: Desk;
+  actions: DeskAction[];
+  events: CiEvent[][];
+  states: Desk[];
+}
+
+export type CiScenario = Scenario<DeskCtx, Desk>;
+
+/**
+ * The try-it step played by typing, for a lesson drawn from the GitHub model: the terminal
+ * works on a desk, the scene draws the desk's GitHub side. Free play starts from the lesson's
+ * end state, checked out on main.
+ */
+export function ciTyped(scenarios: CiScenario[], freeStart: (end: World) => Desk = (end) => deskOf(end)): TypedSim<World, CiEvent, Desk, DeskAction, DeskCtx> {
+  return {
+    scenarios,
+    freeStart,
+    shell: ciShell,
+    replay: replayDesk,
+    project: (d) => d.world,
+    context: (start, actions, r) => ({ start, state: r.states[r.states.length - 1]!, actions, events: r.events, states: r.states }),
+  };
+}
+
+/**
+ * Would this workflow start for an event? The same branch and path rules GitHub (and the
+ * engine) use, so a scenario can check a workflow's triggers without pushing every case.
+ */
+export function wouldStart(wf: Workflow | undefined, event: "push" | "pull_request", branch: string, paths: string[]): boolean {
+  const f = wf?.on[event];
+  if (!f) return false;
+  if (f.branches && !f.branches.some((b) => globMatch(b, branch))) return false;
+  if (f.paths && !paths.some((p) => f.paths!.some((g) => globMatch(g, p)))) return false;
+  if (f.pathsIgnore && paths.every((p) => f.pathsIgnore!.some((g) => globMatch(g, p)))) return false;
+  return true;
+}
+
+/** The workflow called `name` as GitHub has it now (what was pushed, not what is in the folder). */
+export const liveWorkflow = (d: Desk, name = "CI") => d.world.workflows.find((w) => w.name === name);

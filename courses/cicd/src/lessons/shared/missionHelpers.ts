@@ -1,3 +1,7 @@
+import { typeLines } from "@lets-explain/core/components/TypedSandbox";
+import { ciShell } from "../../engine/cli";
+import { replayDesk, type Desk, type DeskAction } from "../../engine/desk";
+import type { DeskCtx } from "./ci";
 import { shortestWin } from "@lets-explain/core/lib/missionSearch";
 import { simulateWith, type Ctx, type SimScene } from "./SimScene";
 
@@ -60,4 +64,17 @@ export function missionSuite<S, A, E>(
       t.expect(searchWin(scene, m.check, m.par - 1)).toBeNull();
     });
   }
+}
+
+/* -------------------------------------------------------------- scenarios */
+
+/**
+ * Types command lines into a CI scenario the way a reader would, saving each editor a command
+ * opens with the next of `edits`. Returns what the scenario's check sees and the commands counted.
+ */
+export function typeInto(start: Desk, typed: string[], edits: ((text: string) => string)[] = []): { ctx: DeskCtx; moves: number; output: string[] } {
+  const apply = (d: Desk, actions: DeskAction[]) => replayDesk(d, actions).states.at(-1)!;
+  const r = typeLines(ciShell, apply, start, typed, edits);
+  const run = replayDesk(start, r.actions);
+  return { ctx: { start, state: run.states.at(-1)!, actions: r.actions, events: run.events, states: run.states }, moves: r.moves, output: r.output };
 }

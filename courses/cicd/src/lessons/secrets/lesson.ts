@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { relWf, scene } from "./Scene";
 
 export const secrets: Lesson = {
@@ -15,7 +15,7 @@ export const secrets: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir token'ın neden YAML'a yazılmayacağını görmek", "See why a token never goes in the YAML"), step: 0 },
     { text: l("Secret eklemek ve `${{ secrets.AD }}` ile kullanmak", "Add a secret and use it with `${{ secrets.NAME }}`"), step: 2 },
@@ -169,13 +169,16 @@ export const secrets: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Repo ayarlarında hiç secret yok, `publish` her olayda çalışıyor ve fork'tan açılmış bir PR kırmızı. Secret ekleyip silebilir, `publish`'in koşulunu değiştirebilir, main'e ya da fork PR'ına push'layabilirsin.",
-          "The repo has no secrets, `publish` runs on every event, and a PR opened from a fork is red. You can add or delete the secret, change `publish`'s condition, and push to main or to the fork's PR.",
+          "Aşağıda gerçek işten **4 senaryo** var: ilk sürüm token'sız düşmüş, token dosyaya yazılıp sızmış, fork'tan gelen PR kırmızı, ekibin secret'ı başka bir adla duruyor. Komutları terminale **kendin yaz**: `gh secret set`, `gh secret list`, `nano`, `git commit -am`, `git push`, `gh run rerun`.",
+          "Below are **4 scenarios** from real work: the first release failed without a token, a token was written into the file and leaked, a fork's PR is red, the team's secret has another name. **Type the commands yourself**: `gh secret set`, `gh secret list`, `nano`, `git commit -am`, `git push`, `gh run rerun`.",
         ),
-        l("Sahnenin altında **2 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **2 missions**. Few moves earn 3 stars."),
+        l(
+          "`gh secret set NAME` değeri sorar; burada küçük bir editör o sorunun yerini tutar. Token'ı hiçbir dosyaya yazma: dosyaya giren her şey git geçmişinde kalır. Az komutla bitirirsen 3 yıldız.",
+          "`gh secret set NAME` asks for the value; here a small editor stands in for that prompt. Never write a token into a file: anything in a file stays in the git history. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

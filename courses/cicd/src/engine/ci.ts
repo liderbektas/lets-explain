@@ -26,7 +26,8 @@ export type Bug =
   | "flaky" // a timing-dependent test: fails on odd attempts, passes on a re-run
   | "node20" // uses an API that Node 20 does not have: tests fail only on Node 20
   | "build" // a broken import: `npm run build` fails
-  | "crash"; // builds and passes tests, but the server answers 500 once deployed
+  | "crash" // builds and passes tests, but the server answers 500 once deployed
+  | "hang"; // the browser tests wait for something that never comes: `npm run e2e` never ends on its own
 
 export interface Commit {
   sha: string;
@@ -204,6 +205,8 @@ export interface Env {
   sha: string | null;
   /** Every commit deployed here, oldest first. */
   history: string[];
+  /** Environment secrets: only jobs with `environment:` set to this one see them, and they win over repo secrets. */
+  secrets?: Record<string, string>;
 }
 
 export interface PullRequest {
@@ -290,6 +293,8 @@ export type CiAction =
   | { type: "setProtection"; required: string[] | null }
   | { type: "setEnv"; name: string; approval: boolean }
   | { type: "setSecret"; name: string; value: string | null }
+  /** `gh secret set NAME --env production`: a secret only that environment's jobs get. */
+  | { type: "setEnvSecret"; env: string; name: string; value: string | null }
   | { type: "wait"; seconds: number }
   /** Someone puts the previous build back by hand. */
   | { type: "rollback"; env: string };
@@ -460,6 +465,15 @@ export function apply(world: World, action: CiAction): Result {
       w.envs[action.name] = e;
       return { state: w, events: [{ type: "configChanged", what: `env:${action.name}` }] };
     }
+    case "setEnvSecret": {
+      const w = clone(world);
+      const e = w.envs[action.env];
+      if (!e) return refuse(world, "no-env");
+      const secrets = (e.secrets ??= {});
+      if (action.value === null) delete secrets[action.name];
+      else secrets[action.name] = action.value;
+      return { state: w, events: [{ type: "configChanged", what: `secret:${action.env}/${action.name}` }] };
+    }
     case "setSecret": {
       const w = clone(world);
       if (action.value === null) delete w.secrets[action.name];
@@ -535,7 +549,8 @@ function trigger(w: World, event: "push" | "pull_request", branch: string, sha: 
   for (const wf of w.workflows) {
     const f = wf.on[event];
     if (!f) continue;
-    if (/\[skip ci\]/.test(commit.message)) {
+    // GitHub reads any of these in the commit message.
+    if (/\[(skip ci|ci skip|no ci|skip actions|actions skip)\]/.test(commit.message)) {
       events.push({ type: "notTriggered", workflow: wf.name, reason: "skip-ci" });
       continue;
     }
@@ -849,6 +864,12 @@ function runJob(w: World, wf: Workflow, def: JobDef, run: Run, job: JobRun, star
 }
 
 /** The name GitHub shows for a step. */
+/** A secret as a job sees it: its environment's secret first, then the repo's. */
+export function secretFor(w: World, job: JobDef, name: string): string | undefined {
+  const env = job.environment ? w.envs[job.environment]?.secrets?.[name] : undefined;
+  return env ?? w.secrets[name];
+}
+
 export function stepName(step: StepDef, node?: number): string {
   if (step.name) return step.name;
   const env = (v: string | undefined) => (v?.startsWith("input:") ? `${"$"}{{ inputs.${v.slice(6)} }}` : (v ?? "staging"));
@@ -928,12 +949,28 @@ function runStep(w: World, wf: Workflow, _def: JobDef, run: Run, job: JobRun, st
     case "checkout":
       ws.code = true;
       return ok(d("checkout"), `Syncing repository: ada/shop`, `HEAD is now at ${commit.sha} ${commit.message}`);
-    case "setup-node":
+    case "setup-node": {
       ws.node = job.node ?? Number(step.with?.node ?? 22);
-      return ok(d("setup-node"), `Found in cache @ /opt/hostedtoolcache/node/${ws.node}.x`, `node --version: v${ws.node}.11.0`);
+      const found = [`Found in cache @ /opt/hostedtoolcache/node/${ws.node}.x`, `node --version: v${ws.node}.11.0`];
+      // `cache: npm`: setup-node keeps ~/.npm itself, keyed by the lockfile, saved after a passing job.
+      if (step.with?.cache === "npm") {
+        const key = `node-cache-Linux-x64-npm-${lockHash(commit.lock)}`;
+        const hit = w.cache[key];
+        if (hit) {
+          ws.npmCache = hit.lock;
+          events.push({ type: "cache", run: run.id, key, result: "hit" });
+          return ok(d("setup-node") + d("cache"), ...found, `Cache restored from key: ${key}`);
+        }
+        ws.cacheSave ??= { key, path: "npm" };
+        events.push({ type: "cache", run: run.id, key, result: "miss" });
+        return ok(d("setup-node") + d("cache"), ...found, `npm cache is not found`);
+      }
+      return ok(d("setup-node"), ...found);
+    }
     case "cache": {
       const path = step.with?.path ?? "npm";
-      const key = step.with?.key === "static" ? `${path}-deps` : `${path}-${lockHash(commit.lock)}`;
+      // A key from the commit (`github.sha`) is new on every commit: it never hits for a new push.
+      const key = step.with?.key === "static" ? `${path}-deps` : step.with?.key === "sha" ? `${path}-${commit.sha}` : `${path}-${lockHash(commit.lock)}`;
       const hit = w.cache[key];
       if (hit) {
         ws.cacheHit = true;
@@ -976,6 +1013,7 @@ function runStep(w: World, wf: Workflow, _def: JobDef, run: Run, job: JobRun, st
     case "e2e": {
       const miss = needsModules(ws, commit, "npm run e2e");
       if (miss) return miss;
+      if (commit.bugs.includes("hang")) return ok(Number(step.with?.minutes ?? 360) * 60 + 60, "> playwright test", "Waiting for http://localhost:3000 …");
       return ok(d("e2e"), "> playwright test", "  24 passed (2.5m)");
     }
     case "build": {
@@ -1023,7 +1061,7 @@ function runStep(w: World, wf: Workflow, _def: JobDef, run: Run, job: JobRun, st
         sha = valueOf(run, step.with?.version, commit.sha);
         if (!w.registry[`sha-${sha}`]) return fail(3, 1, `Error: image ghcr.io/ada/shop:sha-${sha} not found`);
       } else if (ws.dist === null) return fail(1, 1, "./deploy.sh: dist/ not found. Did the build run in this job?");
-      if (run.fork || !w.secrets.DEPLOY_TOKEN) return fail(2, 1, "Error: DEPLOY_TOKEN is empty.", run.fork ? "(Secrets are not passed to workflows triggered from a fork.)" : "(Add it under Settings → Secrets and variables → Actions.)");
+      if (run.fork || !secretFor(w, _def, "DEPLOY_TOKEN")) return fail(2, 1, "Error: DEPLOY_TOKEN is empty.", run.fork ? "(Secrets are not passed to workflows triggered from a fork.)" : "(Add it under Settings → Secrets and variables → Actions.)");
       const e = (w.envs[env] ??= { name: env, approval: false, sha: null, history: [] });
       e.sha = sha;
       e.history.push(sha);
@@ -1067,8 +1105,13 @@ function runStep(w: World, wf: Workflow, _def: JobDef, run: Run, job: JobRun, st
       return ok(d("print-secret"), `token: ${value ? "***" : ""}`);
     }
     case "publish": {
-      const token = run.fork ? "" : (w.secrets.NPM_TOKEN ?? "");
+      // `with.token` is what the step's env gives NODE_AUTH_TOKEN when it is not a secret: a value
+      // written into the file (it works, and leaks), or "" when there is no env at all.
+      const token = step.with?.token !== undefined ? step.with.token : run.fork ? "" : (secretFor(w, _def, step.with?.secret ?? "NPM_TOKEN") ?? "");
       if (!token) return fail(3, 1, "npm error code ENEEDAUTH", "npm error need auth This command requires you to be logged in.");
+      // npm only takes something shaped like one of its tokens; anything else is a 401.
+      if (!/^npm_[A-Za-z0-9]{16,}$/.test(token))
+        return fail(4, 1, "npm error code E401", "npm error 401 Unauthorized - PUT https://registry.npmjs.org/@ada%2fshop - unauthenticated: User cannot be authenticated with the token provided.");
       return ok(d("publish"), "+ @ada/shop@1.4.0");
     }
     case "hang":

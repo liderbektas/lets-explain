@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { condWf, scene } from "./Scene";
 
 const FINAL = workflowYaml(condWf({ mainOnly: true, notify: "failure", softLint: false }));
@@ -17,7 +17,7 @@ export const conditionsAndOutputs: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Deploy'u `if:` ile sadece main'e sınırlamak", "Limit the deploy to main with `if:`"), step: 1 },
     { text: l("Varsayılan `success()` koşulunu ve `failure()` / `always()`'ı anlamak", "Understand the default `success()`, and `failure()` / `always()`"), step: 3 },
@@ -187,13 +187,16 @@ export const conditionsAndOutputs: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Workflow'da hiç koşul yok: `deploy` her branch'ten çalışıyor, `notify` her başarıda mesaj atıyor, lint de kesin. Koşulları açıp kapatabilir, `feature`'a ya da main'e farklı commit'ler push'layabilirsin.",
-          "The workflow has no conditions: `deploy` runs from any branch, `notify` posts on every success, and lint is strict. You can switch the conditions and push different commits to `feature` or main.",
+          "Aşağıda gerçek işten **4 senaryo** var: yarım bir deneme staging'e çıkmış, `main` sessizce kırık, lint bir düzeltmeyi tutuyor, kırmızı run'ın özeti boş. Her birinde koşulları `.github/workflows/ci-cd.yml` içine **kendin yaz**: `nano` ile aç, `git commit -am` ve `git push`.",
+          "Below are **4 scenarios** from real work: a half-done experiment reached staging, `main` is quietly broken, lint holds back a fix, a red run's summary is empty. In each, **write the conditions yourself** in `.github/workflows/ci-cd.yml`: open it with `nano`, then `git commit -am` and `git push`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Değişiklik ancak push'landığında geçerli olur. Sonucu `gh run list` ve `gh run view` ile görürsün. Bir `nano` kaydı da bir komut sayılır; az komutla bitirirsen 3 yıldız.",
+          "A change only counts once it's pushed. See the result with `gh run list` and `gh run view`. A `nano` save counts as a command too; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

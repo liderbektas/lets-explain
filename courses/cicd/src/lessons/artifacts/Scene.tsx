@@ -6,9 +6,9 @@ import { EnvStrip } from "../../iso/panels";
 import { Sticker } from "../../iso/parts";
 import { RunStage } from "../../iso/RunStage";
 import { appearAt, stepTimes, useReplay, visibleBetween } from "../../iso/replay";
-import { ciSim, focusRun } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "artifacts";
 
@@ -50,13 +50,6 @@ export const SHARED: Workflow = {
 /** A second workflow, started by hand, that tries to deploy a dist/ from another run. */
 export const REDEPLOY: Workflow = { name: "Redeploy", on: { dispatch: [] }, jobs: [{ id: "deploy", steps: [DOWNLOAD, DEPLOY] }] };
 
-export const flagsOf = (w: World): Flags => {
-  const jobs = w.workflows.find((x) => x.name === "CI")?.jobs ?? [];
-  const build = jobs.find((j) => j.id === "build")?.steps ?? [];
-  const deploy = jobs.find((j) => j.id === "deploy")?.steps ?? [];
-  return { upload: build.some((s) => s.kind === "upload"), download: deploy.some((s) => s.kind === "download"), rebuild: deploy.some((s) => s.kind === "build") };
-};
-
 const set = (w: Workflow): CiAction => ({ type: "setWorkflow", workflow: w });
 const push = (message: string): CiAction => ({ type: "push", message });
 
@@ -75,28 +68,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-export const SANDBOX: World = init();
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const f = flagsOf(w);
-  const flip = (k: keyof Flags) => set(wf({ ...f, [k]: !f[k] }));
-  return [
-    {
-      label: "build",
-      buttons: [{ label: f.upload ? (tr ? "upload-artifact'i kaldır" : "remove upload-artifact") : tr ? "upload-artifact ekle" : "add upload-artifact", action: flip("upload"), tone: "producer" }],
-    },
-    {
-      label: "deploy",
-      buttons: [
-        { label: f.download ? (tr ? "download-artifact'i kaldır" : "remove download-artifact") : tr ? "download-artifact ekle" : "add download-artifact", action: flip("download"), tone: "producer" },
-        { label: f.rebuild ? (tr ? "yeniden build'i kaldır" : "stop building again") : tr ? "burada yeniden build et" : "build again here", action: flip("rebuild"), tone: "producer" },
-      ],
-    },
-    { label: "Git", buttons: [{ label: "git push", action: push("cart: add VAT"), tone: "go" }] },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -123,7 +94,8 @@ export const scene = makeSimScene({
       { label: t(l("staging", "staging")), value: w.envs.staging?.sha ?? "—" },
     ];
   },
-  sandbox: { start: () => SANDBOX, rows, missions },
+  // Free play: the story's end, checked out on main.
+  sandbox: { typed: ciTyped(scenarios) },
 });
 
 /** Each recent run with the artifacts it holds. */

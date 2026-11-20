@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { e2eWf, matrixWf, scene } from "./Scene";
 
 export const noWastedRuns: Lesson = {
@@ -15,7 +15,7 @@ export const noWastedRuns: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`concurrency` ile eski run'ları iptal etmek", "Cancel older runs with `concurrency`"), step: 1 },
     { text: l("`timeout-minutes` ile takılan job'ları durdurmak", "Stop stuck jobs with `timeout-minutes`"), step: 3 },
@@ -190,13 +190,16 @@ export const noWastedRuns: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "CI'da normal bir `ci` job'ı ve takılan bir `e2e` job'ı var; concurrency ve süre sınırı yok. Ayarları açıp kapatabilir, kod ya da README push'layabilirsin. Üstteki sayaçlar biten, iptal edilen run'ları ve dakikaları gösteriyor.",
-          "CI has a normal `ci` job and an `e2e` job that hangs; no concurrency, no time limit. You can switch the settings and push code or the README. The counters on top show finished and cancelled runs and the minutes.",
+          "Aşağıda gerçek işten **4 senaryo** var: art arda push'lar, 6 saat takılan testler, bir README düzeltmesi ve iptal edilen bir matrix bacağı. Workflow'u `nano .github/workflows/ci.yml` ile düzenle, `git commit` ve `git push` ile gönder; run'ları `gh run list` ile izle.",
+          "Below are **4 scenarios** from real work: back-to-back pushes, tests that hang for 6 hours, a README fix, and a matrix leg that gets cancelled. Edit the workflow with `nano .github/workflows/ci.yml`, send it with `git commit` and `git push`, and watch the runs with `gh run list`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Her senaryoda soru aynı: bu run'a gerçekten ihtiyaç var mı, varsa ne kadar sürmeli? Üstteki sayaçlar biten ve iptal edilen run'ları ve dakikaları gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "In every scenario the question is the same: is this run really needed, and if so, how long should it take? The counters on top show finished and cancelled runs and the minutes. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

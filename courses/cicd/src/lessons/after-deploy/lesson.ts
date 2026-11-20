@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { ALL, deployWf, scene } from "./Scene";
 
 const RELEASE_WF = `# .github/workflows/release.yml: a GitHub Release for every v* tag
@@ -33,7 +33,7 @@ export const afterDeploy: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Yeşil bir run'ın sağlam bir site demek olmadığını görmek", "See that a green run does not mean a healthy site"), step: 0 },
     { text: l("Deploy'dan sonra bir smoke test eklemek", "Add a smoke test after the deploy"), step: 1 },
@@ -199,13 +199,16 @@ export const afterDeploy: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Workflow build ediyor, test ediyor ve staging'e deploy ediyor; deploy'dan sonra hiçbir şey yok. Smoke test, `if: failure()` ile geri alma ve haber verme adımlarını ekleyip çıkarabilir, sonra değişiklik, bug'lı değişiklik ya da düzeltme push'layabilirsin.",
-          "The workflow builds, tests and deploys to staging; nothing happens after the deploy. You can add and remove a smoke test, a rollback and a notify step with `if: failure()`, then push a change, a buggy change or a fix.",
+          "Aşağıda gerçek işten **4 senaryo** var: Bora'nın sepeti staging'i bozacak ve workflow deploy'dan sonra hiçbir şeye bakmıyor. `deploy` job'ına smoke test, geri alma ve haber verme adımlarını `nano .github/workflows/deploy.yml` ile **kendin ekle**, `git commit` ve `git push` ile gönder; push sepeti de staging'e götürür.",
+          "Below are **4 scenarios** from real work: Bora's cart is going to break staging, and the workflow looks at nothing after the deploy. **Add the smoke test, rollback and notify steps yourself** to the `deploy` job with `nano .github/workflows/deploy.yml`, and send them with `git commit` and `git push`; the push takes the cart to staging too.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Run'ı `gh run view` ve `gh run view --log-failed` ile incele; açık PR'ları `gh pr list` gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "Inspect the run with `gh run view` and `gh run view --log-failed`; `gh pr list` shows open PRs. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

@@ -1,52 +1,16 @@
 import { l } from "@lets-explain/core/i18n";
 import { freshWorld, latestRun, type CiAction, type Run, type Workflow, type World } from "../../engine/ci";
-import { BUILD, CHECKOUT, INSTALL, SETUP, TEST, step } from "../../engine/presets";
 import { jobYaml } from "../../engine/yaml";
 import { RunStage } from "../../iso/RunStage";
 import { cut, Sticker, Terminal } from "../../iso/parts";
-import { ciSim, focusRun, runMetrics, type CiInfo } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun, runMetrics, type CiInfo } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { condWf, VERSION_EXPR, type Opts } from "./workflow";
+import { FREE, scenarios } from "./scenarios";
 
 export const SLUG = "conditions-and-outputs";
 
-export interface Opts {
-  /** deploy: `if: github.ref == 'refs/heads/main' ...` */
-  mainOnly: boolean;
-  /** Is there a notify job, and does it use `if: failure()`? */
-  notify: "none" | "plain" | "failure";
-  /** lint: `continue-on-error: true` */
-  softLint: boolean;
-}
-
-export const VERSION_EXPR = "${{ needs.build.outputs.version }}";
-
-export function condWf(o: Opts): Workflow {
-  const jobs: Workflow["jobs"] = [
-    {
-      id: "build",
-      steps: [
-        CHECKOUT,
-        SETUP,
-        INSTALL,
-        step("lint", o.softLint ? { continueOnError: true } : {}),
-        TEST,
-        BUILD,
-        step("output", { with: { name: "version" } }),
-        step("summary", { if: "always", with: { text: "### Build finished" } }),
-        step("upload"),
-      ],
-    },
-    {
-      id: "deploy",
-      needs: ["build"],
-      ...(o.mainOnly ? { if: "main" as const } : {}),
-      steps: [step("download"), step("deploy"), step("summary", { with: { text: `Deployed ${VERSION_EXPR} to staging` } })],
-    },
-  ];
-  if (o.notify !== "none") jobs.push({ id: "notify", needs: ["build", "deploy"], ...(o.notify === "failure" ? { if: "failure" as const } : {}), steps: [step("notify")] });
-  return { name: "CI/CD", on: { push: {} }, jobs };
-}
+export { condWf, VERSION_EXPR, type Opts } from "./workflow";
 
 export const optsOf = (w: World): Opts => {
   const wf = w.workflows[0]!;
@@ -79,33 +43,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-export const SANDBOX_OPTS: Opts = { mainOnly: false, notify: "plain", softLint: false };
-export const sandboxStart = (): World => ciSim.apply(freshWorld(INIT), set(SANDBOX_OPTS)).state;
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const o = optsOf(w);
-  return [
-    {
-      label: "Workflow",
-      buttons: [
-        { label: o.mainOnly ? (tr ? "deploy: if'i kaldır" : "deploy: remove if") : "deploy: if main", action: set({ ...o, mainOnly: !o.mainOnly }), tone: "producer" },
-        { label: o.notify === "failure" ? (tr ? "notify: if'i kaldır" : "notify: remove if") : "notify: if failure()", action: set({ ...o, notify: o.notify === "failure" ? "plain" : "failure" }), tone: "producer" },
-        { label: o.softLint ? (tr ? "lint: zorunlu yap" : "lint: make it strict") : "lint: continue-on-error", action: set({ ...o, softLint: !o.softLint }), tone: "producer" },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: "push feature", action: pushFeature, tone: "go" },
-        { label: tr ? "push main (test kırık)" : "push main (broken test)", action: pushBroken, tone: "danger" },
-        { label: tr ? "push main (lint hatası)" : "push main (lint error)", action: pushLint, tone: "danger" },
-        { label: tr ? "push main (hepsi düzgün)" : "push main (all fixed)", action: pushFixed, tone: "go" },
-      ],
-    },
-  ];
-}
 
 /** `${{ needs.build.outputs.version }}` filled in with what the build job wrote, like GitHub does. */
 export function resolvedSummary(run?: Run): string[] {
@@ -186,5 +123,6 @@ export const scene = makeSimScene({
   label: l("Üstte son run'ın job'ları; altta workflow'daki koşullar ve run'ın bıraktığı izler", "The last run's jobs on top; below, the workflow's conditions and what the run left behind"),
   view: (w, info) => <View w={w} info={info} />,
   metrics: (w, t) => [...runMetrics(w, t, latestRun(w)).slice(0, 2), { label: "staging", value: w.envs.staging?.sha ?? "—" }],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: no conditions anywhere, the way the lesson began.
+  sandbox: { typed: ciTyped(scenarios, () => FREE) },
 });

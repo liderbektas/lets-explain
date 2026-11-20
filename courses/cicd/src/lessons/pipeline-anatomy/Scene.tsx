@@ -1,27 +1,14 @@
 import { l } from "@lets-explain/core/i18n";
-import { freshWorld, headOf, type CiAction, type Workflow, type World } from "../../engine/ci";
-import { BUILD, LINT, PREP, TEST } from "../../engine/presets";
+import { freshWorld, type CiAction, type Workflow, type World } from "../../engine/ci";
 import { jobRows, runRows, Timeline } from "../../iso/panels";
 import { RunStage } from "../../iso/RunStage";
-import { ciSim, focusRun, runMetrics, YamlAndRun } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun, runMetrics, YamlAndRun } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { ONE, split } from "./model";
+import { scenarios } from "./scenarios";
+export { ONE, split } from "./model";
 
 export const SLUG = "pipeline-anatomy";
-
-/** Everything in one job. */
-export const ONE: Workflow = { name: "CI", on: { push: { branches: ["main"] } }, jobs: [{ id: "ci", steps: [...PREP, LINT, TEST, BUILD] }] };
-
-/** Three jobs; `build` waits for whatever is in `needs`. */
-export const split = (needs: string[]): Workflow => ({
-  name: "CI",
-  on: { push: { branches: ["main"] } },
-  jobs: [
-    { id: "lint", steps: [...PREP, LINT] },
-    { id: "test", steps: [...PREP, TEST] },
-    { id: "build", ...(needs.length ? { needs } : {}), steps: [...PREP, BUILD] },
-  ],
-});
 
 /** Leaves room after the longest bar for its duration label. */
 const roomy = (rows: { end: number }[]) => Math.max(60, ...rows.map((r) => r.end)) * 1.12;
@@ -43,38 +30,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-/** What `build` currently needs. */
-export const needsOf = (w: World) => w.workflows[0]?.jobs.find((j) => j.id === "build")?.needs ?? [];
-export const toggleNeed = (w: World, id: string): CiAction => {
-  const now = needsOf(w);
-  return set(split(now.includes(id) ? now.filter((x) => x !== id) : ["lint", "test"].filter((x) => x === id || now.includes(x))));
-};
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const needs = needsOf(w);
-  const bugs = headOf(w).bugs;
-  return [
-    {
-      label: tr ? "build job'ı" : "build job",
-      buttons: ["lint", "test"].map((id) => ({
-        label: needs.includes(id) ? (tr ? `needs'ten ${id} çıkar` : `drop ${id} from needs`) : tr ? `needs'e ${id} ekle` : `add ${id} to needs`,
-        action: toggleNeed(w, id),
-        tone: "producer" as const,
-      })),
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: tr ? "push: sağlam" : "push: good", action: { type: "push" }, tone: "go" },
-        { label: tr ? "push: lint hatası" : "push: lint error", action: { type: "push", add: ["lint"] }, tone: "danger", disabled: bugs.includes("lint") },
-        { label: tr ? "push: test hatası" : "push: test failure", action: { type: "push", add: ["test"] }, tone: "danger", disabled: bugs.includes("test") },
-        { label: tr ? "push: hepsini düzelt" : "push: fix everything", action: { type: "push", fix: ["lint", "test"] }, tone: "ok", disabled: bugs.length === 0 },
-      ],
-    },
-  ];
-}
 
 export const scene = makeSimScene({
   slug: SLUG,
@@ -98,5 +53,6 @@ export const scene = makeSimScene({
     );
   },
   metrics: (w, t) => [{ label: t(l("Run sayısı", "Runs")), value: w.runs.length }, ...runMetrics(w, t)],
-  sandbox: { start: () => ciSim.apply(freshWorld(), set(split([]))).state, rows, missions },
+  // Free play: the lesson's three jobs, build after the checks.
+  sandbox: { typed: ciTyped(scenarios) },
 });

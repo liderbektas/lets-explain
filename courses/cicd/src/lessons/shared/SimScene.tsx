@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
+import { useTypedSandbox, type CommandLine } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
-import type { Change, Mission, SceneProps } from "@lets-explain/core/course/types";
+import type { Change, Mission, Scenario, SceneProps } from "@lets-explain/core/course/types";
 import { starsFor } from "@lets-explain/core/course/types";
 import { useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
@@ -33,6 +34,22 @@ export interface Ctx<S, A, E> {
   actions: A[];
   events: E[][];
   states: S[];
+}
+
+/**
+ * The try-it step played by typing: scenarios on a "desk" state `D` (the reader's laptop and
+ * GitHub), a command line on it, and how a desk shows as the scene's own state.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface TypedSim<S, E, D = any, DA = any, C = any> {
+  scenarios: Scenario<C, D>[];
+  /** Free play starts here; it gets the state at the end of the lesson. */
+  freeStart: (end: S) => D;
+  shell: CommandLine<DA, D>;
+  replay: (start: D, actions: DA[]) => { states: D[]; events: E[][] };
+  /** The scene's state for a desk, for the lesson's view. */
+  project: (d: D) => S;
+  context: (start: D, actions: DA[], run: { states: D[]; events: E[][] }) => C;
 }
 
 export interface SandboxButton<A> {
@@ -74,8 +91,11 @@ export interface SceneConfig<S, A, E> {
   sandbox?: {
     /** Where the try-it step starts. Defaults to the state at the end of the lesson. */
     start?: (end: S) => S;
-    rows: (state: S, lang: Lang, history: A[]) => SandboxRow<A>[];
-    missions: Mission<Ctx<S, A, E>>[];
+    /** Button rows, for a lesson whose try-it step is played with buttons. */
+    rows?: (state: S, lang: Lang, history: A[]) => SandboxRow<A>[];
+    missions?: Mission<Ctx<S, A, E>>[];
+    /** Scenarios played by typing in a terminal. They replace the buttons. */
+    typed?: TypedSim<S, E>;
   };
   /** Extra "what changed" lines for a step, added after the computed ones. */
   extraChanges?: (step: number) => Change[];
@@ -141,7 +161,9 @@ export function makeSimScene<S, A, E>(config: SceneConfig<S, A, E>): SimScene<S,
   const end = run.states[run.states.length - 1]!;
   const sandboxStart = config.sandbox?.start ? config.sandbox.start(end) : end;
   const moves = (state: S, history: A[]) =>
-    config.sandbox ? config.sandbox.rows(state, "en", history).flatMap((r) => r.buttons.filter((b) => !b.disabled).map((b) => b.action)) : [];
+    config.sandbox?.rows ? config.sandbox.rows(state, "en", history).flatMap((r) => r.buttons.filter((b) => !b.disabled).map((b) => b.action)) : [];
+  const typed = config.sandbox?.typed;
+  const typedFree = typed ? typed.freeStart(end) : null;
 
   const changesFor = (step: number): Change[] => {
     if (step >= sandboxStep && config.sandbox) return [];
@@ -158,7 +180,18 @@ export function makeSimScene<S, A, E>(config: SceneConfig<S, A, E>): SimScene<S,
     const cursor = usePacedPlayback(count, paused, `${step}-${replayKey}`, (i) => sim.hold?.(run.events[s0 + i] ?? []) ?? 1000);
 
     const [moves, setMoves] = useState<A[]>([]);
-    const sandRun = useMemo(() => (sandbox ? simulateWith(sim, moves, sandboxStart) : null), [sandbox, moves]);
+    const sandRun = useMemo(() => (sandbox && !typed ? simulateWith(sim, moves, sandboxStart) : null), [sandbox, moves]);
+    // Typing: a terminal on the reader's desk; the scene draws the desk's projection.
+    const box = useTypedSandbox({
+      slug: config.slug,
+      active: Boolean(typed) && sandbox,
+      scenarios: typed?.scenarios ?? [],
+      freeStart: typedFree,
+      shell: typed?.shell ?? { run: () => ({ actions: [], output: [], moves: 0 }), prompt: () => "$" },
+      replay: (start, actions: unknown[]) => typed!.replay(start, actions),
+      final: (r) => r.states[r.states.length - 1],
+      context: (start, actions, r) => typed!.context(start, actions, r),
+    });
     const { game, setMissionStars } = useGame();
     const best = game.missions[config.slug] ?? {};
     const missions = config.sandbox?.missions ?? [];
@@ -172,7 +205,14 @@ export function makeSimScene<S, A, E>(config: SceneConfig<S, A, E>): SimScene<S,
     let last: E[];
     let shown: E[];
     let played: A[];
-    if (sandRun) {
+    if (typed && box.run) {
+      const r = box.run;
+      state = typed.project(r.states[r.states.length - 1]);
+      prev = typed.project(r.states[r.states.length - 2] ?? box.start);
+      last = r.events[r.events.length - 1] ?? [];
+      shown = r.events.flat();
+      played = new Array(r.events.length) as A[];
+    } else if (sandRun) {
       state = sandRun.states[sandRun.states.length - 1]!;
       prev = sandRun.states[sandRun.states.length - 2] ?? sandboxStart;
       last = sandRun.events[sandRun.events.length - 1] ?? [];
@@ -201,7 +241,7 @@ export function makeSimScene<S, A, E>(config: SceneConfig<S, A, E>): SimScene<S,
       <div className="events" aria-live="polite">
         <h3>{t(sandbox ? text.latest : text.thisStep)}</h3>
         {lines.length === 0 ? (
-          <p>{t(sandbox ? text.nothing : text.waiting)}</p>
+          <p>{t(sandbox ? (typed ? text.nothingTyped : text.nothing) : text.waiting)}</p>
         ) : (
           <ol>
             {(sandbox ? [...lines].reverse() : lines).map((line, i) => (
@@ -216,7 +256,13 @@ export function makeSimScene<S, A, E>(config: SceneConfig<S, A, E>): SimScene<S,
     );
 
     const footer =
-      sandbox && config.sandbox ? (
+      sandbox && typed ? (
+        <div className="sandbox">
+          {box.panel}
+          {box.terminal}
+          {eventList}
+        </div>
+      ) : sandbox && config.sandbox?.rows ? (
         <div className="sandbox">
           {missions.length > 0 && (
             <MissionPanel
@@ -304,6 +350,7 @@ const text = {
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
   nothing: l("Bir düğmeye bas, sonucu burada gör.", "Press a button and see the result here."),
+  nothingTyped: l("Bir komut yaz; GitHub'da ne olduğunu burada sade bir dille gör.", "Type a command; see what happened on GitHub here, in plain words."),
   undo: l("Geri al", "Undo"),
   reset: l("Sıfırla", "Reset"),
 };

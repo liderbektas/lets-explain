@@ -4,9 +4,9 @@ import { PREP, TEST, ciWorkflow, step } from "../../engine/presets";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
 import { PrPanel, YamlPanel } from "../../iso/panels";
 import { RunStage } from "../../iso/RunStage";
-import { ciSim, focusRun, runMetrics, type CiInfo } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun, runMetrics, type CiInfo } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "path-filters";
 
@@ -43,7 +43,6 @@ export const REQUIRED = "CI / test";
 const set = (w: Workflow): CiAction => ({ type: "setWorkflow", workflow: w });
 const pushMain = (paths: string[]): CiAction => ({ type: "push", paths, message: paths.every((p) => p.endsWith(".md")) ? "docs: fix a typo" : `update ${paths.join(", ")}` });
 export const pushDocs = (path: string): CiAction => ({ type: "push", branch: "docs", paths: [path], message: `docs: ${path}` });
-export const pushSrc: CiAction = { type: "push", branch: "docs", paths: ["src/cart.ts"], message: "fix the cart total" };
 export const merge: CiAction = { type: "merge", pr: 1 };
 
 export const START: World = freshWorld();
@@ -60,41 +59,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-/** Is the PR workflow using a path filter / the changes job right now? */
-export const hasPaths = (w: World) => Boolean(w.workflows[0]?.on.pull_request?.paths);
-export const hasSkip = (w: World) => Boolean(w.workflows[0]?.jobs.some((j) => j.id === "changes"));
-
-/** The try-it step: main is protected, the PR workflow has a path filter, and a docs-only PR is open. */
-export function sandboxStart(): World {
-  let w = freshWorld({ protection: [REQUIRED], workflows: [prWorkflow(true, false)] });
-  for (const a of [pushDocs("docs/guide.md"), { type: "openPr", branch: "docs" } as CiAction]) w = ciSim.apply(w, a).state;
-  return w;
-}
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const paths = hasPaths(w);
-  const skip = hasSkip(w);
-  const merged = w.prs[0]?.state === "merged";
-  return [
-    {
-      label: "Workflow",
-      buttons: [
-        { label: paths ? (tr ? "paths filtresini kaldır" : "remove the paths filter") : "paths: [src/**]", action: set(prWorkflow(!paths, skip)), tone: "producer" },
-        { label: skip ? (tr ? "changes job'ını kaldır" : "remove the changes job") : tr ? "changes job + if ekle" : "add changes job + if", action: set(prWorkflow(paths, !skip)), tone: "producer" },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: "git push (docs/faq.md)", action: pushDocs("docs/faq.md"), tone: "go", disabled: merged },
-        { label: "git push (src/cart.ts)", action: pushSrc, tone: "go", disabled: merged },
-      ],
-    },
-    { label: "PR", buttons: [{ label: tr ? "Merge PR #1" : "Merge PR #1", action: merge, tone: "ok", disabled: merged }] },
-  ];
-}
 
 function View({ w, info }: { w: World; info: CiInfo }) {
   const tr = info.lang === "tr";
@@ -140,5 +104,6 @@ export const scene = makeSimScene({
           { label: t(l("Toplam dakika", "Minutes billed")), value: w.runs.reduce((m, r) => m + r.minutes, 0) },
         ]
       : [...runMetrics(w, t, latestRun(w)).slice(0, 2), { label: t(l("Run sayısı", "Runs")), value: w.runs.length }, { label: t(l("Toplam dakika", "Minutes billed")), value: w.runs.reduce((m, r) => m + r.minutes, 0) }],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the story's end, checked out on main.
+  sandbox: { typed: ciTyped(scenarios) },
 });

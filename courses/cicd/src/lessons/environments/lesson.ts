@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { DEPLOY, MANUAL, scene } from "./Scene";
 
 export const environments: Lesson = {
@@ -15,7 +15,7 @@ export const environments: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("dev → staging → production akışını ve `environment:` anahtarını tanımak", "Know the dev → staging → production flow and the `environment:` key"), step: 0 },
     { text: l("Production'a onay şartı koyup run'ı orada bekletmek", "Put an approval rule on production and make the run wait there"), step: 1 },
@@ -217,13 +217,16 @@ export const environments: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Deploy workflow'u yerinde, üç ortam da ilk sürümü (`3f2a1c9`) çalıştırıyor ve production'da onay şartı **yok**. Push'layabilir, onay şartını açıp kapatabilir, bekleyen run'ı onaylayabilir ya da bir önceki sürümü elle staging'e koyabilirsin.",
-          "The deploy workflow is in place, all three environments run the first version (`3f2a1c9`) and production has **no** approval rule. You can push, turn the rule on and off, approve a waiting run, or put the previous version on staging by hand.",
+          "Aşağıda gerçek işten **4 senaryo** var: production'a bir kapı kurmak, bekleyen bir deploy'u onaylamak, token'ları ortamlara taşımak ve eski bir sürümü staging'de denemek. Komutları terminale **kendin yaz**: `git push`, `gh run list`, `gh secret set --env`, `gh workflow run`.",
+          "Below are **4 scenarios** from real work: putting a gate on production, approving a waiting deployment, moving tokens into environments, and trying an old version on staging. **Type the commands yourself**: `git push`, `gh run list`, `gh secret set --env`, `gh workflow run`.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Ortam kuralları ve onaylar çoğu zaman tarayıcıdan yapılır; terminalde aynısını GitHub'ın API'si yapar: `gh api repos/{owner}/{repo}/environments/production`, `…/actions/runs/ID/pending_deployments`. Az komutla bitirirsen 3 yıldız.",
+          "Environment rules and approvals are usually done in the browser; in the terminal GitHub's API does the same: `gh api repos/{owner}/{repo}/environments/production`, `…/actions/runs/ID/pending_deployments`. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

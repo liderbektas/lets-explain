@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { ONE, scene, split } from "./Scene";
 
 export const pipelineAnatomy: Lesson = {
@@ -15,7 +15,7 @@ export const pipelineAnatomy: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Trigger, workflow ve run arasındaki farkı bilmek", "Tell a trigger, a workflow and a run apart"), step: 1 },
     { text: l("Job ve step'in ne olduğunu bilmek", "Know what a job and a step are"), step: 2 },
@@ -173,13 +173,16 @@ export const pipelineAnatomy: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Workflow'da üç job var ve `build` şimdilik hiçbir şeyi beklemiyor. `build`'in `needs` listesine `lint` ya da `test` ekleyip çıkarabilir, sağlam ya da hatalı commit'ler push'layabilirsin.",
-          "The workflow has three jobs, and `build` waits for nothing yet. You can add `lint` or `test` to `build`'s `needs` list or take them out, and push good or broken commits.",
+          "Sıra sende. Aşağıda mağaza projesi ve gerçek işten **4 senaryo** var: üç dakikalık tek bir job, testler kırmızıyken boşuna çalışan bir build, hangisinin kırıldığı belli olmayan üç job. Workflow'u `nano .github/workflows/ci.yml` ile **kendin düzenle**, `git push` ile gönder; altta job'ların zaman çizelgesi belirir.",
+          "Your turn. Below is the shop project and **4 scenarios** from real work: one three-minute job, a build that runs for nothing while the tests are red, three jobs and no idea which one broke. **Edit the workflow yourself** with `nano .github/workflows/ci.yml` and send it with `git push`; the jobs' timeline appears below.",
         ),
-        l("Sahnenin altında **2 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **2 missions**. Few moves earn 3 stars."),
+        l(
+          "`gh run view` hangi job'ın kırıldığını, `--log-failed` nedenini gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`gh run view` shows which job broke, `--log-failed` why. Hints open one at a time; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

@@ -1,11 +1,11 @@
 import { l } from "@lets-explain/core/i18n";
-import { freshWorld, headOf, latestRun, type CiAction, type Run, type Workflow, type World } from "../../engine/ci";
+import { freshWorld, latestRun, type CiAction, type Run, type Workflow, type World } from "../../engine/ci";
 import { ciWorkflow } from "../../engine/presets";
 import { RunStage } from "../../iso/RunStage";
 import { LogPanel } from "../../iso/panels";
-import { ciSim, focusRun } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "reading-failures";
 
@@ -34,29 +34,6 @@ export function errorLine(r?: Run): string | null {
   return s?.log.find((x) => /Error|FAIL/.test(x) && !x.startsWith(" FAIL")) ?? null;
 }
 
-/** The try-it step: a red run with a real bug, and a flaky test hiding behind it. */
-export const SANDBOX: World = ciSim.apply(freshWorld({ workflows: [CI], bugs: ["flaky"] }), { type: "push", add: ["test"], message: "cart: add VAT" }).state;
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const bugs = headOf(w).bugs;
-  const last = latestRun(w);
-  return [
-    {
-      label: tr ? "Run" : "Run",
-      buttons: [{ label: tr ? "Re-run" : "Re-run", action: { type: "rerun" }, tone: "go", disabled: !last || last.status === "success" }],
-    },
-    {
-      label: tr ? "Kod" : "Code",
-      buttons: [
-        { label: tr ? "KDV testini düzelt + push" : "fix the VAT bug + push", action: { type: "push", fix: ["test"], message: "fix: VAT rounding" }, tone: "ok", disabled: !bugs.includes("test") },
-        { label: tr ? "timeout'lu testi düzelt + push" : "fix the timing test + push", action: { type: "push", fix: ["flaky"], message: "test: wait for the order" }, tone: "ok", disabled: !bugs.includes("flaky") },
-        { label: tr ? "git push (değişiklik yok)" : "git push (no change)", action: { type: "push", paths: ["README.md"], message: "docs: typo" }, tone: "producer" },
-      ],
-    },
-  ];
-}
-
 export const scene = makeSimScene({
   slug: SLUG,
   sim: ciSim,
@@ -80,5 +57,6 @@ export const scene = makeSimScene({
       { label: t(l("Commit", "Commit")), value: r?.sha ?? "—" },
     ];
   },
-  sandbox: { start: () => SANDBOX, rows, missions },
+  // Free play: the story's end, checked out on main.
+  sandbox: { typed: ciTyped(scenarios) },
 });

@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { workflowYaml } from "../../engine/yaml";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene, wf } from "./Scene";
 
 const SETUP_NODE_CACHE = `      - uses: actions/setup-node@v4
@@ -28,7 +28,7 @@ export const caching: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Cache'in miss, kayıt ve hit döngüsünü görmek", "See the cache's miss, save and hit cycle"), step: 2 },
     { text: l("Anahtarı lockfile'ın hash'inden üretmek", "Build the key from the lockfile's hash"), step: 3 },
@@ -200,13 +200,16 @@ export const caching: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Workflow'da henüz cache yok ve cache boş. Cache ayarını değiştirebilir, kodu değiştirip ya da yeni bir bağımlılık ekleyip push'layabilirsin. Soldaki kartta hangi anahtarların saklandığını görürsün.",
-          "The workflow has no cache yet and the cache is empty. You can change the cache setup, and push a code change or a new dependency. The card on the left shows which keys are stored.",
+          "Aşağıda gerçek işten **4 senaryo** var: yavaş bir `npm ci`, yeni bir bağımlılık, bayat bir `node_modules` ve hiç tutmayan bir cache. Workflow'u `nano .github/workflows/ci.yml` ile düzenle, `git commit` ve `git push` ile gönder; aynı commit'i `gh run rerun <numara>` ile yeniden çalıştırabilirsin.",
+          "Below are **4 scenarios** from real work: a slow `npm ci`, a new dependency, a stale `node_modules`, and a cache that never hits. Edit the workflow with `nano .github/workflows/ci.yml` and send it with `git commit` and `git push`; `gh run rerun <number>` runs the same commit again.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Run'ın logunda cache adımı ne bulduğunu söyler (`Cache restored` ya da `Cache not found`), `npm ci` satırı da kaç saniye sürdüğünü. Soldaki kart hangi anahtarların saklandığını gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "A run's log says what the cache step found (`Cache restored` or `Cache not found`), and the `npm ci` line how long it took. The card on the left shows which keys are stored. Finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],

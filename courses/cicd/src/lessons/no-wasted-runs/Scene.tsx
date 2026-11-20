@@ -3,9 +3,9 @@ import { freshWorld, latestRun, type CiAction, type Workflow, type World } from 
 import { PREP, TEST, ciWorkflow, step } from "../../engine/presets";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
 import { runRows, Timeline, YamlPanel } from "../../iso/panels";
-import { ciSim, focusRun, nothingStarted, runMetrics, startedNothing, YamlAndRun, type CiInfo } from "../shared/ci";
-import { makeSimScene, resolveSteps, type SandboxRow, type Spec } from "../shared/SimScene";
-import { missions } from "./missions";
+import { ciSim, ciTyped, focusRun, nothingStarted, runMetrics, startedNothing, YamlAndRun, type CiInfo } from "../shared/ci";
+import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "no-wasted-runs";
 
@@ -30,7 +30,6 @@ export const matrixWf = (failFast: boolean): Workflow => ({
 const set = (w: Workflow): CiAction => ({ type: "setWorkflow", workflow: w });
 export const pushCode: CiAction = { type: "push", paths: ["src/cart.ts"], message: "tweak the cart" };
 export const pushTypoSkip: CiAction = { type: "push", paths: ["README.md"], message: "docs: fix a typo [skip ci]" };
-export const pushTypo: CiAction = { type: "push", paths: ["README.md"], message: "docs: fix a typo" };
 const five = (): CiAction[] => [1, 2, 3, 4, 5].map((i) => ({ type: "push", paths: ["src/cart.ts"], message: `wip ${i}` }));
 
 export const START: World = freshWorld();
@@ -49,34 +48,6 @@ const specs: Spec<World, CiAction>[][] = [
 ];
 
 export const steps = resolveSteps(ciSim, START, specs);
-
-export const hasGroup = (w: World) => Boolean(w.workflows[0]?.concurrency);
-export const hasTimeout = (w: World) => w.workflows[0]?.jobs.find((j) => j.id === "e2e")?.timeout !== undefined;
-
-export const sandboxStart = (): World => ciSim.apply(freshWorld(), set(e2eWf({ concurrency: false, timeout: false }))).state;
-
-function rows(w: World, lang: "tr" | "en"): SandboxRow<CiAction>[] {
-  const tr = lang === "tr";
-  const g = hasGroup(w);
-  const t = hasTimeout(w);
-  return [
-    {
-      label: "Workflow",
-      buttons: [
-        { label: g ? (tr ? "concurrency'yi kaldır" : "remove concurrency") : "concurrency: cancel-in-progress", action: set(e2eWf({ concurrency: !g, timeout: t })), tone: "producer" },
-        { label: t ? (tr ? "e2e: timeout'u kaldır" : "e2e: remove timeout") : "e2e: timeout-minutes: 15", action: set(e2eWf({ concurrency: g, timeout: !t })), tone: "producer" },
-      ],
-    },
-    {
-      label: "Git",
-      buttons: [
-        { label: "push src/cart.ts", action: pushCode, tone: "go" },
-        { label: 'push README "[skip ci]"', action: pushTypoSkip, tone: "go" },
-        { label: "push README", action: pushTypo, tone: "go" },
-      ],
-    },
-  ];
-}
 
 function View({ w, info }: { w: World; info: CiInfo }) {
   const tr = info.lang === "tr";
@@ -120,5 +91,6 @@ export const scene = makeSimScene({
       { label: t(l("Dakika", "Minutes")), value: minutes, tone: minutes > 60 ? ("danger" as const) : ("plain" as const) },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play: the story's end, checked out on main.
+  sandbox: { typed: ciTyped(scenarios) },
 });

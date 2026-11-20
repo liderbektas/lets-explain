@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const readingFailures: Lesson = {
@@ -14,7 +14,7 @@ export const readingFailures: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kırık bir run'da kırılan adımı ve hata satırını bulmak", "Find the failing step and the error line in a broken run"), step: 1 },
     { text: l("Hatayı kendi makinende tekrar üretmek", "Reproduce the error on your own machine"), step: 2 },
@@ -224,13 +224,16 @@ export const readingFailures: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Run #1 kırmızı. Logda gerçek bir hata var, ama arkasında henüz görünmeyen flaky bir test de saklanıyor. Re-run'a basabilir, hataları düzeltip push'layabilir ya da değişiklik yapmadan push'layabilirsin.",
-          "Run #1 is red. The log shows a real bug, but a flaky test you cannot see yet hides behind it. You can press re-run, push fixes, or push without changing anything.",
+          "Aşağıda gerçek işten **5 senaryo** var: her birinde `main`'de kırmızı bir run seni bekliyor. Logu `gh run view --log-failed` ile oku, kodu ya da testi `nano` ile düzelt, `git commit` ve `git push` ile gönder; gerektiğinde `gh run rerun` ile aynı commit'i yeniden çalıştır.",
+          "Below are **5 scenarios** from real work: in each, a red run on `main` is waiting for you. Read the log with `gh run view --log-failed`, fix the code or the test with `nano`, send it with `git commit` and `git push`, and re-run the same commit with `gh run rerun` when that is the right call.",
         ),
-        l("Sahnenin altında **3 görev** var. Az hamleyle bitirirsen 3 yıldız alırsın.", "Under the scene there are **3 missions**. Few moves earn 3 stars."),
+        l(
+          "Önce teşhis: aynı commit'te yeniden çalıştırınca geçen bir test flaky'dir, her seferinde aynı yerde kırılan bir test gerçek bir hatadır. Okuma komutları sayılmaz; az komutla bitirirsen 3 yıldız alırsın.",
+          "Diagnose first: a test that passes when the same commit runs again is flaky; one that fails in the same place every time is a real bug. Reading commands don't count; finish in few commands for 3 stars.",
+        ),
       ],
     },
   ],
