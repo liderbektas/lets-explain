@@ -1,8 +1,10 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, resolve, short, simulate, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { DATES, HISTORIES, passes, scenarios, type BugTest } from "./scenarios";
+
+export { passes };
 
 export const SLUG = "bisect";
 
@@ -49,66 +51,14 @@ export const steps: GitAction[][] = [
   [],
 ];
 
-/**
- * The try-it history is different, so the answer is not known in advance: the date format
- * broke in one of these commits.
- */
-export const SANDBOX = build([
-  ...save("format.js", "tarih: GG.AA.YYYY", "Tarih biçimi"),
-  { type: "tag", name: "v1.0" },
-  ...save("api.js", "istek", "API"),
-  ...save("format.js", "tarih: AA/GG/YYYY", "format düzeni"),
-  ...save("README.md", "Takvim", "README"),
-  ...save("api.js", "istek v2", "API v2"),
-  ...save("logo.svg", "logo", "Logo"),
-  ...save("README.md", "Takvim v2", "README v2"),
-  ...save("api.js", "istek v3", "Önbellek"),
-]);
-
-export const SANDBOX_CULPRIT = resolve(SANDBOX, "HEAD~5")!;
-export const SANDBOX_TEST = { path: "format.js", good: "GG.AA" };
-
-/** Does the checked-out code pass the test? */
-export const passes = (repo: Repo, test: { path: string; good: string }) => (repo.work[test.path] ?? "").includes(test.good);
-
-/** The commit bisect found during these moves, if it found one. */
-export function foundIn(history: GitAction[]): string | null {
-  const r = simulate(history, SANDBOX);
-  let found: string | null = null;
-  for (const e of r.events.flat()) if (e.type === "bisectFound") found = e.id;
-  return found;
+/** The test that goes with a history: the lesson's, or the scenario whose history it is (matched by the first commit). */
+function testFor(repo: Repo): BugTest {
+  const root = (r: Repo) => Object.values(r.commits).find((c) => c.parents.length === 0)?.id;
+  const mine = root(repo);
+  return HISTORIES.find((h) => root(h.repo) === mine)?.test ?? LESSON_TEST;
 }
 
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const b = repo.bisect;
-  const found = foundIn(history);
-  const reverted = history.some((a) => a.type === "revert");
-  return [
-    {
-      label: "bisect",
-      buttons: [
-        { label: "start", action: { type: "bisectStart", bad: "HEAD", good: "v1.0" }, tone: "go", disabled: Boolean(b) || reverted },
-        { label: tr ? "good (geçti)" : "good (passes)", action: { type: "bisectMark", verdict: "good" }, tone: "ok", disabled: !b || Boolean(b.found) },
-        { label: tr ? "bad (kaldı)" : "bad (fails)", action: { type: "bisectMark", verdict: "bad" }, tone: "danger", disabled: !b || Boolean(b.found) },
-        { label: "reset", action: { type: "bisectReset" }, disabled: !b },
-      ],
-    },
-    {
-      label: tr ? "Düzelt" : "Fix",
-      buttons: [
-        {
-          label: found ? `revert ${short(found)}` : "revert",
-          action: { type: "revert", target: found ?? "HEAD" },
-          tone: "producer",
-          disabled: !found || Boolean(b) || reverted || currentBranch(repo) !== "main",
-        },
-      ],
-    },
-  ];
-}
-
-const metrics = (repo: Repo, t: (x: { tr: string; en: string }) => string, test: { path: string; good: string }) => {
+const metrics = (repo: Repo, t: (x: { tr: string; en: string }) => string, test: BugTest) => {
   const b = repo.bisect;
   const ok = passes(repo, test);
   return [
@@ -136,6 +86,7 @@ export const scene = makeGitScene({
   steps,
   label: l("git bisect: hatayı getiren commit'i ikiye bölerek bul", "git bisect: find the commit that broke things by halving"),
   view: (repo, info) => <GraphStage repo={repo} highlight={lit(repo, info.fresh)} />,
-  metrics: (repo, t, info) => metrics(repo, t, info.sandbox ? SANDBOX_TEST : LESSON_TEST),
-  sandbox: { start: () => SANDBOX, rows, missions },
+  metrics: (repo, t) => metrics(repo, t, testFor(repo)),
+  // Free play uses the broken-dates history; each scenario brings its own.
+  sandbox: { start: () => DATES, scenarios },
 });

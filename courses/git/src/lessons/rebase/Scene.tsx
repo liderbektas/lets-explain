@@ -1,10 +1,10 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, ancestors, createRepo, currentBranch, headId, isAncestor, reachable, simulate, type GitAction, type Repo } from "../../engine/git";
+import { ADA, ancestors, createRepo, reachable, simulate, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
 import { FilePanel } from "../conflicts/FilePanel";
 import { panelLabels } from "../conflicts/Scene";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { BLOG, scenarios } from "./scenarios";
 
 export const SLUG = "rebase";
 export const STYLE = "style.css";
@@ -53,64 +53,6 @@ export const steps: GitAction[][] = [
 ];
 
 /**
- * The try-it step: the same blog, plus a `theme` branch that picked blue while main went
- * red, so one rebase is smooth and the other stops on a conflict.
- */
-export const SANDBOX: Repo = last([
-  ...blog.slice(0, 3),
-  sw("theme", true),
-  write(STYLE, "renk: mavi"),
-  add(STYLE),
-  commit("Mavi tema"),
-  sw("main"),
-  ...blog.slice(3, 10),
-  sw("main"),
-  write("about.md", "Biz kimiz"),
-  write(STYLE, "renk: kırmızı"),
-  add("about.md", STYLE),
-  commit("Hakkında ve kırmızı tema"),
-  sw("feature"),
-]);
-
-function rows(repo: Repo, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const here = currentBranch(repo);
-  const op = repo.op;
-  const rebasing = op?.kind === "rebase";
-  const head = headId(repo);
-  const mainTip = repo.branches.main!;
-  const conflicted = op?.conflicts ?? [];
-  const marked = conflicted.includes(STYLE) && (repo.work[STYLE] ?? "").includes("<<<<<<< ");
-  const merged = (b: string) => Boolean(head && repo.branches[b] && isAncestor(repo, repo.branches[b]!, head));
-  return [
-    {
-      label: "switch",
-      buttons: ["main", "feature", "theme"].map((b) => ({ label: b, action: sw(b), disabled: Boolean(op) || here === b })),
-    },
-    {
-      label: "rebase",
-      buttons: [
-        { label: "rebase main", action: { type: "rebase", onto: "main" }, tone: "producer", disabled: Boolean(op) || here === "main" || !head || isAncestor(repo, mainTip, head) },
-        { label: "--continue", action: { type: "continue" }, tone: "ok", disabled: !rebasing || conflicted.length > 0 },
-        { label: "--abort", action: { type: "abort" }, tone: "danger", disabled: !rebasing },
-      ],
-    },
-    {
-      label: "merge",
-      buttons: ["feature", "theme"].map((b) => ({ label: `merge ${b}`, action: { type: "merge", target: b }, disabled: Boolean(op) || here !== "main" || merged(b) })),
-    },
-    {
-      label: STYLE,
-      buttons: [
-        { label: tr ? "main'inki" : "main's", action: { type: "resolve", path: STYLE, take: "ours" }, disabled: !marked },
-        { label: tr ? "theme'inki" : "theme's", action: { type: "resolve", path: STYLE, take: "theirs" }, disabled: !marked },
-        { label: "add", action: add(STYLE), disabled: !conflicted.includes(STYLE) || marked },
-      ],
-    },
-  ];
-}
-
-/**
  * Only the ghosts of the latest rebase: older ones would crowd the graph. The latest
  * "rebase (start)" line in the reflog remembers where the branch was before.
  */
@@ -151,5 +93,6 @@ export const scene = makeGitScene({
       { label: t(l("Rebase sürüyor", "Rebase running")), value: repo.op?.kind === "rebase" ? t(l("evet", "yes")) : t(l("hayır", "no")), tone: repo.op ? "danger" : "plain" },
     ];
   },
-  sandbox: { start: () => SANDBOX, rows: (repo, lang) => rows(repo, lang), missions },
+  // Free play starts from the blog with feature and theme; each scenario brings its own state.
+  sandbox: { start: () => BLOG, scenarios },
 });

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const whyGit: Lesson = {
@@ -14,7 +14,7 @@ export const whyGit: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Dosya kopyalamanın neden yetmediğini görmek", "See why copying files is not enough"), step: 0 },
     { text: l("Bir commit'in kaydedilmiş bir sürüm olduğunu anlamak", "Understand that a commit is a saved version"), step: 2 },
@@ -235,15 +235,15 @@ export const whyGit: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Raporun ilk taslağı kaydedilmiş durumda. Dosyaları düzenleyebilir, staging'e koyup (`add`) yeni sürüm kaydedebilir (`commit`), bir önceki sürüme bakıp `main`'e dönebilirsin.",
-          "The report's first draft is saved. You can edit files, stage them (`add`), save a new version (`commit`), look at the previous version and come back to `main`.",
+          "Sıra sende. Aşağıda bir dönem raporu ve gerçek hayattan **4 senaryo** var: her birinde rapor bir durumda, bir şeyin yapılması gerekiyor. Komutları terminale **kendin yaz**; sahne her komutta ne olduğunu gösterir.",
+          "Your turn. Below is a term report and **4 scenarios** from real life: in each, the report is in some state and something needs doing. **Type the commands yourself** in the terminal; the scene shows what each one does.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Her düğme bir hamle; az hamleyle bitirirsen 3 yıldız alırsın.",
-          "Under the scene there are **3 missions**. Every button is a move; finish in few moves for 3 stars.",
+          "Takılırsan `git status` yaz: Git nerede olduğunu ve ne yapabileceğini söyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `git status`: Git tells you where you are and what you can do. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

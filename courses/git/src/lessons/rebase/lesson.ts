@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const rebase: Lesson = {
@@ -14,7 +14,7 @@ export const rebase: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Rebase'in commit'leri yeniden yazdığını ve yeni kimlik verdiğini görmek", "See that rebase rewrites commits and gives them new ids"), step: 1 },
     { text: l("Rebase sonrası fast-forward ile düz bir geçmiş elde etmek", "Get a straight history with a fast-forward after a rebase"), step: 2 },
@@ -289,15 +289,15 @@ export const rebase: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Blog projesi yine iki koldan ilerlemiş: `feature`'da yazı listesi ve arama var, `theme`'de mavi renk. main ise Hakkında sayfası ve kırmızı renkle ilerledi. Şu an feature'dasın.",
-          "The blog project has again moved on two fronts: `feature` has the post list and search, `theme` has the blue colour. main moved on with the About page and red. You are on feature.",
+          "Sıra sende. Blog projesi yine iki koldan ilerlemiş: `feature`'da yazı listesi ve arama, `theme`'de mavi renk; main ise Hakkında sayfası ve kırmızıyla ilerledi. Aşağıda gerçek işten **5 senaryo** var. Komutları terminale **kendin yaz**.",
+          "Your turn. The blog project has again moved on two fronts: `feature` has the post list and search, `theme` has blue, and main moved on with the About page and red. Below are **5 scenarios** from real work. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **4 görev** var: aynı işi rebase ile ve merge ile yap, sonra conflict'li bir rebase'i bitir ya da ondan vazgeç.",
-          "Under the scene there are **4 missions**: do the same job with a rebase and with a merge, then finish a rebase that hits a conflict, or back out of it.",
+          "Grafikteki soluk kutular rebase'in geride bıraktığı eski commit'ler. Rebase durursa `git status` ne yapacağını söyler. Az komutla bitirirsen 3 yıldız alırsın.",
+          "The faded boxes in the graph are the old commits a rebase leaves behind. If a rebase stops, `git status` tells you what to do. Finish in few commands for 3 stars.",
         ),
       ],
     },

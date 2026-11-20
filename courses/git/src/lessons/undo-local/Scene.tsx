@@ -2,9 +2,9 @@ import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, firstParents, headId, reachable, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { AreasStage, type AreaFlow } from "../../iso/AreasStage";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
+import { makeGitScene } from "../shared/GitScene";
 import { areasLabels } from "./labels";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "undo-local";
 
@@ -48,8 +48,8 @@ function flowOf(last: { type: string }[]): AreaFlow {
 }
 
 /**
- * The try-it step: the last commit has a typo in its message, a wrong change to app.js is
- * already staged, and a README change you meant to commit sits in the folder.
+ * Free play in the try-it step: the last commit has a typo in its message, a wrong change to
+ * app.js is already staged, and a README change you meant to commit sits in the folder.
  */
 export const sandboxStart = (): Repo =>
   simulate(
@@ -63,38 +63,6 @@ export const sandboxStart = (): Repo =>
     ],
     START,
   ).states[6]!;
-
-const FILES = ["README.md", "app.js"];
-
-const edits = (history: GitAction[], path: string) => history.filter((a) => a.type === "write" && a.path === path).length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const head = repo.commits[headId(repo)!]!;
-  const out: SandboxRow[] = FILES.map((path) => {
-    const staged = st.staged.some((c) => c.path === path);
-    const changed = st.unstaged.some((c) => c.path === path);
-    return {
-      label: path,
-      buttons: [
-        { label: tr ? "Düzenle" : "Edit", action: write(path, `${path === "app.js" ? "v" : "Merhaba v"}${edits(history, path) + 3}`), tone: "producer" },
-        { label: "add", action: add(path), disabled: !changed },
-        { label: "restore", action: { type: "restore", path }, disabled: !changed },
-        { label: "restore --staged", action: { type: "unstage", path }, disabled: !staged },
-      ],
-    };
-  });
-  out.push({
-    label: "commit",
-    buttons: [
-      { label: "commit", action: commit("Yeni commit"), tone: "ok", disabled: st.staged.length === 0 },
-      { label: `--amend -m "${FIXED}"`, action: { type: "commit", amend: true, message: FIXED }, tone: "go", disabled: head.message === FIXED && st.staged.length === 0 },
-      { label: "--amend --no-edit", action: { type: "commit", amend: true }, tone: "go", disabled: st.staged.length === 0 },
-    ],
-  });
-  return out;
-}
 
 export const scene = makeGitScene({
   slug: SLUG,
@@ -123,5 +91,6 @@ export const scene = makeGitScene({
       { label: t(l("Commit", "Commits")), value: firstParents(repo, headId(repo)).length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from three mistakes at once; each scenario brings its own state.
+  sandbox: { start: sandboxStart, scenarios },
 });

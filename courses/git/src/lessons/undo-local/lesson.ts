@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const undoLocal: Lesson = {
@@ -14,7 +14,7 @@ export const undoLocal: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Hatanın hangi alanda olduğunu bulmak", "Find which area the mistake is in"), step: 0 },
     { text: l("Klasördeki bir değişikliği atmak", "Throw away a change in the folder"), step: 2 },
@@ -297,15 +297,15 @@ export const undoLocal: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu repo'da üç sorun birden var: son commit'in mesajında yazım hatası, staging'de hatalı bir app.js değişikliği ve klasörde commit'e girmesi gereken bir README.md değişikliği.",
-          "This repo has three problems at once: a typo in the last commit's message, a wrong app.js change in staging, and a README.md change in the folder that belongs in the commit.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: her birinde bir hata yapılmış ve onu geri alman gerekiyor. Komutları terminale **kendin yaz**; sahne her komutta neyin nereye gittiğini gösterir.",
+          "Your turn. Below are **4 scenarios** from real work: in each one a mistake has been made and you need to undo it. **Type the commands yourself** in the terminal; the scene shows what moves where with each one.",
         ),
         l(
-          "Sahnenin altındaki **3 görevin** her biri doğru komutu seçmeni istiyor. Az hamleyle bitirirsen 3 yıldız alırsın.",
-          "Each of the **3 missions** under the scene asks you to pick the right command. Few moves earn 3 stars.",
+          "İlk iş hatanın hangi alanda olduğunu bulmak: `git status` yaz. Son commit'e bakmak için `git log --oneline`. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "First find which area the mistake is in: type `git status`. To look at the last commit, `git log --oneline`. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

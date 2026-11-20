@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const ignoreAndTags: Lesson = {
@@ -14,7 +14,7 @@ export const ignoreAndTags: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`.gitignore` kurallarının neyi dışarıda tuttuğunu görmek", "See what `.gitignore` rules keep out"), step: 1 },
     { text: l("Zaten takip edilen bir dosyanın neden yok sayılmadığını anlamak", "Understand why an already tracked file is not ignored"), step: 3 },
@@ -335,15 +335,15 @@ export const ignoreAndTags: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu klasör dersin başındaki gibi dağınık: `debug.log` commit'lenmiş, `app.log`, `node_modules/` ve `.env` ortada duruyor ve henüz `.gitignore` yok.",
-          "This folder is as messy as at the start of the lesson: `debug.log` is committed, while `app.log`, `node_modules/` and `.env` lie around, and there is no `.gitignore` yet.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: bir gizli anahtar, `node_modules`, yanlışlıkla commit'lenmiş bir log ve iki sürüm etiketi. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **5 scenarios** from real work: a secret key, `node_modules`, a log committed by mistake, and two release tags. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Repo panelindeki sarı etiketler tag'leri gösterir.",
-          "Under the scene there are **3 missions**. The yellow labels in the repo panel show tags.",
+          "`.gitignore`'u `echo \"kural\" > .gitignore` ile yazabilir, `>>` ile satır ekleyebilir ya da `nano .gitignore` ile açabilirsin. `git status` neyin yok sayıldığını, `git log --oneline` tag'leri gösterir. Repo panelindeki sarı etiketler de tag'ler.",
+          "You can write `.gitignore` with `echo \"rule\" > .gitignore`, add lines with `>>`, or open it with `nano .gitignore`. `git status` shows what is ignored, `git log --oneline` shows the tags. The yellow labels in the repo panel are tags too.",
         ),
       ],
     },

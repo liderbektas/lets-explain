@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const objects: Lesson = {
@@ -14,7 +14,7 @@ export const objects: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kimliğin içerikten hesaplandığını görmek", "See that an id is computed from the content"), step: 0 },
     { text: l("Blob, tree ve commit'in ne sakladığını bilmek", "Know what blobs, trees and commits store"), step: 2 },
@@ -261,15 +261,15 @@ export const objects: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "README.md'de \"Merhaba\" yazan tek bir commit var. Her dosyaya \"Merhaba\" ya da \"Selam\" yazıp `add .` ve `commit` ile kaydedebilirsin. Sahne son commit'in ve bir öncekinin nesnelerini gösterir.",
-          "There is one commit with README.md saying \"Merhaba\". You can write \"Merhaba\" or \"Selam\" into each file and save with `add .` and `commit`. The scene shows the objects of the last commit and the one before.",
+          "Sıra sende. Aşağıda küçük bir proje ve gerçek işten **4 senaryo** var. Dosyaları `echo \"metin\" > dosya` ya da `touch` ile yazıp `git add` ve `git commit` ile kaydedeceksin. Sahne son commit'in ve bir öncekinin nesnelerini gösterir.",
+          "Your turn. Below is a small project and **4 scenarios** from real work. You'll write files with `echo \"text\" > file` or `touch` and save them with `git add` and `git commit`. The scene shows the objects of the last commit and the one before.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. \"yeni\" ve \"paylaşılıyor\" etiketlerine dikkat et.",
-          "Under the scene there are **3 missions**. Watch the \"new\" and \"shared\" labels.",
+          "\"yeni\" ve \"paylaşılıyor\" etiketlerine dikkat et. Merak ettiğin bir kimliği `git cat-file -p <kimlik>` ile açabilirsin. Az komutla bitirirsen 3 yıldız alırsın.",
+          "Watch the \"new\" and \"shared\" labels. Open any id you're curious about with `git cat-file -p <id>`. Finish in few commands for 3 stars.",
         ),
       ],
     },

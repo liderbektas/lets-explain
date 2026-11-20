@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const remotes: Lesson = {
@@ -14,7 +14,7 @@ export const remotes: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("clone'un tam bir kopya oluşturduğunu bilmek", "Know that clone makes a full copy"), step: 0 },
     { text: l("`origin/main`'in uzak branch'in son bilinen yeri olduğunu anlamak", "Understand that `origin/main` is the remote branch's last known position"), step: 3 },
@@ -302,15 +302,15 @@ export const remotes: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu repo origin'den yeni clone'landı. Commit atabilir, fetch, pull ve push yapabilir, yeni bir branch açabilirsin. **Bora push etsin** düğmesi takım arkadaşının origin'e bir commit göndermesini sağlar.",
-          "This repo was just cloned from origin. You can commit, fetch, pull and push, and create a new branch. The **Bora pushes** button makes your teammate send a commit to origin.",
+          "Sıra sende. Solda senin repo'n, sağda GitHub'daki origin var. Aşağıda gerçek işten **5 senaryo** bekliyor: gönderilmemiş bir commit, Bora'nın push'u, reddedilen bir push, yeni bir branch. Komutları terminale **kendin yaz**; sahne her komutta iki tarafta ne olduğunu gösterir.",
+          "Your turn. Your repo is on the left, origin on GitHub on the right. Below are **5 scenarios** from real work: a commit that was never pushed, Bora's push, a rejected push, a new branch. **Type the commands yourself** in the terminal; the scene shows what each one does on both sides.",
         ),
         l(
-          "Sahnenin altında **4 görev** var. Her düğme bir hamle sayılır; az hamleyle bitirirsen 3 yıldız alırsın.",
-          "Under the scene there are **4 missions**. Every button is a move; finish in few moves for 3 stars.",
+          "Takılırsan `git status` yaz: önde ya da geride olduğunu söyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `git status`: it tells you whether you're ahead or behind. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

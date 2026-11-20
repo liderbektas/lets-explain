@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const refsAndHead: Lesson = {
@@ -14,7 +14,7 @@ export const refsAndHead: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Branch'in bir commit id'si tutan bir dosya olduğunu bilmek", "Know that a branch is a file holding a commit id"), step: 0 },
     { text: l("HEAD'in neyi gösterdiğini ve commit atınca neyin kaydığını görmek", "See what HEAD points at and what moves on a commit"), step: 2 },
@@ -299,15 +299,15 @@ export const refsAndHead: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu repo'da main üzerinde dört commit var. HEAD'i geri götürebilir, `app.js`'i düzenleyip commit atabilir, yeni bir branch açabilir ve main'e dönebilirsin.",
-          "This repo has four commits on main. You can move HEAD back, edit `app.js` and commit, open a new branch, and return to main.",
+          "Sıra sende. Aşağıda dört commit'lik bir mağaza projesi ve gerçek işten **4 senaryo** var: eski koda bakmak, detached HEAD'de kalmış bir denemeyi kurtarmak, kaybolan bir commit'i bulmak. Komutları terminale **kendin yaz**.",
+          "Your turn. Below is a four-commit shop project and **4 scenarios** from real work: looking at old code, saving an experiment stuck on a detached HEAD, finding a lost commit. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Üstteki sayaçlara bak: \"Branch'siz commit\" sıfırdan büyükse bir commit'i sahipsiz bıraktın demektir. Sahnenin altında **3 görev** var.",
-          "Watch the counters: if \"Commits on no branch\" is above zero, you have left a commit orphaned. Under the scene there are **3 missions**.",
+          "Üstteki sayaçlara bak: \"Branch'siz commit\" sıfırdan büyükse bir commit sahipsiz kalmış demektir. `git status` ve `git reflog` yol gösterir; az komutla bitirirsen 3 yıldız alırsın.",
+          "Watch the counters: if \"Commits on no branch\" is above zero, a commit has been orphaned. `git status` and `git reflog` show the way; finish in few commands for 3 stars.",
         ),
       ],
     },

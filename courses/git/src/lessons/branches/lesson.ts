@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const branches: Lesson = {
@@ -14,7 +14,7 @@ export const branches: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`git switch -c` ile branch açmak", "Open a branch with `git switch -c`"), step: 1 },
     { text: l("Commit'in sadece bulunduğun branch'i ilerlettiğini görmek", "See that a commit moves only the branch you are on"), step: 2 },
@@ -282,15 +282,15 @@ export const branches: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "main'de iki commit var ve `login` branch'i aynı yerde. Branch'ler arasında geçebilir, `menu` adında yeni bir branch açabilir, `app.js`'i düzenleyip commit atabilir ve branch silebilirsin.",
-          "main has two commits and the `login` branch sits in the same place. You can switch between branches, open a new `menu` branch, edit `app.js` and commit, and delete branches.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: yeni bir iş için branch açmak, yanlış branch'te başlanmış bir değişikliği taşımak, işe yaramayan ya da işi bitmiş branch'leri silmek, Git'in reddettiği bir geçişi çözmek. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **5 scenarios** from real work: opening a branch for new work, carrying a change started on the wrong branch, deleting branches that failed or are done, and getting past a switch Git refuses. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Alttaki şerit klasördeki commit edilmemiş değişiklikleri gösterir. Sahnenin altında **3 görev** var.",
-          "The strip at the bottom shows uncommitted changes in the folder. Under the scene there are **3 missions**.",
+          "Prompt hangi branch'te olduğunu gösterir; alttaki şerit klasördeki commit edilmemiş değişiklikleri. `git branch` ve `git status` yol gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "The prompt shows which branch you are on; the strip at the bottom shows uncommitted changes in the folder. `git branch` and `git status` show the way. Finish in few commands for 3 stars.",
         ),
       ],
     },

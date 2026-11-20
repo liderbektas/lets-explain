@@ -151,8 +151,11 @@ export type GitAction =
   | { type: "stashDrop" }
   | { type: "tag"; name: string; target?: string }
   | { type: "fetch" }
-  | { type: "pull"; rebase?: boolean }
-  | { type: "push"; branch?: string; force?: "force" | "lease"; setUpstream?: boolean }
+  /** `from`: a branch on origin to pull (`git pull origin main`); otherwise the upstream. */
+  | { type: "pull"; rebase?: boolean; from?: string }
+  | { type: "renameBranch"; from: string; to: string }
+  /** `explicit`: the branch was named (`git push origin x`), so no upstream is needed and none is set. */
+  | { type: "push"; branch?: string; force?: "force" | "lease"; setUpstream?: boolean; explicit?: boolean }
   | { type: "teammate"; branch: string; path: string; content: string | null; message: string }
   | { type: "bisectStart"; bad: string; good: string }
   | { type: "bisectMark"; verdict: "good" | "bad" }
@@ -174,6 +177,7 @@ export type GitEvent =
   | { type: "committed"; id: string; branch: string | null; message: string; amend: boolean; merge: boolean; files: number }
   | { type: "branchCreated"; name: string; at: string }
   | { type: "branchDeleted"; name: string; at: string }
+  | { type: "branchRenamed"; from: string; to: string }
   | { type: "switched"; from: string; to: string; detached: boolean }
   | { type: "fastForward"; branch: string; from: string; to: string }
   | { type: "upToDate" }
@@ -253,7 +257,22 @@ export function resolve(s: Repo, rev: string): string | null {
 }
 
 function base(s: Repo, name: string): string | null {
-  if (name === "HEAD") return headId(s);
+  if (name === "HEAD" || name === "@") return headId(s);
+  // HEAD@{n}: where HEAD was n moves ago, read from the reflog.
+  const at = /^(?:HEAD)?@\{(\d+)\}$/.exec(name);
+  if (at) {
+    const n = Number(at[1]);
+    if (n === 0) return headId(s);
+    return s.reflog[s.reflog.length - n]?.from ?? null;
+  }
+  // ORIG_HEAD: where HEAD was before the last reset, merge or rebase.
+  if (name === "ORIG_HEAD") {
+    for (let i = s.reflog.length - 1; i >= 0; i--) {
+      const e = s.reflog[i]!;
+      if (/^(reset|merge|pull|rebase \(start\)|rebase -i \(start\))/.test(e.message)) return e.from;
+    }
+    return null;
+  }
   if (s.branches[name]) return s.branches[name]!;
   if (s.tags[name]) return s.tags[name]!;
   if (s.tracking[name]) return s.tracking[name]!;
@@ -385,6 +404,8 @@ export function apply(prev: Repo, action: GitAction): StepResult {
   const events: GitEvent[] = [];
   const fail = (code: ErrorCode, message: string): StepResult => ({ state: prev, events: [{ type: "error", code, message }] });
 
+  // `git reset --hard` during a merge or pick throws the whole thing away, as in Git.
+  if (s.op && s.op.kind !== "rebase" && action.type === "reset" && action.mode === "hard") s.op = null;
   // During a merge, rebase or pick, only finishing or giving up is allowed (plus editing files).
   const allowedDuringOp: GitAction["type"][] = ["write", "remove", "add", "resolve", "abort", "continue", "commit", "restore"];
   if (s.op && !allowedDuringOp.includes(action.type)) {
@@ -629,7 +650,7 @@ export function apply(prev: Repo, action: GitAction): StepResult {
         else work[p] = now;
         if (!(p in baseFiles) && p in s.index) added.push(p);
       }
-      s.stash.unshift({ base: head, work, removed, added, message: action.message ?? `WIP on ${headName(s)}: ${short(head)} ${s.commits[head]!.message.split("\n")[0]}` });
+      s.stash.unshift({ base: head, work, removed, added, message: action.message ? `On ${headName(s)}: ${action.message}` : `WIP on ${headName(s)}: ${short(head)} ${s.commits[head]!.message.split("\n")[0]}` });
       s.index = { ...baseFiles };
       s.work = { ...baseFiles, ...untrackedOf(prev) };
       events.push({ type: "stashed", files: dirty.length });
@@ -660,6 +681,21 @@ export function apply(prev: Repo, action: GitAction): StepResult {
       break;
     }
 
+    case "renameBranch": {
+      const at = s.branches[action.from];
+      if (!at) return fail("no-such-ref", `branch '${action.from}' not found`);
+      if (s.branches[action.to]) return fail("branch-exists", `A branch named '${action.to}' already exists`);
+      delete s.branches[action.from];
+      s.branches[action.to] = at;
+      if (s.head.kind === "branch" && s.head.name === action.from) s.head = { kind: "branch", name: action.to };
+      if (s.upstream[action.from]) {
+        s.upstream[action.to] = s.upstream[action.from]!;
+        delete s.upstream[action.from];
+      }
+      events.push({ type: "branchRenamed", from: action.from, to: action.to });
+      break;
+    }
+
     case "tag": {
       if (s.tags[action.name]) return fail("branch-exists", `tag '${action.name}' already exists`);
       const at = resolve(s, action.target ?? "HEAD");
@@ -680,7 +716,7 @@ export function apply(prev: Repo, action: GitAction): StepResult {
       const branch = currentBranch(s);
       if (!branch) return fail("no-such-ref", "You are not on a branch");
       events.push(fetchInto(s));
-      const up = s.upstream[branch] ?? `origin/${branch}`;
+      const up = action.from ? `origin/${action.from}` : (s.upstream[branch] ?? `origin/${branch}`);
       if (!s.tracking[up]) return fail("no-such-ref", `There is no tracking information for '${branch}'`);
       const mid = { state: s, events };
       const r = action.rebase
@@ -695,7 +731,7 @@ export function apply(prev: Repo, action: GitAction): StepResult {
       if (!branch || !s.branches[branch]) return fail("no-such-ref", "Nothing to push");
       const local = s.branches[branch]!;
       const remoteId = s.remote.branches[branch] ?? null;
-      if (remoteId === null && !s.upstream[branch] && !action.setUpstream) {
+      if (remoteId === null && !s.upstream[branch] && !action.setUpstream && !action.explicit) {
         events.push({ type: "pushRejected", branch, reason: "no-upstream" });
         return { state: prev, events };
       }
@@ -716,7 +752,7 @@ export function apply(prev: Repo, action: GitAction): StepResult {
       for (const c of ancestors(s, local)) s.remote.commits[c] = s.commits[c]!;
       s.remote.branches[branch] = local;
       s.tracking[`origin/${branch}`] = local;
-      if (action.setUpstream || remoteId === null) s.upstream[branch] = `origin/${branch}`;
+      if (action.setUpstream || (remoteId === null && !action.explicit)) s.upstream[branch] = `origin/${branch}`;
       events.push({ type: "pushed", branch, from: remoteId, to: local, forced: Boolean(remoteId && !isAncestor(s, remoteId, local)) });
       break;
     }

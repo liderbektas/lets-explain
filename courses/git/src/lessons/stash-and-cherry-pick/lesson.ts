@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const stashAndCherryPick: Lesson = {
@@ -14,7 +14,7 @@ export const stashAndCherryPick: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Kaydedilmemiş değişiklikle neden branch değiştiremediğini anlamak", "Understand why you cannot switch with unsaved changes"), step: 1 },
     { text: l("`git stash` ile yarım işi kenara kaldırıp geri getirmek", "Put half-done work aside with `git stash` and bring it back"), step: 4 },
@@ -263,15 +263,15 @@ export const stashAndCherryPick: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu repo'da main'de bir hotfix commit'i var. Sen `feature`'dasın ve app.js'te yarım bir işin duruyor. Dosya düzenleyebilir, stash'leyebilir, branch değiştirebilir ve main'in son commit'ini cherry-pick edebilirsin.",
-          "In this repo main has a hotfix commit. You are on `feature` with half-done work in app.js. You can edit files, stash, switch branches and cherry-pick main's latest commit.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: yarım işi kenara kaldırmak, iş ortasında acil bir düzeltme yapmak, başka bir branch'ten tek bir commit almak ve yanlış branch'e atılan commit'i taşımak. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **4 scenarios** from real work: putting half-done work aside, making an urgent fix mid-task, taking a single commit from another branch, and moving a commit made on the wrong branch. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Her düğme bir hamle sayılır; az hamleyle bitirirsen 3 yıldız alırsın.",
-          "Under the scene there are **3 missions**. Every button is a move; finish in few moves for 3 stars.",
+          "`git status` yarım işini, `git stash list` stash'te ne olduğunu, `git log <branch> --oneline` kopyalayacağın commit'in kimliğini gösterir. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "`git status` shows your half-done work, `git stash list` what's in the stash, and `git log <branch> --oneline` the id of the commit to copy. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

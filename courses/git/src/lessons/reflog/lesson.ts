@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const reflog: Lesson = {
@@ -14,7 +14,7 @@ export const reflog: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Reflog'un HEAD'in her hareketini kaydettiğini görmek", "See that the reflog records every move of HEAD"), step: 0 },
     { text: l("`reset --hard` sonrası kaybolan commit'i geri getirmek", "Bring back a commit lost after `reset --hard`"), step: 3 },
@@ -282,15 +282,15 @@ export const reflog: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "İki kaza birden oldu: main bir commit geri gitti ve `deneme` branch'i silindi. Reflog panelinde kırmızı \"kayıp\" etiketli girişleri gör.",
-          "Two accidents at once: main went back one commit and the `deneme` branch was deleted. Spot the red \"lost\" entries in the reflog panel.",
+          "Sıra sende. Aşağıda gerçek işten **4 kaza** var: yanlış bir reset, silinen bir branch, vazgeçilen bir reset ve hatalı bir amend. Her birinde bir commit kaybolmuş gibi görünüyor. Komutları terminale **kendin yaz** ve geri getir.",
+          "Your turn. Below are **4 accidents** from real work: a wrong reset, a deleted branch, a reset you regret, and a bad amend. In each, a commit seems lost. **Type the commands yourself** in the terminal and bring it back.",
         ),
         l(
-          "Her reflog girişi için iki düğme var: main'i oraya taşımak (`reset --hard`) ya da oraya yeni bir branch koymak. **3 görev** seni bekliyor.",
-          "Each reflog entry has two buttons: move main there (`reset --hard`) or put a new branch there. **3 missions** are waiting.",
+          "Her seferinde `git reflog` ile başla: kaybolan commit'in kimliği orada. Kimliği oradan okuyup komuta yaz. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "Start with `git reflog` every time: the lost commit's id is there. Read it off and type it into your command. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

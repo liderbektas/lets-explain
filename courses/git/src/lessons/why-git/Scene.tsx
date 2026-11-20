@@ -1,9 +1,9 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { Person, TINTS } from "@lets-explain/core/iso/shapes";
-import { ADA, createRepo, currentBranch, headId, short, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, currentBranch, headId, short, type GitAction, type Repo } from "../../engine/git";
 import { GIT_STAGE, GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { DRAFT, scenarios } from "./scenarios";
 
 export const SLUG = "why-git";
 
@@ -104,54 +104,6 @@ function EmailMess({ t }: { t: (x: L) => string }) {
   );
 }
 
-/* ------------------------------------------------------------------ sandbox */
-
-/** The report's first draft is saved; the missions add versions on top. */
-const sandboxStart = (): Repo =>
-  simulate([write("rapor.md", "Giriş"), add("rapor.md"), commit("İlk taslak")], createRepo({ author: ADA })).states[3]!;
-
-const edits = (history: GitAction[], path: string) => history.filter((a) => a.type === "write" && a.path === path).length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const detached = currentBranch(repo) === null;
-  const head = headId(repo);
-  const hasParent = Boolean(head && repo.commits[head]!.parents.length);
-  const pending = (p: string) => st.unstaged.some((c) => c.path === p) || st.untracked.includes(p);
-  const notesExists = "notes.md" in repo.work;
-  return [
-    {
-      label: "rapor.md",
-      buttons: [
-        { label: tr ? "Düzenle" : "Edit", action: write("rapor.md", `Giriş v${edits(history, "rapor.md") + 2}`), tone: "producer" },
-        { label: "add", action: add("rapor.md"), disabled: !pending("rapor.md") },
-      ],
-    },
-    {
-      label: "notes.md",
-      buttons: [
-        { label: notesExists ? (tr ? "Düzenle" : "Edit") : tr ? "Oluştur" : "Create", action: write("notes.md", `not ${edits(history, "notes.md") + 1}`), tone: "producer" },
-        { label: "add", action: add("notes.md"), disabled: !pending("notes.md") },
-      ],
-    },
-    {
-      label: tr ? "Kaydet" : "Save",
-      buttons: [
-        { label: "add .", action: { type: "add", paths: "." }, disabled: st.unstaged.length === 0 && st.untracked.length === 0 },
-        { label: "commit", action: commit(`Sürüm ${Object.keys(repo.commits).length + 1}`), tone: "ok", disabled: st.staged.length === 0 },
-      ],
-    },
-    {
-      label: tr ? "Geçmiş" : "History",
-      buttons: [
-        { label: tr ? "Bir önceki sürüme bak" : "Look at the previous version", action: { type: "checkout", target: "HEAD~1" }, disabled: detached || !hasParent },
-        { label: tr ? "main'e dön" : "Back to main", action: { type: "switch", target: "main" }, tone: "go", disabled: !detached },
-      ],
-    },
-  ];
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -191,5 +143,6 @@ export const scene = makeGitScene({
       label: t(l("HEAD = şu an baktığın yer", "HEAD = where you are looking now")),
     },
   ],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the saved first draft; each scenario brings its own state.
+  sandbox: { start: () => DRAFT, scenarios },
 });

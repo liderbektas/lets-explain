@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, createRepo, currentBranch, headId, reachable, resolve, short, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, currentBranch, headId, reachable, resolve, short, simulate, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
 import { commitsOf, graphLegend } from "../branches/parts";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { BASE, scenarios } from "./scenarios";
 
 export const SLUG = "refs-and-head";
 
@@ -55,46 +55,6 @@ export const steps: GitAction[][] = [
   [],
 ];
 
-/** The try-it step: four commits on main, app.js included so there is something to edit. */
-const sandboxStart = (): Repo =>
-  build(
-    commitsOf([
-      ["app.js", "v1", "Proje başladı"],
-      ["menu.js", "menü", "Menü eklendi"],
-      ["sepet.js", "sepet", "Sepet eklendi"],
-      ["odeme.js", "ödeme", "Ödeme eklendi"],
-    ]),
-  );
-
-const edits = (history: GitAction[]) => history.filter((a) => a.type === "write").length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const dirty = st.unstaged.length > 0 || st.staged.length > 0;
-  return [
-    {
-      label: tr ? "Dosya" : "File",
-      buttons: [
-        { label: tr ? "app.js'i düzenle" : "Edit app.js", action: { type: "write", path: "app.js", content: `v${edits(history) + 2}` }, tone: "producer" },
-        { label: "commit -a", action: { type: "commit", all: true, message: tr ? "Deneme" : "Experiment" }, tone: "ok", disabled: !dirty },
-      ],
-    },
-    {
-      label: "HEAD",
-      buttons: [
-        { label: "checkout HEAD~1", action: { type: "checkout", target: "HEAD~1" }, disabled: !resolve(repo, "HEAD~1") },
-        { label: "checkout HEAD~2", action: { type: "checkout", target: "HEAD~2" }, disabled: !resolve(repo, "HEAD~2") },
-        { label: "switch main", action: { type: "switch", target: "main" }, disabled: currentBranch(repo) === "main" },
-      ],
-    },
-    {
-      label: "Branch",
-      buttons: [{ label: "switch -c deneme", action: { type: "switch", target: "deneme", create: true }, disabled: Boolean(repo.branches.deneme) }],
-    },
-  ];
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -116,7 +76,8 @@ export const scene = makeGitScene({
     ];
   },
   legend: (t) => graphLegend(t, { ghost: true }),
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from four commits on main; each scenario brings its own state.
+  sandbox: { start: () => BASE, scenarios },
   extraChanges: (step) =>
     step === 3
       ? [{ kind: "change", text: l("Parlayan commit'ler: `HEAD~2` ve `main^`", "The glowing commits: `HEAD~2` and `main^`") }]

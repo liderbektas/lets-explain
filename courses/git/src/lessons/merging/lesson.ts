@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const merging: Lesson = {
@@ -14,7 +14,7 @@ export const merging: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Fast-forward merge'ün yeni commit oluşturmadığını görmek", "See that a fast-forward merge makes no new commit"), step: 1 },
     { text: l("İki ebeveynli merge commit'in ne zaman oluştuğunu bilmek", "Know when a two-parent merge commit appears"), step: 3 },
@@ -284,15 +284,15 @@ export const merging: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "main'desin. `login` main'den bir commit ileride (fast-forward olabilir), `menu` ise daha önce ayrılmış (olamaz). Her birini normal, `--no-ff` ya da `--ff-only` ile alabilir ve silebilirsin.",
-          "You are on main. `login` is one commit ahead of main (it can fast-forward), while `menu` split off earlier (it cannot). You can bring each in normally, with `--no-ff` or `--ff-only`, and delete them.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: biten bir işi main'e almak, iki taraf da ilerlemişken birleştirmek, ekip kuralı gereği iz bırakmak, yayın gününde sadece kaydırılabileni almak ve iki branch'i tek bir merge commit'iyle toplamak. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **5 scenarios** from real work: bringing finished work into main, joining two sides that both moved, leaving a trace because the team asks for it, taking only what can slide on release day, and gathering two branches with a single merge commit. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Üstteki \"Merge commit\" sayacını izle. Sahnenin altında **3 görev** var.",
-          "Watch the \"Merge commits\" counter. Under the scene there are **3 missions**.",
+          "Üstteki \"Merge commit\" sayacını izle. `git log --oneline --all` branch'lerin nerede durduğunu gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "Watch the \"Merge commits\" counter. `git log --oneline --all` shows where the branches are. Finish in few commands for 3 stars.",
         ),
       ],
     },

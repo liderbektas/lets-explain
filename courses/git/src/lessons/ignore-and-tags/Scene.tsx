@@ -2,8 +2,8 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { ADA, createRepo, firstParents, headId, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { AreasStage, type AreaFlow, type AreasLabels } from "../../iso/AreasStage";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "ignore-and-tags";
 
@@ -104,43 +104,6 @@ function TagOverlay({ repo }: { repo: Repo }) {
   );
 }
 
-/** How many times a file has been edited in the sandbox so far. */
-const edits = (history: GitAction[], path: string) => history.filter((a) => a.type === "write" && a.path === path).length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const appChanged = st.unstaged.some((c) => c.path === "app.js");
-  return [
-    {
-      label: ".gitignore",
-      buttons: [{ label: tr ? "Yaz" : "Write", action: write(".gitignore", IGNORE), tone: "producer", disabled: repo.work[".gitignore"] === IGNORE }],
-    },
-    {
-      label: "debug.log",
-      buttons: [{ label: "rm --cached", action: { type: "rmCached", path: "debug.log" }, tone: "danger", disabled: !("debug.log" in repo.index) }],
-    },
-    {
-      label: "app.js",
-      buttons: [
-        { label: tr ? "Düzenle" : "Edit", action: write("app.js", `v${edits(history, "app.js") + 2}`), tone: "producer" },
-        { label: "add", action: add("app.js"), disabled: !appChanged },
-      ],
-    },
-    {
-      label: tr ? "Hepsi" : "All",
-      buttons: [
-        { label: "add .", action: { type: "add", paths: "." }, disabled: st.unstaged.length === 0 && st.untracked.length === 0 },
-        { label: "commit", action: commit(tr ? "Değişiklikler" : "Changes"), tone: "ok", disabled: st.staged.length === 0 },
-      ],
-    },
-    {
-      label: "tag",
-      buttons: [{ label: "tag v1.0", action: { type: "tag", name: "v1.0" }, tone: "go", disabled: Boolean(repo.tags["v1.0"]) }],
-    },
-  ];
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -165,5 +128,6 @@ export const scene = makeGitScene({
       { label: "Tag", value: tags.length ? tags.join(", ") : "—" },
     ];
   },
-  sandbox: { start: () => START, rows, missions },
+  // Free play starts from the lesson's messy folder; each scenario brings its own project.
+  sandbox: { start: () => START, scenarios },
 });

@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, createRepo, currentBranch, headId, isAncestor, mergeBase, short, simulate, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, currentBranch, headId, mergeBase, short, simulate, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
 import { commitsOf, graphLegend } from "../branches/parts";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { scenarios, TWO_BRANCHES } from "./scenarios";
 
 export const SLUG = "merging";
 
@@ -68,40 +68,6 @@ export const steps: GitAction[][] = [
 
 export const EXPECTED_ERRORS: Record<number, string> = { 6: "not-ancestor" };
 
-/** The try-it step: login is one commit ahead of main (fast-forward possible), menu has split off. */
-const sandboxStart = (): Repo =>
-  build([
-    ...commitsOf([
-      ["index.html", "<h1>Mağaza</h1>", "Proje başladı"],
-      ["urunler.js", "ürünler", "Ürün listesi"],
-    ]),
-    { type: "switch", target: "menu", create: true },
-    ...work("menu.js", "menü", "Menü"),
-    { type: "switch", target: "main" },
-    ...work("index.html", "<h1>Mağaza</h1><nav>", "Ana sayfa"),
-    { type: "switch", target: "login", create: true },
-    ...work("login.js", "giriş", "Giriş"),
-    { type: "switch", target: "main" },
-  ]);
-
-/** Branch names and Git flags read the same in both languages, so the buttons are not translated. */
-function rows(repo: Repo): SandboxRow[] {
-  const head = headId(repo)!;
-  return ["login", "menu"].map((b) => {
-    const tip = repo.branches[b];
-    const merged = !tip || isAncestor(repo, tip, head);
-    return {
-      label: b,
-      buttons: [
-        { label: `merge ${b}`, action: { type: "merge", target: b }, tone: "ok", disabled: merged },
-        { label: "--no-ff", action: { type: "merge", target: b, noFf: true }, disabled: merged },
-        { label: "--ff-only", action: { type: "merge", target: b, ffOnly: true }, disabled: merged },
-        { label: `branch -d ${b}`, action: { type: "deleteBranch", name: b }, tone: "danger", disabled: !tip },
-      ],
-    };
-  });
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -127,7 +93,8 @@ export const scene = makeGitScene({
     ];
   },
   legend: (t) => graphLegend(t, { merge: true }),
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts with login (can fast-forward) and menu (cannot); each scenario brings its own state.
+  sandbox: { start: () => TWO_BRANCHES, scenarios },
   extraChanges: (step) =>
     step === 4
       ? [

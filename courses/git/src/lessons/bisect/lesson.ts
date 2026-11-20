@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const bisect: Lesson = {
@@ -14,7 +14,7 @@ export const bisect: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Neden ikiye bölerek aramanın hızlı olduğunu anlamak", "Understand why halving is fast"), step: 1 },
     { text: l("`git bisect start`, `good`, `bad` ile hatayı getiren commit'i bulmak", "Find the breaking commit with `git bisect start`, `good` and `bad`"), step: 5 },
@@ -269,15 +269,15 @@ export const bisect: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu sefer başka bir proje: tarihler `GG.AA.YYYY` yerine `AA/GG/YYYY` yazılıyor. `v1.0`'da doğruydu. Hangi commit'in bozduğunu bilmiyorsun.",
-          "A different project this time: dates come out as `AA/GG/YYYY` instead of `GG.AA.YYYY`. It was right in `v1.0`. You do not know which commit broke it.",
+          "Sıra sende. Aşağıda dört ayrı projede **4 senaryo** var: bozuk tarihler, yanlış hesaplanan bir sepet, kapanmış bir şifre kontrolü ve yarıda kalmış bir bisect. Hangi commit'in suçlu olduğunu bilmiyorsun; komutları terminale **kendin yaz**.",
+          "Your turn. Below are **4 scenarios** in four different projects: broken dates, a cart that adds wrong, a password check switched off, and a bisect left half-done. You don't know which commit is to blame; **type the commands yourself** in the terminal.",
         ),
         l(
-          "`start` ile başla, her adımda üstteki **Test** sayacına bakıp `good` ya da `bad` de. Yanlış cevap yanlış commit'i suçlatır.",
-          "Press `start`, then check the **Test** counter at the top every time and say `good` or `bad`. A wrong answer blames the wrong commit.",
+          "Her durakta kodu test et: `cat` ile dosyaya bak ya da üstteki **Test** sayacını oku, sonra `git bisect good` ya da `git bisect bad` de. Yanlış cevap yanlış commit'i suçlatır.",
+          "Test the code at every stop: look at the file with `cat` or read the **Test** counter at the top, then say `git bisect good` or `git bisect bad`. A wrong answer blames the wrong commit.",
         ),
       ],
     },

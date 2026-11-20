@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const resetAndRevert: Lesson = {
@@ -14,7 +14,7 @@ export const resetAndRevert: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`reset`'in branch'i taşıdığını görmek", "See that `reset` moves the branch"), step: 1 },
     { text: l("`--soft`, `--mixed` ve `--hard`'ın değişiklikleri nereye bıraktığını bilmek", "Know where `--soft`, `--mixed` and `--hard` leave your changes"), step: 4 },
@@ -273,15 +273,15 @@ export const resetAndRevert: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "main yine dört commit'le başlıyor ve sonuncusu hatalı. Üç reset modu, üç revert hedefi ve küçük bir çalışma alanı var.",
-          "main starts with four commits again, and the last one is wrong. You have three reset modes, three revert targets and a small work area.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: commit'leri birleştirmek, paylaşılmış bir hatayı geçmişi bozmadan geri almak, bir commit'i ikiye bölmek ve kötü bir denemeyi çöpe atmak. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **4 scenarios** from real work: squashing commits, undoing a shared mistake without rewriting history, splitting a commit, and binning a bad experiment. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Her görev doğru aracı seçmeni istiyor: commit'leri birleştirmek, paylaşılmış geçmişi bozmadan geri almak ve hatalı bir commit'i düzgün haliyle değiştirmek.",
-          "Each mission asks for the right tool: combining commits, undoing without rewriting shared history, and replacing a bad commit with a proper one.",
+          "Önce `git log --oneline` ile geçmişe, `git status` ile klasöre bak. Asıl soru hep aynı: commit paylaşıldı mı? İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "Look at history with `git log --oneline` and at the folder with `git status` first. The key question is always the same: has the commit been shared? Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

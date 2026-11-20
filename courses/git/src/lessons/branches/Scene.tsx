@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { scenarios, SHOP } from "./scenarios";
 import { commitsOf, graphLegend, WorkStrip } from "./parts";
 
 export const SLUG = "branches";
@@ -56,52 +56,6 @@ export const steps: GitAction[][] = [
 /** Steps whose refusal is the point of the step, with the error expected. */
 export const EXPECTED_ERRORS: Record<number, string> = { 6: "would-overwrite", 7: "not-merged" };
 
-/** The try-it step: main with two commits, and a login branch at the same place. */
-const sandboxStart = (): Repo =>
-  build([
-    ...commitsOf([
-      ["app.js", "v1", "Proje başladı"],
-      ["urunler.js", "ürünler", "Ürün listesi"],
-    ]),
-    { type: "branch", name: "login" },
-  ]);
-
-const edits = (history: GitAction[]) => history.filter((a) => a.type === "write").length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const dirty = st.unstaged.length > 0 || st.staged.length > 0;
-  const on = currentBranch(repo);
-  const menu = Boolean(repo.branches.menu);
-  return [
-    {
-      label: tr ? "Geç" : "Switch",
-      buttons: [
-        { label: "switch main", action: { type: "switch", target: "main" }, disabled: on === "main" },
-        { label: "switch login", action: { type: "switch", target: "login" }, disabled: on === "login" },
-        menu
-          ? { label: "switch menu", action: { type: "switch", target: "menu" }, disabled: on === "menu" }
-          : { label: "switch -c menu", action: { type: "switch", target: "menu", create: true } },
-      ],
-    },
-    {
-      label: tr ? "Dosya" : "File",
-      buttons: [
-        { label: tr ? "app.js'i düzenle" : "Edit app.js", action: { type: "write", path: "app.js", content: `v${edits(history) + 2}` }, tone: "producer" },
-        { label: "commit -a", action: { type: "commit", all: true, message: tr ? "Değişiklik" : "Change" }, tone: "ok", disabled: !dirty },
-      ],
-    },
-    {
-      label: tr ? "Sil" : "Delete",
-      buttons: [
-        { label: "branch -d menu", action: { type: "deleteBranch", name: "menu" }, disabled: !menu || on === "menu" },
-        { label: "branch -D menu", action: { type: "deleteBranch", name: "menu", force: true }, tone: "danger", disabled: !menu || on === "menu" },
-      ],
-    },
-  ];
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -124,7 +78,8 @@ export const scene = makeGitScene({
     ];
   },
   legend: (t) => graphLegend(t, { ghost: true }),
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from the shop on main; each scenario brings its own state.
+  sandbox: { start: () => SHOP, scenarios },
   extraChanges: (step) =>
     step === 6
       ? [{ kind: "bad", text: l("Geçiş reddedildi: login.js'teki değişiklik main'deki haliyle ezilecekti", "Switch refused: the change to login.js would have been overwritten by main's version") }]

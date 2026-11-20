@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, createRepo, firstParents, headId, reachable, resolve, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, firstParents, headId, reachable, simulate, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { scenarios } from "./scenarios";
 import { WherePanel } from "./WherePanel";
 
 export const SLUG = "reset-and-revert";
@@ -43,39 +43,6 @@ export const steps: GitAction[][] = [
   [],
 ];
 
-function rows(repo: Repo, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const hasParent = Boolean(resolve(repo, "HEAD~1"));
-  return [
-    {
-      label: "reset",
-      buttons: [
-        { label: "--soft HEAD~1", action: { type: "reset", target: "HEAD~1", mode: "soft" }, disabled: !hasParent },
-        { label: "--mixed HEAD~1", action: { type: "reset", target: "HEAD~1", mode: "mixed" }, disabled: !hasParent },
-        { label: "--hard HEAD~1", action: { type: "reset", target: "HEAD~1", mode: "hard" }, tone: "danger", disabled: !hasParent },
-      ],
-    },
-    {
-      label: "revert",
-      buttons: ["HEAD", "HEAD~1", "HEAD~2"].map((target) => ({
-        label: target,
-        action: { type: "revert", target } as GitAction,
-        tone: "ok" as const,
-        disabled: !st.clean || !resolve(repo, target) || !repo.commits[resolve(repo, target)!]!.parents.length,
-      })),
-    },
-    {
-      label: tr ? "Çalışma" : "Work",
-      buttons: [
-        { label: tr ? "app.js'i düzelt" : "Fix app.js", action: write("app.js", "düzgün"), tone: "producer", disabled: repo.work["app.js"] === "düzgün" },
-        { label: "add .", action: { type: "add", paths: "." }, disabled: st.unstaged.length === 0 && st.untracked.length === 0 },
-        { label: "commit", action: commit("Düzeltme"), tone: "ok", disabled: st.staged.length === 0 },
-      ],
-    },
-  ];
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -104,5 +71,6 @@ export const scene = makeGitScene({
       { label: t(l("Hiçbir branch'te değil", "On no branch")), value: ghosts, tone: ghosts ? "warn" : "plain" },
     ];
   },
-  sandbox: { start: () => START, rows, missions },
+  // Free play starts from the lesson's four commits; each scenario brings its own state.
+  sandbox: { start: () => START, scenarios },
 });

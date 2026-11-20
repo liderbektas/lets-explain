@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, createRepo, firstParents, headId, short, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, firstParents, headId, short, simulate, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
+import { makeGitScene } from "../shared/GitScene";
 import { CommitCard, type CardMode } from "./CommitCard";
-import { missions } from "./missions";
+import { scenarios, SHOP } from "./scenarios";
 
 export const SLUG = "commits-and-history";
 
@@ -36,39 +36,6 @@ const CARDS: CardMode[] = [
   { kind: "show", rev: "HEAD" },
   { kind: "show", rev: "HEAD" },
 ];
-
-/** The sandbox starts from two commits. */
-const sandboxStart = (): Repo =>
-  simulate(
-    [write("README.md", "Merhaba"), write("app.js", "v1"), addAll, commit("Başlangıç"), write("app.js", "v2"), addAll, commit("app.js v2")],
-    createRepo({ author: ADA }),
-  ).states[7]!;
-
-const edits = (history: GitAction[], path: string) => history.filter((a) => a.type === "write" && a.path === path).length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const pending = st.unstaged.length + st.untracked.length > 0;
-  const staged = st.staged.length > 0;
-  return [
-    {
-      label: tr ? "Dosyalar" : "Files",
-      buttons: [
-        { label: tr ? "README.md'yi düzenle" : "Edit README.md", action: write("README.md", `Merhaba v${edits(history, "README.md") + 2}`), tone: "producer" },
-        { label: tr ? "app.js'i düzenle" : "Edit app.js", action: write("app.js", `v${edits(history, "app.js") + 3}`), tone: "producer" },
-      ],
-    },
-    {
-      label: tr ? "Kaydet" : "Save",
-      buttons: [
-        { label: "add .", action: addAll, disabled: !pending },
-        { label: "commit", action: commit(`Commit ${Object.keys(repo.commits).length + 1}`), tone: "ok", disabled: !staged },
-        { label: "commit --amend", action: { type: "commit", amend: true }, disabled: !staged },
-      ],
-    },
-  ];
-}
 
 export const scene = makeGitScene({
   slug: SLUG,
@@ -111,5 +78,6 @@ export const scene = makeGitScene({
       label: t(l("soluk = artık hiçbir branch'te değil", "faded = on no branch any more")),
     },
   ],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from a two-commit shop project; each scenario brings its own state.
+  sandbox: { start: () => SHOP, scenarios },
 });

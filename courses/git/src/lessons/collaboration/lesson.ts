@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const collaboration: Lesson = {
@@ -14,7 +14,7 @@ export const collaboration: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Push'un neden reddedildiğini anlamak", "Understand why a push is rejected"), step: 1 },
     { text: l("pull'un merge ve rebase hallerini karşılaştırmak", "Compare pull with merge and with rebase"), step: 4 },
@@ -324,15 +324,15 @@ export const collaboration: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu repo origin'den yeni clone'landı ve son commit senin. Commit atabilir, `--amend` yapabilir, pull (merge ya da rebase) ve push (düz, `--force-with-lease` ya da `--force`) yapabilirsin. **Bora push etsin** düğmesi takım arkadaşının origin'e commit göndermesini sağlar.",
-          "This repo was just cloned from origin and the last commit is yours. You can commit, `--amend`, pull (merge or rebase) and push (plain, `--force-with-lease` or `--force`). The **Bora pushes** button makes your teammate send a commit to origin.",
+          "Sıra sende. Solda senin repo'n, sağda takımın paylaştığı origin var. Aşağıda ekip işinden **4 senaryo** bekliyor: reddedilen bir push'u düz çizgiyle göndermek, push edilmiş bir mesajı güvenle düzeltmek, PR için branch açmak ve merge'den sonra toparlanmak. Komutları terminale **kendin yaz**.",
+          "Your turn. Your repo is on the left, the team's shared origin on the right. Below are **4 scenarios** from teamwork: sending a refused push as a straight line, safely fixing a pushed message, opening a branch for a PR, and tidying up after the merge. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Her düğme bir hamle sayılır; az hamleyle bitirirsen 3 yıldız alırsın.",
-          "Under the scene there are **3 missions**. Every button is a move; finish in few moves for 3 stars.",
+          "Takılırsan `git status` ve `git log --oneline --all` yaz. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `git status` and `git log --oneline --all`. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

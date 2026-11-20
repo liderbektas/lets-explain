@@ -2,8 +2,8 @@ import { AnimatePresence, motion, type Variants } from "motion/react";
 import { l, type L } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, short, simulate, status, type GitAction, type GitEvent, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "stash-and-cherry-pick";
 
@@ -47,7 +47,7 @@ export const steps: GitAction[][] = [
   [],
 ];
 
-/** The try-it step: main already has a hotfix, feature has a half-done change. */
+/** Free play in the try-it step: main already has a hotfix, feature has a half-done change. */
 const sandboxStart = (): Repo => {
   const r = simulate(
     [
@@ -71,41 +71,6 @@ const sandboxStart = (): Repo => {
   );
   return r.states[r.states.length - 1]!;
 };
-
-const edits = (history: GitAction[], path: string) => history.filter((a) => a.type === "write" && a.path === path).length;
-
-function rows(repo: Repo, lang: "tr" | "en", history: GitAction[]): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const branch = currentBranch(repo);
-  const dirty = st.unstaged.length > 0 || st.staged.length > 0;
-  return [
-    {
-      label: tr ? "Klasör" : "Folder",
-      buttons: [
-        { label: tr ? "README düzenle" : "Edit README", action: write("README.md", `v${edits(history, "README.md") + 2}`), tone: "producer" },
-        { label: tr ? "login.js düzenle" : "Edit login.js", action: write("login.js", `giriş v${edits(history, "login.js") + 2}`), tone: "producer" },
-        { label: "commit -a", action: commit(tr ? "Düzeltme" : "Fix", true), tone: "ok", disabled: st.unstaged.length === 0 && st.staged.length === 0 },
-      ],
-    },
-    {
-      label: "Stash",
-      buttons: [
-        { label: "stash", action: { type: "stash" }, disabled: !dirty },
-        { label: "stash pop", action: { type: "stashPop" }, disabled: repo.stash.length === 0 },
-        { label: "stash drop", action: { type: "stashDrop" }, tone: "danger", disabled: repo.stash.length === 0 },
-      ],
-    },
-    {
-      label: "Branch",
-      buttons: [
-        { label: "switch main", action: { type: "switch", target: "main" }, disabled: branch === "main" },
-        { label: "switch feature", action: { type: "switch", target: "feature" }, disabled: branch === "feature" },
-        { label: "cherry-pick main", action: { type: "cherryPick", target: "main" }, tone: "go", disabled: branch === "main" },
-      ],
-    },
-  ];
-}
 
 const text = {
   folder: l("Klasörde, kaydedilmemiş", "In the folder, unsaved"),
@@ -232,5 +197,6 @@ export const scene = makeGitScene({
       { label: t(l("Stash", "Stash")), value: repo.stash.length, tone: repo.stash.length ? "ok" : "plain" },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from a hotfix on main and half-done work on feature; each scenario brings its own state.
+  sandbox: { start: sandboxStart, scenarios },
 });

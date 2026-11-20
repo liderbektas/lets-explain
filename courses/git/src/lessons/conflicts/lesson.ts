@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const conflicts: Lesson = {
@@ -14,7 +14,7 @@ export const conflicts: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Conflict'in neden çıktığını anlamak", "Understand why a conflict happens"), step: 1 },
     { text: l("`<<<<<<<`, `=======`, `>>>>>>>` işaretlerini okumak", "Read the `<<<<<<<`, `=======`, `>>>>>>>` markers"), step: 2 },
@@ -290,15 +290,15 @@ export const conflicts: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Başa döndük: `main` ve `feature` yine aynı iki dosyayı farklı değiştirmiş durumda. Merge'ü başlat, her dosya için bir taraf seç (ya da ikisini birden), add et ve commit'le bitir. İstersen vazgeç.",
-          "We are back at the start: `main` and `feature` again changed the same two files differently. Start the merge, pick a side for each file (or both), add, and finish with a commit. Or back out.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: conflict'li bir merge'ü baştan sona çözmek, yarım kalmış bir merge'den vazgeçmek ya da onu bitirmek, unutulan `add`'i bulmak ve conflict'i kendi branch'inde çözmek. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **5 scenarios** from real work: solving a conflicted merge from start to end, backing out of a half-done merge or finishing it, finding the forgotten `add`, and solving a conflict on your own branch. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Her düğme bir hamle; az hamleyle 3 yıldız.",
-          "Under the scene there are **3 missions**. Every button is a move; few moves earn 3 stars.",
+          "`git status` neyin çakıştığını söyler, `cat dosya` işaretleri gösterir, `nano dosya` düzenlemeni sağlar. Az komutla bitirirsen 3 yıldız alırsın.",
+          "`git status` tells you what clashes, `cat file` shows the markers, `nano file` lets you edit. Finish in few commands for 3 stars.",
         ),
       ],
     },

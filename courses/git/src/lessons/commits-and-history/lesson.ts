@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const commitsAndHistory: Lesson = {
@@ -14,7 +14,7 @@ export const commitsAndHistory: Lesson = {
   level: l("Başlangıç", "Beginner"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Bir commit'te neler saklandığını bilmek", "Know what a commit stores"), step: 0 },
     { text: l("Parent bağlantısının geçmişi nasıl kurduğunu görmek", "See how parent links build the history"), step: 1 },
@@ -240,15 +240,15 @@ export const commitsAndHistory: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Bu repo'da iki commit var. Dosyaları düzenleyip `add .` ile staging'e koyabilir, yeni commit atabilir ya da `commit --amend` ile son commit'i yeniden yazabilirsin. Terminal her zaman son commit'i gösterir.",
-          "This repo has two commits. You can edit files, stage them with `add .`, make a new commit, or rewrite the last one with `commit --amend`. The terminal always shows the last commit.",
+          "Sıra sende. Aşağıda bir mağaza projesi ve gerçek işten **4 senaryo** var: commit mesajında yazım hatası, unutulan bir dosya, birbirine karışmış iki iş. Komutları terminale **kendin yaz**; sahne geçmişin nasıl değiştiğini, sağdaki kart da son commit'i gösterir.",
+          "Your turn. Below is a shop project and **4 scenarios** from real work: a typo in a commit message, a forgotten file, two jobs mixed together. **Type the commands yourself** in the terminal; the scene shows how the history changes and the card on the right shows the last commit.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Soluk küpler amend ile yerine yenisi konmuş eski commit'ler.",
-          "Under the scene there are **3 missions**. Faded cubes are old commits replaced by an amend.",
+          "`git log --oneline` ve `git show` ile geçmişe istediğin zaman bakabilirsin. Soluk küpler, amend ile yerine yenisi konmuş eski commit'ler. Az komutla bitirirsen 3 yıldız alırsın.",
+          "You can look at the history any time with `git log --oneline` and `git show`. Faded cubes are old commits replaced by an amend. Finish in few commands for 3 stars.",
         ),
       ],
     },

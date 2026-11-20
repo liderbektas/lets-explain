@@ -1,59 +1,25 @@
 import { motion } from "motion/react";
 import { l, type L } from "@lets-explain/core/i18n";
 import {
-  ADA,
   ancestors,
   apply,
-  asRemote,
-  cloned,
-  createRepo,
   firstParents,
   headId,
   reachable,
   resolve,
   short,
-  simulate,
   type GitAction,
   type PlanItem,
   type Repo,
 } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { scenarios, START } from "./scenarios";
 import "./todo.css";
 
 export const SLUG = "history-cleanup";
 export const BASE = "origin/main";
-
-const write = (path: string, content: string): GitAction => ({ type: "write", path, content });
-const add = (...paths: string[]): GitAction => ({ type: "add", paths });
-const commit = (message: string): GitAction => ({ type: "commit", message });
-const edit = (path: string, content: string, message: string): GitAction[] => [write(path, content), add(path), commit(message)];
-
-/** One shared commit on origin, then five local commits written in a hurry. */
-const origin = asRemote(simulate(edit("README.md", "Uygulama", "Proje başladı"), createRepo({ author: ADA })).states[3]!);
-
-export const START: Repo = (() => {
-  const r = simulate(
-    [
-      ...edit("login.js", "giriş formu", "Giriş formu"),
-      ...edit("login.js", "giriş formu (e-posta doğrulamalı)", "yazım hatası düzeltildi"),
-      ...edit("debug.js", "console.log(user)", "debug log"),
-      ...edit("password.js", "şifre kontrolü (yarım)", "wip"),
-      ...edit("password.js", "şifre kontrolü", "Şifre kontorlü"),
-    ],
-    cloned(origin),
-  );
-  return r.states[r.states.length - 1]!;
-})();
-
-/** Better messages the try-it step's reword and amend buttons use. */
-export const REWORD: Record<string, string> = {
-  wip: "Şifre kontrolü",
-  "Şifre kontorlü": "Şifre kontrolü",
-  "yazım hatası düzeltildi": "Giriş formunda e-posta doğrulaması",
-  "debug log": "Kullanıcıyı konsola yaz",
-};
+export { START };
 
 /** The commits `git rebase -i origin/main` would list, oldest first. */
 export function todo(repo: Repo): string[] {
@@ -103,36 +69,6 @@ export function withRecentGhosts(repo: Repo): Repo {
   if (last?.from) for (const c of ancestors(repo, last.from)) keep.add(c);
   const commits = Object.fromEntries(Object.entries(repo.commits).filter(([id]) => keep.has(id)));
   return { ...repo, commits };
-}
-
-function rows(repo: Repo, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const list = todo(repo);
-  const out: SandboxRow[] = list.map((id, i) => {
-    const msg = repo.commits[id]!.message;
-    return {
-      label: `${short(id)} ${clip(msg, 14)}`,
-      buttons: [
-        { label: "fixup", action: rebaseI(repo, { [msg]: "fixup" }), disabled: i === 0 },
-        { label: "drop", action: rebaseI(repo, { [msg]: "drop" }), tone: "danger", disabled: list.length <= 1 },
-        { label: "reword", action: rebaseI(repo, { [msg]: "reword" }, { [msg]: REWORD[msg] ?? msg }), disabled: !REWORD[msg] },
-      ],
-    };
-  });
-  const head = headId(repo);
-  const lastMsg = head ? repo.commits[head]!.message : "";
-  out.push({
-    label: tr ? "Son commit" : "Last commit",
-    buttons: [
-      {
-        label: "commit --amend",
-        action: { type: "commit", amend: true, message: REWORD[lastMsg] ?? lastMsg },
-        tone: "ok",
-        disabled: !REWORD[lastMsg] || list.length === 0,
-      },
-    ],
-  });
-  return out;
 }
 
 function clip(s: string, n: number) {
@@ -223,5 +159,6 @@ export const scene = makeGitScene({
       { label: t(l("Yeni hayalet", "New ghosts")), value: ghosts, tone: ghosts ? "warn" : "plain" },
     ];
   },
-  sandbox: { start: () => START, rows: (repo, lang) => rows(repo, lang), missions },
+  // Free play starts from the lesson's five messy commits; each scenario brings its own.
+  sandbox: { start: () => START, scenarios },
 });

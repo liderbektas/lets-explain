@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, createRepo, headId, reachable, resolve, short, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, reachable, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
-import { ReflogPanel, reflogEntries } from "./ReflogPanel";
+import { makeGitScene } from "../shared/GitScene";
+import { ReflogPanel } from "./ReflogPanel";
+import { scenarios } from "./scenarios";
 
 export const SLUG = "reflog";
 
@@ -51,34 +51,9 @@ export const steps: GitAction[][] = [
   [],
 ];
 
-/** The try-it step starts after both accidents: main reset back one commit and `deneme` deleted. */
+/** Free play in the try-it step starts after both accidents: main reset back one commit and `deneme` deleted. */
 export const sandboxStart = (): Repo =>
   simulate([{ type: "reset", target: "HEAD~1", mode: "hard" }, { type: "deleteBranch", name: "deneme", force: true }], START).states[2]!;
-
-export const rescueName = (id: string) => `kurtar-${short(id).slice(0, 4)}`;
-
-function rows(repo: Repo, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const head = headId(repo);
-  const seen = new Set<string>();
-  const entries = reflogEntries(repo, 12).filter((e) => {
-    if (e.to === head || seen.has(e.to)) return false;
-    seen.add(e.to);
-    return true;
-  });
-  const out: SandboxRow[] = entries.slice(0, 5).map((e) => ({
-    label: `HEAD@{${e.n}}`,
-    buttons: [
-      { label: `reset --hard ${short(e.to)}`, action: { type: "reset", target: e.to, mode: "hard" }, tone: "go" },
-      { label: `branch ${rescueName(e.to)}`, action: { type: "branch", name: rescueName(e.to), at: e.to }, tone: "ok", disabled: Boolean(repo.branches[rescueName(e.to)]) },
-    ],
-  }));
-  out.push({
-    label: tr ? "Tehlikeli" : "Risky",
-    buttons: [{ label: "reset --hard HEAD~1", action: { type: "reset", target: "HEAD~1", mode: "hard" }, tone: "danger", disabled: !resolve(repo, "HEAD~1") }],
-  });
-  return out;
-}
 
 export const scene = makeGitScene({
   slug: SLUG,
@@ -100,5 +75,6 @@ export const scene = makeGitScene({
       { label: t(l("Kaydedilmemiş değişiklik", "Unsaved changes")), value: st.unstaged.length + st.staged.length },
     ];
   },
-  sandbox: { start: sandboxStart, rows, missions },
+  // Each scenario brings its own accident; free play starts from the lesson's two.
+  sandbox: { start: sandboxStart, scenarios },
 });

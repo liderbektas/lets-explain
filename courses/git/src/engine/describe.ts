@@ -37,6 +37,8 @@ export function describeGit(e: GitEvent, lang: Lang): Line {
       return { text: tr ? `${e.name} branch'i ${short(e.at)} üzerinde açıldı` : `Branch ${e.name} created at ${short(e.at)}`, tone: "plain" };
     case "branchDeleted":
       return { text: tr ? `${e.name} branch'i silindi (commit'ler duruyor)` : `Branch ${e.name} deleted (its commits remain)`, tone: "plain" };
+    case "branchRenamed":
+      return { text: tr ? `${e.from} branch'inin adı ${e.to} oldu` : `Branch ${e.from} renamed to ${e.to}`, tone: "plain" };
     case "switched":
       return {
         text: e.detached

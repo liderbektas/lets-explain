@@ -59,6 +59,32 @@ export interface Mission<C> {
   check: (ctx: C) => boolean;
 }
 
+/**
+ * A moment from real work at the end of a lesson: the project is in some state, something
+ * needs doing, and the reader types the commands. The check looks at the result, not at the
+ * words typed, so every correct way counts.
+ */
+export interface Scenario<C, S> {
+  id: string;
+  title: L;
+  /** The situation, told the way it happens at work. */
+  story: L;
+  /** What done looks like, in one line. */
+  goal: L;
+  /** Where the project stands when the scenario begins. */
+  start: S;
+  /** From a nudge to the answer; the last one is the commands themselves. */
+  hints: L[];
+  /** Commands that change something, for three stars: the shortest solution. */
+  par: number;
+  check: (ctx: C) => boolean;
+}
+
+/** Stars for a scenario: as for a mission, but seeing the answer leaves one. */
+export function scenarioStars(moves: number, par: number, sawAnswer: boolean): number {
+  return sawAnswer ? 1 : starsFor(moves, par);
+}
+
 /** Stars for finishing a mission in `moves`: three at par, two a little over, one otherwise. */
 export function starsFor(moves: number, par: number): number {
   if (moves <= par) return 3;

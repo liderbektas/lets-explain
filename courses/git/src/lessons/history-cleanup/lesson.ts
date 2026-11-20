@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const historyCleanup: Lesson = {
@@ -14,7 +14,7 @@ export const historyCleanup: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("`git commit --amend` ile son commit'i düzeltmek", "Fix the last commit with `git commit --amend`"), step: 1 },
     { text: l("`git rebase -i` yapılacaklar listesini okumak", "Read the `git rebase -i` todo list"), step: 2 },
@@ -274,15 +274,15 @@ export const historyCleanup: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Aynı dağınık beş commit tekrar karşında. Her satırın yanındaki düğmeler, o commit için `rebase -i` listesinde yapacağın değişikliği uygular. `commit --amend` son commit'in mesajını düzeltir.",
-          "The same five messy commits are back. The buttons next to each line apply the change you would make for that commit in the `rebase -i` list. `commit --amend` fixes the last commit's message.",
+          "Sıra sende. Aşağıda push edilmemiş commit'lerle dolu **5 senaryo** var: bir yazım hatası, unutulan bir dosya, bir debug izi, birikmiş `wip`'ler. Komutları terminale **kendin yaz**.",
+          "Your turn. Below are **5 scenarios** full of unpushed commits: a typo, a forgotten file, a debug trace, a pile of `wip`s. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **3 görev** var. Her düğme bir hamle; az hamleyle 3 yıldız.",
-          "Under the scene there are **3 missions**. Every button is a move; few moves earn 3 stars.",
+          "`git rebase -i origin/main` listeyi gerçek Git gibi bir editörde açar: satır başındaki kelimeyi değiştir, kaydet. `git log --oneline` ile sonucu kontrol et. Bütün bir `rebase -i` (editörleriyle birlikte) tek komut sayılır.",
+          "`git rebase -i origin/main` opens the list in an editor, as real Git does: change the first word on a line, then save. Check the result with `git log --oneline`. A whole `rebase -i`, editors included, counts as one command.",
         ),
       ],
     },

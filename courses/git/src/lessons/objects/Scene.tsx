@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
-import { ADA, createRepo, headId, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, headId, simulate, type GitAction, type Repo } from "../../engine/git";
 import { buildTrees, hashBlob } from "../../engine/objects";
-import { makeGitScene, type SandboxRow } from "../shared/GitScene";
-import { missions } from "./missions";
+import { makeGitScene } from "../shared/GitScene";
+import { BASE, scenarios } from "./scenarios";
 import { ObjectsStage } from "./ObjectsStage";
 
 export const SLUG = "objects";
@@ -39,36 +39,6 @@ export function objectCounts(repo: Repo) {
   return { blobs: blobs.size, trees: trees.size, commits: Object.keys(repo.commits).length };
 }
 
-/** The sandbox: one commit with README.md "Merhaba". */
-const sandboxStart = (): Repo => simulate([write("README.md", "Merhaba"), addAll, commit("Başlangıç")], createRepo({ author: ADA })).states[3]!;
-
-const CONTENTS = ["Merhaba", "Selam"];
-
-function rows(repo: Repo, lang: "tr" | "en"): SandboxRow[] {
-  const tr = lang === "tr";
-  const st = status(repo);
-  const fileRow = (path: string): SandboxRow => ({
-    label: path,
-    buttons: CONTENTS.map((content) => ({
-      label: `"${content}"`,
-      action: write(path, content),
-      tone: "producer" as const,
-      disabled: repo.work[path] === content,
-    })),
-  });
-  return [
-    fileRow("README.md"),
-    fileRow("notes.txt"),
-    {
-      label: tr ? "Kaydet" : "Save",
-      buttons: [
-        { label: "add .", action: addAll, disabled: st.unstaged.length === 0 && st.untracked.length === 0 },
-        { label: "commit", action: commit(`Commit ${Object.keys(repo.commits).length + 1}`), tone: "ok", disabled: st.staged.length === 0 },
-      ],
-    },
-  ];
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -101,5 +71,6 @@ export const scene = makeGitScene({
     { swatch: <rect x={-8} y={-7} width={16} height={12} rx={3} style={{ fill: "var(--sky-soft)", stroke: "var(--ink)", strokeWidth: 1.5 }} />, label: t(l("tree: bir klasör (adlar + kimlikler)", "tree: a folder (names + ids)")) },
     { swatch: <rect x={-8} y={-7} width={16} height={12} rx={3} style={{ fill: "var(--mint-soft)", stroke: "var(--ink)", strokeWidth: 1.5 }} />, label: t(l("blob: bir dosyanın içeriği", "blob: a file's content")) },
   ],
-  sandbox: { start: sandboxStart, rows, missions },
+  // Free play starts from a one-commit project; each scenario brings its own state.
+  sandbox: { start: () => BASE, scenarios },
 });

@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
-import { missions } from "./missions";
+import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
 export const workflows: Lesson = {
@@ -14,7 +14,7 @@ export const workflows: Lesson = {
   level: l("Orta", "Intermediate"),
   Scene: scene.Scene,
   changesFor: scene.changesFor,
-  missions: missions.map(({ id, title }) => ({ id, title })),
+  missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
     { text: l("Feature branch + pull request akışını baştan sona yürütmek", "Run the feature branch + pull request flow end to end"), step: 6 },
     { text: l("Branch'ini güncel main'e taşıyıp `--force-with-lease` ile göndermek", "Move your branch onto the latest main and send it with `--force-with-lease`"), step: 5 },
@@ -347,15 +347,15 @@ export const workflows: Lesson = {
     {
       short: l("Sen dene", "Your turn"),
       tag: "yourTurn",
-      title: l("Şimdi sen dene", "Now you try"),
+      title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Repo'yu yeni klonladın; o arada Bora origin'deki main'e bir commit push etti ama sen henüz görmedin. Sağda origin'i, solda kendi repo'nu izleyebilirsin.",
-          "You just cloned the repo, and meanwhile Bora pushed a commit to main on origin that you have not seen yet. Watch origin on the right and your repo on the left.",
+          "Sıra sende. Solda senin repo'n, sağda GitHub'daki origin var. Aşağıda bir iş gününden **5 senaryo** bekliyor: güncel main'den branch açmak, açık bir PR'ı güncellemek, trunk-based çalışmak, yanlış branch'e atılan commit'i kurtarmak ve iyi bir commit mesajı yazmak. Komutları terminale **kendin yaz**.",
+          "Your turn. Your repo is on the left, origin on GitHub on the right. Below are **5 scenarios** from a working day: branching from the latest main, updating an open PR, working trunk-based, rescuing a commit made on the wrong branch, and writing a good commit message. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "Sahnenin altında **3 görev** var: PR için bir branch göndermek, trunk-based çalışıp geçmişi düz tutmak ve yanlışlıkla main'e atılan bir commit'i kurtarmak.",
-          "Under the scene there are **3 missions**: push a branch for a PR, work trunk-based and keep history straight, and rescue a commit made on main by mistake.",
+          "Takılırsan `git status` ve `git log --oneline --all` yaz. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "If you're stuck, type `git status` and `git log --oneline --all`. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
       practice: {
