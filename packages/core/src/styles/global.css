@@ -1006,13 +1006,13 @@ a.drawer-item:hover {
 }
 
 .term-tip {
-  position: absolute;
-  z-index: 50;
-  left: 50%;
-  bottom: calc(100% + 10px);
-  transform: translateX(-50%);
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
   width: max-content;
-  max-width: 280px;
+  max-width: min(300px, calc(100vw - 24px));
+  pointer-events: none;
   padding: 10px 12px;
   border: var(--stroke) solid var(--ink);
   border-radius: var(--radius-m);
@@ -1695,16 +1695,6 @@ a.drawer-item:hover {
   .recap,
   .hero {
     grid-template-columns: 1fr;
-  }
-
-  .term-tip {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 24px;
-    transform: none;
-    max-width: none;
-    width: auto;
   }
 }
 
