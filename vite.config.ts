@@ -13,6 +13,7 @@ export const alias = {
   "@lets-explain/rabbitmq": here("./courses/rabbitmq/src/index.ts"),
   "@lets-explain/docker": here("./courses/docker/src/index.ts"),
   "@lets-explain/cicd": here("./courses/cicd/src/index.ts"),
+  "@lets-explain/websocket": here("./courses/websocket/src/index.ts"),
 };
 
 /**

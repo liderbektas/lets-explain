@@ -1,0 +1,287 @@
+/* The WebSocket course's stage. */
+
+.net-stage .net-ground {
+  fill: var(--paper-2);
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.net-stage .net-road {
+  stroke: var(--ink-3);
+  stroke-width: 3;
+  stroke-dasharray: 3 9;
+  stroke-linecap: round;
+}
+
+.net-stage .net-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.net-stage .env .env-flap {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.net-stage .env-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4px;
+}
+
+.net-stage .env.is-bad .env-label {
+  fill: #b8352f;
+}
+
+.net-stage .pipe-body {
+  stroke: var(--ink);
+  stroke-width: 16;
+  stroke-linecap: round;
+}
+
+.net-stage .pipe.is-sse .pipe-shine,
+.net-stage .pipe-shine {
+  stroke: var(--sun);
+  stroke-width: 11;
+  stroke-linecap: round;
+}
+
+.net-stage .pipe.is-ws .pipe-shine {
+  stroke: var(--mint);
+}
+
+.net-stage .pipe-arrow {
+  fill: var(--ink);
+}
+
+.net-stage .board-card {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.net-stage .board-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.net-stage .board-row {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.net-stage .board-row.is-empty {
+  fill: var(--ink-3);
+  font-family: var(--font-sans);
+}
+
+.net-stage .hourglass {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-turn 1.6s ease-in-out infinite;
+}
+
+@keyframes net-turn {
+  0%,
+  40% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(180deg);
+  }
+}
+
+/* Request and response cards */
+
+.http-card-bg {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.http-card-head {
+  fill: var(--sky-soft);
+}
+
+.http-card.is-ok .http-card-head {
+  fill: var(--mint-soft);
+}
+
+.http-card.is-bad .http-card-head {
+  fill: var(--red-soft);
+}
+
+.http-card-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.http-line {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.http-line.is-hl {
+  font-weight: 800;
+}
+
+.http-line.is-dim {
+  fill: var(--ink-3) !important;
+}
+
+.http-line.is-bad {
+  fill: #b8352f !important;
+  font-weight: 700;
+}
+
+/* Accept recipe */
+
+.accept-stage .machine-label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.accept-row {
+  stroke: var(--ink);
+  stroke-width: 2;
+  fill: var(--card);
+}
+
+.accept-row.is-key {
+  fill: var(--sky-soft);
+}
+
+.accept-row.is-guid {
+  fill: var(--lilac-soft);
+}
+
+.accept-row.is-hash {
+  fill: var(--sun-soft);
+}
+
+.accept-row.is-out,
+.accept-row.is-ok {
+  fill: var(--mint-soft);
+}
+
+.accept-row.is-bad {
+  fill: var(--red-soft);
+}
+
+.accept-label {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: var(--ink-2) !important;
+}
+
+.accept-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.accept-note {
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink-2) !important;
+}
+
+/* Several sockets */
+
+.sock-stage .sock-seg {
+  stroke: var(--mint-deep);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.sock-stage .sock-seg.is-dead {
+  stroke: var(--red);
+  stroke-width: 3;
+  stroke-dasharray: 6 7;
+}
+
+.sock-stage .sock-line.is-closed .sock-seg {
+  opacity: 0.35;
+}
+
+.sock-stage .sock-cut {
+  fill: var(--red);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.sock-stage .sock-held {
+  font-size: 12px;
+}
+
+/* A frame, byte by byte */
+
+.frame-view .fv-byte {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.frame-view .fv-hex {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.frame-view .fv-bracket,
+.frame-view .fv-fan {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.6;
+}
+
+.frame-view .fv-fan {
+  stroke-dasharray: 4 5;
+}
+
+.frame-view .fv-field {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.frame-view .fv-bit {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.frame-view .fv-fname {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: var(--ink-2) !important;
+}
+
+.frame-view .fv-label {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.frame-view .fv-note {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-2) !important;
+}
+
+.frame-view .fv-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+}

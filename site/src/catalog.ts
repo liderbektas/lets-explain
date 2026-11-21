@@ -5,9 +5,10 @@ import { dockerCourse } from "@lets-explain/docker";
 import { gitCourse } from "@lets-explain/git";
 import { kafkaCourse } from "@lets-explain/kafka";
 import { rabbitmqCourse } from "@lets-explain/rabbitmq";
+import { websocketCourse } from "@lets-explain/websocket";
 
 /** Courses with lessons. Add a course here once its package exists under courses/. */
-export const courses: Course[] = [kafkaCourse, gitCourse, rabbitmqCourse, dockerCourse, cicdCourse];
+export const courses: Course[] = [kafkaCourse, gitCourse, rabbitmqCourse, dockerCourse, cicdCourse, websocketCourse];
 
 /** Planned courses, shown on the hub as "soon". */
 export const planned: { id: string; name: L; tagline: L }[] = [

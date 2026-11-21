@@ -1,0 +1,6 @@
+{
+  "name": "@lets-explain/websocket",
+  "private": true,
+  "description": "The WebSocket course: a small deterministic model of a chat server (polling, long polling, server-sent events, the ws library's handshake) and its lessons.",
+  "type": "module"
+}

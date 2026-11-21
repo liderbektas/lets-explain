@@ -13,9 +13,9 @@ where you type the commands yourself.
 [**letsexplain.co**](https://letsexplain.co) · Türkçe & English · Free
 
 [![Live site](https://img.shields.io/badge/live-letsexplain.co-ff9466?style=for-the-badge)](https://letsexplain.co)
-![Courses](https://img.shields.io/badge/courses-5-7fd3b5?style=for-the-badge)
-![Lessons](https://img.shields.io/badge/lessons-102-ffd66b?style=for-the-badge)
-![Scenarios](https://img.shields.io/badge/scenarios-442-a8c8ff?style=for-the-badge)
+![Courses](https://img.shields.io/badge/courses-6-7fd3b5?style=for-the-badge)
+![Lessons](https://img.shields.io/badge/lessons-118-ffd66b?style=for-the-badge)
+![Scenarios](https://img.shields.io/badge/scenarios-505-a8c8ff?style=for-the-badge)
 
 <br />
 
@@ -86,6 +86,7 @@ shows what each one does.
 | **RabbitMQ** | 17 in 5 chapters | Python (pika) code you edit and run, background workers, `rabbitmqctl` for queues, bindings and policies, and cluster nodes you stop and start |
 | **Docker** | 22 in 8 chapters | `docker run` and friends, Dockerfiles you write and build, `docker compose`, registries, and a first look at `kubectl` |
 | **CI/CD** | 24 in 8 chapters | GitHub Actions workflows written in YAML, `git push`, `gh pr`, `gh run view --log-failed`, secrets, environments and deploy strategies |
+| **WebSocket** | 16 in 7 chapters | `curl` for polling, SSE and handshakes by hand, `wscat`, `openssl` for the accept, `printf` and `xxd` for raw frames, Node servers you edit and restart, `tshark` captures, nginx config, `iptables` to cut the network, and `redis-cli` across several servers |
 | Kubernetes, database transactions | Planned | |
 
 Every course is available in Turkish and English, and needs no prior knowledge.

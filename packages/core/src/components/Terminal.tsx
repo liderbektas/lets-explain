@@ -18,6 +18,8 @@ interface Props {
   /** Earlier commands, oldest first, for ↑ and ↓. */
   history: string[];
   onComplete?: (input: string) => { input: string; options: string[] };
+  /** Ctrl+C, for a command line that has something to stop. */
+  onInterrupt?: () => void;
   /** A command opened an editor: it takes the terminal's place until saved or cancelled. */
   editor?: TerminalEditor | null;
   disabled?: boolean;
@@ -30,7 +32,7 @@ interface Props {
  * A terminal the reader types into. It only reads and prints: a course's command line decides
  * what each command does, so the same terminal serves Git, Docker or Kafka.
  */
-export function Terminal({ prompt, log, onRun, history, onComplete, editor, disabled, lockedText, title }: Props) {
+export function Terminal({ prompt, log, onRun, history, onComplete, onInterrupt, editor, disabled, lockedText, title }: Props) {
   const { t } = useLang();
   const [input, setInput] = useState("");
   const [options, setOptions] = useState<string[]>([]);
@@ -81,6 +83,7 @@ export function Terminal({ prompt, log, onRun, history, onComplete, editor, disa
       e.preventDefault();
       setInput("");
       setOptions([]);
+      onInterrupt?.();
     } else if (e.key === "l" && e.ctrlKey) {
       e.preventDefault();
       onRun("clear");

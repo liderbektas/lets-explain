@@ -36,6 +36,8 @@ export interface CommandLine<A, S> {
   run: (state: S, line: string) => ShellResult<A, S>;
   prompt: (state: S) => string;
   complete?: (state: S, input: string) => { input: string; options: string[] };
+  /** Ctrl+C: stops what holds the terminal (an interactive client). Without it Ctrl+C only clears the line. */
+  interrupt?: (state: S) => ShellResult<A, S>;
   /** The terminal window's title, e.g. "bash". */
   title?: string;
 }
@@ -113,6 +115,13 @@ export function useTypedSandbox<A, S, R, C>(o: TypedSandboxOptions<A, S, R, C>):
     setEntries((xs) => [...xs, { prompt, line, result }]);
     setEditor(result.editor ?? null);
   };
+  const interrupt = () => {
+    if (!state || !o.shell.interrupt) return;
+    const prompt = o.shell.prompt(state);
+    const result = o.shell.interrupt(state);
+    setEntries((xs) => [...xs, { prompt, line: "^C", result }]);
+    setEditor(null);
+  };
   const save = (text: string) => {
     if (!editor || !state) return;
     const result = editor.save(state, text);
@@ -162,8 +171,9 @@ export function useTypedSandbox<A, S, R, C>(o: TypedSandboxOptions<A, S, R, C>):
         prompt={o.shell.prompt(state)}
         log={log}
         onRun={runLine}
-        history={entries.flatMap((e) => (e.line ? [e.line] : []))}
+        history={entries.flatMap((e) => (e.line && e.line !== "^C" ? [e.line] : []))}
         onComplete={o.shell.complete ? (input) => o.shell.complete!(state, input) : undefined}
+        onInterrupt={o.shell.interrupt ? interrupt : undefined}
         editor={editor ? { file: editor.file, text: editor.text, onSave: save, onCancel: cancel } : null}
         disabled={won}
         lockedText={t(ui.terminalLocked)}
@@ -187,7 +197,7 @@ export function useTypedSandbox<A, S, R, C>(o: TypedSandboxOptions<A, S, R, C>):
  * of `edits`. For scenario tests in every course.
  */
 export function typeLines<A, S>(
-  shell: Pick<CommandLine<A, S>, "run">,
+  shell: Pick<CommandLine<A, S>, "run" | "interrupt">,
   apply: (state: S, actions: A[]) => S,
   start: S,
   typed: string[],
@@ -208,6 +218,7 @@ export function typeLines<A, S>(
       settle(r.editor.save(state, edit(r.editor.text)));
     }
   };
-  for (const line of typed) settle(shell.run(state, line));
+  // "^C" stands for pressing Ctrl+C.
+  for (const line of typed) settle(line === "^C" && shell.interrupt ? shell.interrupt(state) : shell.run(state, line));
   return { actions, moves, output, state };
 }

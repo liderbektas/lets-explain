@@ -7,7 +7,7 @@ import { Belt, IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes
  * lessons. Each island is drawn around (0, 0), the centre of its top face.
  */
 
-export type IslandId = "kafka" | "rabbitmq" | "kubernetes" | "git" | "transactions" | "docker" | "cicd";
+export type IslandId = "kafka" | "rabbitmq" | "kubernetes" | "git" | "transactions" | "docker" | "cicd" | "websocket";
 
 /** The pastel each technology wears on the hub, in island tops and card headers. */
 export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
@@ -18,6 +18,7 @@ export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
   transactions: { top: "var(--mint)", soft: "var(--mint-soft)" },
   docker: { top: "var(--sky-deep)", soft: "#dcebff" },
   cicd: { top: "var(--tangerine)", soft: "var(--tangerine-soft)" },
+  websocket: { top: "var(--peach)", soft: "#fff0e2" },
 };
 
 const GROUND: Shades = ["#fffdf8", "#efe5d2", "#ddd0b8"];
@@ -198,6 +199,26 @@ function CicdTop({ s }: { s: number }) {
   );
 }
 
+/* ---------------------------------------------------------- WebSocket */
+
+function WsTop({ s }: { s: number }) {
+  // A client tower and a server tower with one open pipe between them, a message on its way.
+  const a = rel(s, -1.0, 0.75, 0.75);
+  const b = rel(s, 0.75, -1.0, 0.95);
+  const mid = rel(s, -0.12, -0.12, 0.85);
+  return (
+    <g>
+      <IsoBox s={s} at={[-1.3, 0.45, 0]} size={[0.6, 0.6, 0.9]} shades={SKY} />
+      <IsoBox s={s} at={[0.45, -1.3, 0]} size={[0.6, 0.6, 1.1]} shades={MINT} />
+      <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} className="island-pipe" />
+      <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} className="island-pipe-shine" />
+      <g transform={`translate(${mid[0]} ${mid[1] + s * 0.25})`}>
+        <Parcel s={s} size={0.42} kind="order" />
+      </g>
+    </g>
+  );
+}
+
 const TOPS: Record<IslandId, (p: { s: number }) => ReactNode> = {
   kafka: KafkaTop,
   rabbitmq: RabbitTop,
@@ -206,6 +227,7 @@ const TOPS: Record<IslandId, (p: { s: number }) => ReactNode> = {
   transactions: DbTop,
   docker: DockerTop,
   cicd: CicdTop,
+  websocket: WsTop,
 };
 
 /** A whole island: slab plus its landmark. */
@@ -239,6 +261,7 @@ export function IslandsHero({ labels, live }: { labels: Record<IslandId, string>
     ["transactions", 345, 280, 0.9],
     ["docker", 168, 392, 0.76],
     ["cicd", 318, 392, 0.76],
+    ["websocket", 226, 64, 0.7],
     ["kafka", 222, 205, 1.25],
   ];
   return (
