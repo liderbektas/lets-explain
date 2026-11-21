@@ -1327,6 +1327,18 @@ a.drawer-item:hover {
   fill: rgba(43, 42, 51, 0.12);
 }
 
+.island-pipe {
+  stroke: var(--ink);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.island-pipe-shine {
+  stroke: var(--mint);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
 .island-wire {
   fill: none;
   stroke: var(--ink);
@@ -1907,11 +1919,11 @@ a.drawer-item:hover {
 
 /* ---------- Hub: course cards ---------- */
 
+/* Live courses: even cards, three to a row; the button always sits at the bottom. */
 .hub-grid {
   display: grid;
-  grid-auto-flow: row dense;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
+  gap: 24px;
 }
 
 .hub-card {
@@ -1924,13 +1936,13 @@ a.drawer-item:hover {
 }
 
 .hub-card.is-live {
-  grid-column: span 2;
-  flex-direction: row;
   box-shadow: var(--sticker);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.hub-card.is-soon {
-  border-style: dashed;
+.hub-card.is-live:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 var(--ink);
 }
 
 .hub-card-art {
@@ -1938,26 +1950,15 @@ a.drawer-item:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 168px;
+  height: 190px;
   padding: 10px 24px 0;
   border-bottom: var(--stroke) solid var(--ink);
 }
 
-.hub-card.is-soon .hub-card-art {
-  border-bottom-style: dashed;
-}
-
-.hub-card.is-live .hub-card-art {
-  flex: 0 0 44%;
-  height: auto;
-  min-height: 250px;
-  border-bottom: 0;
-  border-right: var(--stroke) solid var(--ink);
-}
-
-.hub-card.is-soon .island-svg {
-  filter: saturate(0.75);
-  opacity: 0.9;
+.hub-card-art .island-svg {
+  width: 100%;
+  max-width: 260px;
+  height: 100%;
 }
 
 .hub-badge {
@@ -1978,23 +1979,15 @@ a.drawer-item:hover {
 
 .hub-card-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px 20px 20px;
-}
-
-.hub-card.is-live .hub-card-body {
-  padding: 22px 24px;
-  justify-content: center;
+  gap: 10px;
+  padding: 18px 20px 20px;
 }
 
 .hub-card h3 {
   margin: 0;
-  font-size: 22px;
-}
-
-.hub-card.is-live h3 {
-  font-size: 30px;
+  font-size: 24px;
 }
 
 .hub-card h3 a {
@@ -2009,23 +2002,77 @@ a.drawer-item:hover {
   line-height: 1.5;
 }
 
-.hub-card.is-live p {
-  font-size: 16px;
-}
-
 .hub-card-actions {
-  margin-top: 6px;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .hub-card-actions .btn {
+  width: 100%;
+  justify-content: center;
   min-height: 46px;
 }
 
-@media (max-width: 960px) {
+/* Planned courses: a quieter row of their own under the live ones. */
+.hub-soon {
+  margin-top: 44px;
+}
+
+.hub-soon-title {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.hub-soon-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.hub-card.is-soon {
+  flex-direction: row;
+  border-style: dashed;
+}
+
+.hub-card.is-soon .hub-card-art {
+  flex: 0 0 34%;
+  height: auto;
+  min-height: 150px;
+  padding: 8px 10px 0;
+  border-bottom: 0;
+  border-right: var(--stroke) dashed var(--ink);
+}
+
+.hub-card.is-soon .island-svg {
+  filter: saturate(0.75);
+  opacity: 0.9;
+}
+
+.hub-card.is-soon .hub-card-body {
+  justify-content: center;
+  gap: 6px;
+}
+
+.hub-card.is-soon .hub-badge {
+  position: static;
+  align-self: flex-start;
+}
+
+.hub-card.is-soon h3 {
+  font-size: 20px;
+}
+
+.hub-card.is-soon p {
+  font-size: 14px;
+}
+
+@media (max-width: 1080px) {
   .hub-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
+@media (max-width: 960px) {
   .how-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2044,19 +2091,9 @@ a.drawer-item:hover {
 }
 
 @media (max-width: 640px) {
-  .hub-grid {
+  .hub-grid,
+  .hub-soon-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hub-card.is-live {
-    grid-column: auto;
-    flex-direction: column;
-  }
-
-  .hub-card.is-live .hub-card-art {
-    min-height: 190px;
-    border-right: 0;
-    border-bottom: var(--stroke) solid var(--ink);
   }
 
   .how-item {
@@ -2103,12 +2140,6 @@ a.drawer-item:hover {
     white-space: normal;
     text-align: center;
     font-size: 13px;
-  }
-}
-
-@media (max-width: 640px) {
-  .hub-card.is-live .hub-card-art {
-    flex: none;
   }
 }
 

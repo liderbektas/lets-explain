@@ -24,9 +24,10 @@ const copy = {
   coursesLead: l("{n} kurs açık, diğerleri yolda.", "{n} live, more on the way."),
   lessons: l("ders", "lessons"),
   chapters: l("bölüm", "chapters"),
-  missions: l("görev", "missions"),
+  missions: l("senaryo", "scenarios"),
   done: l("bitti", "done"),
   soon: l("Yakında", "Soon"),
+  soonTitle: l("Sırada ne var?", "Coming next"),
   live: l("Açık", "Live"),
   open: l("Kursa git", "Open course"),
 };
@@ -39,6 +40,7 @@ const islandLabels = (t: (x: { tr: string; en: string }) => string): Record<Isla
   transactions: t(l("Transaction", "Transactions")),
   docker: "Docker",
   cicd: "CI/CD",
+  websocket: "WebSocket",
 });
 
 export function Hub() {
@@ -87,19 +89,26 @@ export function Hub() {
               <LiveCard course={course} />
             </CourseProvider>
           ))}
-          {planned.map((p) => (
-            <div key={p.id} className="hub-card is-soon">
-              <div className="hub-card-art" style={{ background: ISLAND_TINT[p.id as IslandId]?.soft }}>
-                <IslandCard id={p.id as IslandId} />
-                <span className="hub-badge">{t(copy.soon)}</span>
-              </div>
-              <div className="hub-card-body">
-                <h3>{t(p.name)}</h3>
-                <p>{t(p.tagline)}</p>
-              </div>
-            </div>
-          ))}
         </div>
+        {planned.length > 0 && (
+          <div className="hub-soon">
+            <h3 className="hub-soon-title">{t(copy.soonTitle)}</h3>
+            <div className="hub-soon-grid">
+              {planned.map((p) => (
+                <div key={p.id} className="hub-card is-soon">
+                  <div className="hub-card-art" style={{ background: ISLAND_TINT[p.id as IslandId]?.soft }}>
+                    <IslandCard id={p.id as IslandId} />
+                  </div>
+                  <div className="hub-card-body">
+                    <span className="hub-badge">{t(copy.soon)}</span>
+                    <h3>{t(p.name)}</h3>
+                    <p>{t(p.tagline)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
       <Credit />
     </div>

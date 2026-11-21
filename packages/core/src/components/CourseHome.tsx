@@ -14,7 +14,7 @@ const copy = {
   lessons: l("ders", "lessons"),
   chapters: l("bölüm", "chapters"),
   predictions: l("tahmin sorusu", "predictions"),
-  missions: l("görev", "missions"),
+  missions: l("senaryo", "scenarios"),
   progress: l("ilerlemen", "your progress"),
   done: l("bitti", "done"),
   next: l("Sıradaki", "Next up"),
