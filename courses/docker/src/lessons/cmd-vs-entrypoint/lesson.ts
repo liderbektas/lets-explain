@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const cmdVsEntrypoint: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("CMD'nin varsayılan komut olduğunu ve `docker run`'da ezildiğini görmek", "See that CMD is a default and is replaced on `docker run`"), step: 1 },
     { text: l("ENTRYPOINT'in sabit kaldığını, argümanların ona eklendiğini görmek", "See that ENTRYPOINT stays and arguments are appended to it"), step: 4 },

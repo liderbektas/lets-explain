@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const registryAndTags: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Bir image adının parçalarını okumak: registry/sahip/repo:tag", "Read the parts of an image name: registry/owner/repo:tag"), step: 1 },
     { text: l("`tag` ve `push` ile kendi image'ını yayınlamak", "Publish your own image with `tag` and `push`"), step: 2 },

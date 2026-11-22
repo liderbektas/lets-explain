@@ -2,6 +2,7 @@ import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
+import { narration } from "./narration";
 
 export const debugging: Lesson = {
   slug: "debugging",
@@ -15,6 +16,7 @@ export const debugging: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Kapanan bir container'ın logunu okuyup sebebi bulmak", "Read an exited container's logs to find the reason"), step: 1 },
     { text: l("Exit code'lardan ne olduğunu anlamak: 0, 1, 127, 137, 143", "Tell what happened from exit codes: 0, 1, 127, 137, 143"), step: 3 },

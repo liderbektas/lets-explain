@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const networks: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Varsayılan bridge'de isimle bulmanın çalışmadığını görmek", "See that name lookup fails on the default bridge"), step: 1 },
     { text: l("Kendi network'ünü kurup container'ları bağlamak", "Create your own network and connect containers"), step: 2 },

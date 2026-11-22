@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const imagesAndContainers: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Image'ın salt okunur bir paket olduğunu bilmek", "Know that an image is a read-only package"), step: 0 },
     { text: l("Container'ın image'ın üstünde kendi katmanıyla çalıştığını görmek", "See a container run on top of an image with its own layer"), step: 3 },

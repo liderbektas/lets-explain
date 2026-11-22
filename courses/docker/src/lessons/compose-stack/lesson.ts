@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -78,6 +79,7 @@ export const composeStack: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Kısa `depends_on`'un hazır olmayı beklemediğini görmek", "See that short `depends_on` does not wait for readiness"), step: 1 },
     { text: l("Healthcheck ve `condition: service_healthy` yazmak", "Write a healthcheck and `condition: service_healthy`"), step: 3 },

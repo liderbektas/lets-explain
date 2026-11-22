@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { changesFor, KubernetesScene } from "./Scene";
 
@@ -46,6 +47,7 @@ export const kubernetesIntro: Lesson = {
   Scene: KubernetesScene,
   changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Pod, Deployment ve Service'in ne olduğunu bilmek", "Know what a pod, a Deployment and a Service are"), step: 2 },
     { text: l("Kubernetes'in istenen durumu kendisi koruduğunu görmek", "See Kubernetes keep the desired state on its own"), step: 3 },

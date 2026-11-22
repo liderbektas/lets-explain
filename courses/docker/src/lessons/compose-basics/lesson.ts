@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -60,6 +61,7 @@ export const composeBasics: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Bir `compose.yaml` dosyasının yapısını okumak", "Read the structure of a `compose.yaml`"), step: 1 },
     { text: l("`.env` ile `${DEĞİŞKEN}` değerlerini doldurmak", "Fill `${VARIABLE}` values from `.env`"), step: 3 },

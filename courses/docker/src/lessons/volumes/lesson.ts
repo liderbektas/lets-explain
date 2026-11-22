@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const volumes: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Container'a yazılan verinin container'la birlikte gittiğini görmek", "See data written in a container go away with it"), step: 1 },
     { text: l("Named volume ile verinin container'dan uzun yaşadığını görmek", "See a named volume outlive the container"), step: 3 },

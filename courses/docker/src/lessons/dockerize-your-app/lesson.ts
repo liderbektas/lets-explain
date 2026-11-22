@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -59,6 +60,7 @@ export const dockerizeYourApp: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Projen için uygun bir base image seçmek", "Pick a fitting base image for your project"), step: 1 },
     { text: l("`.dockerignore` ile gereksiz ve gizli dosyaları dışarıda tutmak", "Keep unneeded and secret files out with `.dockerignore`"), step: 3 },

@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const inspectAndClean: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("`ps` ile `ps -a` farkını bilmek", "Know `ps` versus `ps -a`"), step: 1 },
     { text: l("Kapanmış bir container'ın neden kapandığını loglardan okumak", "Read from the logs why a container stopped"), step: 3 },

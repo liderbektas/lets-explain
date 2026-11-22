@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const architecture: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("CLI ile daemon'ın ayrı parçalar olduğunu bilmek", "Know that the CLI and the daemon are separate parts"), step: 0 },
     { text: l("Image'ı kimin indirdiğini görmek", "See who actually downloads an image"), step: 2 },

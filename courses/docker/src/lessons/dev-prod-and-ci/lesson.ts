@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -92,6 +93,7 @@ export const devProdAndCi: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Dev'de bind mount ile build yapmadan değişikliği görmek", "See changes in dev through a bind mount, with no build"), step: 2 },
     { text: l("Aynı Dockerfile'dan `--target` ile dev ve prod image'ı çıkarmak", "Get dev and prod images from one Dockerfile with `--target`"), step: 3 },

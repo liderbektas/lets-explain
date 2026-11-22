@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const whyContainers: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Container'ın hangi sorunu çözdüğünü anlamak", "Understand the problem containers solve"), step: 1 },
     { text: l("Sanal makine ile container farkını bilmek", "Know how a virtual machine differs from a container"), step: 3 },

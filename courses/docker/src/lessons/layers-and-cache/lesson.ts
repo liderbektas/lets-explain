@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -33,6 +34,7 @@ export const layersAndCache: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Değişmeyen satırların cache'ten geldiğini görmek", "See unchanged lines come from the cache"), step: 1 },
     { text: l("Bir cache kaçağının sonraki her satırı yeniden çalıştırdığını görmek", "See that one cache miss reruns every line after it"), step: 2 },

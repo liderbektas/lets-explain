@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -15,6 +16,7 @@ export const runFlags: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("`docker run`'ın image'ı indirip container başlattığını görmek", "See `docker run` pull an image and start a container"), step: 0 },
     { text: l("`-d` ve `--name` ile arka planda, isimle çalıştırmak", "Run in the background with a name using `-d` and `--name`"), step: 1 },

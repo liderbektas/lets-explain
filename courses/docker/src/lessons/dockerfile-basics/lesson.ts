@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -32,6 +33,7 @@ export const dockerfileBasics: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Her Dockerfile'ın bir FROM ile başladığını bilmek", "Know that every Dockerfile starts with FROM"), step: 0 },
     { text: l("COPY ve RUN'ın image'a layer eklediğini görmek", "See COPY and RUN add layers to the image"), step: 2 },

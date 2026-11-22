@@ -2,6 +2,7 @@ import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
+import { narration } from "./narration";
 
 export const resourcesAndRestart: Lesson = {
   slug: "resources-and-restart",
@@ -15,6 +16,7 @@ export const resourcesAndRestart: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Bellek sınırının aşılınca OOM ile öldürmeye yol açtığını görmek", "See that going over the memory limit means an OOM kill"), step: 2 },
     { text: l("CPU sınırının öldürmediğini, yavaşlattığını bilmek", "Know that a CPU limit slows down instead of killing"), step: 4 },

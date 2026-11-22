@@ -2,6 +2,7 @@ import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
+import { narration } from "./narration";
 
 export const security: Lesson = {
   slug: "security",
@@ -15,6 +16,7 @@ export const security: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("`USER` ile container'ı root olmadan çalıştırmak", "Run a container without root using `USER`"), step: 1 },
     { text: l("Image'a giren bir sırrın neden silinemediğini görmek", "See why a secret that entered an image cannot be deleted"), step: 3 },

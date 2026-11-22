@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -58,6 +59,7 @@ export const multiStage: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Tek stage'li image'da neyin gereksiz taşındığını görmek", "See what a single-stage image carries for nothing"), step: 1 },
     { text: l("`COPY --from` ile sadece çıktıyı son image'a almak", "Take only the output into the final image with `COPY --from`"), step: 2 },

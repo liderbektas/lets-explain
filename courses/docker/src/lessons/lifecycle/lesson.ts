@@ -1,5 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import type { Lesson } from "@lets-explain/core/course/types";
+import { narration } from "./narration";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
@@ -17,6 +18,7 @@ export const lifecycle: Lesson = {
   Scene: scene.Scene,
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
+  narration,
   objectives: [
     { text: l("Dört hali tanımak: created, running, exited, silindi", "Know the four states: created, running, exited, removed"), step: 0 },
     { text: l("Durdurmanın dosyaları silmediğini görmek", "See that stopping does not delete files"), step: 3 },
