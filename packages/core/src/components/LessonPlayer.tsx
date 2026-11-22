@@ -1,14 +1,17 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
-import { useLang, type L } from "@lets-explain/core/i18n";
+import { l, useLang, type L } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import type { Change, Lesson, LessonEntry, Practice } from "@lets-explain/core/course/types";
 import { useCourse } from "@lets-explain/core/course/context";
 import { glideToTop } from "@lets-explain/core/lib/smoothScroll";
 import { courseHref, lessonHref, replaceRoute } from "@lets-explain/core/lib/router";
+import { NARRATOR } from "@lets-explain/core/course/narration";
+import { NarrationCursor } from "@lets-explain/core/lib/playback";
 import { useGame, useProgress } from "@lets-explain/core/lib/storage";
 import { Callout } from "@lets-explain/core/components/Callout";
 import { Icon } from "@lets-explain/core/components/Icon";
+import { NarrationCaption, useNarration } from "@lets-explain/core/components/Narrator";
 import { Recap } from "@lets-explain/core/components/Recap";
 import { Rich } from "@lets-explain/core/components/Rich";
 import { SceneBoundary } from "@lets-explain/core/components/SceneBoundary";
@@ -84,6 +87,9 @@ export function LessonPlayer(props: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [go, step, replay, waiting, predict, guess]);
 
+  const narration = useNarration({ lesson, courseId, step: isRecap ? null : step, picked, paused, replayKey });
+  const startNarration = narration.start;
+
   const changes: Change[] = isRecap ? [] : (current.changes ?? lesson.changesFor?.(step) ?? []);
   const nextShort = step < last - 1 ? lesson.steps[step + 1]!.short : ui.recap;
   const shorts = [...lesson.steps.map((s) => s.short), ui.recap];
@@ -137,6 +143,32 @@ export function LessonPlayer(props: Props) {
             ))}
           </ol>
         </div>
+        {(narration.available || (narration.missing && import.meta.env.DEV)) && !isRecap && (
+          <button
+            className={`narrate-btn ${narration.on ? "is-on" : ""}`}
+            onClick={narration.on ? narration.stop : startNarration}
+            disabled={!narration.available}
+            aria-pressed={narration.on}
+            title={narration.available ? t(narration.on ? ui.narrationStop : ui.narrationStartLong) : `${t(ui.narrationMissing)}: npm run narrate -- ${courseId}/${lesson.slug}`}
+          >
+            <span className="narrate-badge" aria-hidden="true">
+              <Icon name="headphones" size={19} />
+            </span>
+            <span className="narrate-text">
+              <b>{t(narration.on ? ui.narrationListening : ui.narrationStart)}</b>
+              <small>
+                {narration.on
+                  ? t(ui.narrationStopHint)
+                  : !narration.available
+                    ? t(ui.narrationMissingShort)
+                    : `${t(l(`${NARRATOR.name} anlatıyor`, `Narrated by ${NARRATOR.name}`))} · ${narration.minutes} ${t(ui.minutes)}`}
+              </small>
+            </span>
+            <span className="narrate-play" aria-hidden="true">
+              <Icon name={narration.on ? "stop" : "play"} size={14} />
+            </span>
+          </button>
+        )}
         <span className="soft-chip">
           <Icon name="clock" size={15} /> {lesson.minutes} {t(ui.minutes)}
         </span>
@@ -235,7 +267,7 @@ export function LessonPlayer(props: Props) {
                 <button className="btn" onClick={() => go(step - 1)} disabled={step === 0} aria-label={t(ui.prev)}>
                   <Icon name="arrowLeft" size={18} />
                 </button>
-                <button className="btn btn-primary" onClick={() => go(step + 1)}>
+                <button className={`btn btn-primary ${narration.finished ? "is-nudged" : ""}`} onClick={() => go(step + 1)}>
                   <span className="next-label">
                     <b>{t(ui.continue)}</b>
                     <small>{t(nextShort)}</small>
@@ -254,12 +286,15 @@ export function LessonPlayer(props: Props) {
             </p>
           </section>
 
-          <section className={`stage ${paused ? "is-paused" : ""}`}>
+          <section className={`stage ${paused ? "is-paused" : ""} ${current.tag === "yourTurn" ? "is-try" : ""}`}>
             <SceneBoundary key={step} message={t(ui.sceneError)}>
-              <Scene step={step} paused={paused || waiting} replayKey={replayKey} controls={controls} />
+              <NarrationCursor.Provider value={narration.cursor}>
+                <Scene step={step} paused={paused || waiting} replayKey={replayKey} controls={controls} />
+              </NarrationCursor.Provider>
             </SceneBoundary>
+            <NarrationCaption narration={narration} paused={paused} onTogglePause={() => setPaused((p) => !p)} />
             <AnimatePresence>
-              {waiting && (
+              {waiting && !(narration.on && narration.caption) && (
                 <motion.div
                   className="stage-wait"
                   initial={{ opacity: 0, y: 8 }}

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { NarrationCursor } from "@lets-explain/core/lib/playback";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { useTypedSandbox, type CommandLine } from "@lets-explain/core/components/TypedSandbox";
@@ -331,6 +332,8 @@ export function makeSimScene<S, A, E>(config: SceneConfig<S, A, E>): SimScene<S,
  * played out, a settings change only briefly.
  */
 function usePacedPlayback(count: number, paused: boolean, resetKey: string, holdAfter: (i: number) => number): number {
+  // While the narrator tells the step, it says when each action happens.
+  const forced = useContext(NarrationCursor);
   const [pb, setPb] = useState({ key: resetKey, cursor: 0 });
   const cursor = pb.key === resetKey ? Math.min(pb.cursor, count) : 0;
   const wait = cursor === 0 ? 450 : holdAfter(cursor - 1);
@@ -339,7 +342,7 @@ function usePacedPlayback(count: number, paused: boolean, resetKey: string, hold
     const id = setTimeout(() => setPb((p) => ({ key: resetKey, cursor: (p.key === resetKey ? p.cursor : 0) + 1 })), wait);
     return () => clearTimeout(id);
   }, [cursor, count, paused, resetKey, wait]);
-  return cursor;
+  return forced === null ? cursor : Math.min(forced, count);
 }
 
 export const STAGE = { width: 860, height: 470 };

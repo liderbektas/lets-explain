@@ -1845,6 +1845,320 @@ a.drawer-item:hover {
   animation: nudge-left 1.1s ease-in-out infinite;
 }
 
+/* ---------- Narration ---------- */
+
+/* The audio lesson button: a headphone badge, what it is and how long, and a play button. */
+.narrate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 5px 4px 4px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--mint);
+  box-shadow: var(--sticker-s);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.narrate-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--sticker);
+}
+
+.narrate-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.narrate-badge {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.narrate-text {
+  display: grid;
+  line-height: 1.15;
+}
+
+.narrate-text b {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.narrate-text small {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.narrate-play {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--card);
+}
+
+.narrate-play svg {
+  fill: currentColor;
+}
+
+/* Playing: the button turns quiet, the badge lights up, play becomes stop. */
+.narrate-btn.is-on {
+  background: var(--card);
+}
+
+.narrate-btn.is-on .narrate-badge {
+  background: var(--mint);
+}
+
+.narrate-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 560px) {
+  .narrate-text small {
+    display: none;
+  }
+}
+
+/* The line being spoken, under the scene like a subtitle. */
+/* It takes its own room at the bottom of the stage, so the scene shrinks to fit and nothing is covered. */
+.narration-caption {
+  position: relative;
+  flex: none;
+  align-self: center;
+  margin: 4px 0 18px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  /* A steady width: only the words change from sentence to sentence. */
+  width: min(680px, calc(100% - 32px));
+  padding: 12px 20px 16px 12px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--sticker);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* On the try-it step the terminal fills the stage, so the voice speaks from the top. */
+.stage.is-try .narration-caption {
+  order: -1;
+  margin: 18px 0 4px;
+}
+
+.nc-badge {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--ink);
+  font: inherit;
+}
+
+/* The bars and the pause/play icon share the badge; one shows at a time. */
+button.nc-badge {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.nc-badge > * {
+  grid-area: 1 / 1;
+}
+
+.nc-icon {
+  display: grid;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.nc-bars {
+  transition: opacity 0.12s ease;
+}
+
+button.nc-badge:hover,
+button.nc-badge:focus-visible {
+  background: var(--mint-soft);
+  transform: scale(1.05);
+}
+
+button.nc-badge:hover .nc-icon,
+button.nc-badge:focus-visible .nc-icon,
+button.nc-badge.is-paused .nc-icon {
+  opacity: 1;
+  transform: none;
+}
+
+button.nc-badge:hover .nc-bars,
+button.nc-badge:focus-visible .nc-bars,
+button.nc-badge.is-paused .nc-bars {
+  opacity: 0;
+}
+
+button.nc-badge.is-paused {
+  background: var(--sun);
+}
+
+.narration-caption.is-done .nc-badge {
+  background: var(--sun);
+}
+
+.narration-caption.is-done .nc-badge svg {
+  animation: nudge-right 1.1s ease-in-out infinite;
+}
+
+/* Sound bars: still while nothing plays, moving only while the voice is speaking. */
+.nc-bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+
+.nc-bars i {
+  width: 4px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.is-speaking .nc-bars i {
+  animation: nc-talk 0.9s ease-in-out infinite;
+}
+
+.is-speaking .nc-bars i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+
+.is-speaking .nc-bars i:nth-child(3) {
+  animation-delay: -0.55s;
+}
+
+.is-speaking .nc-bars i:nth-child(4) {
+  animation-delay: -0.15s;
+}
+
+@keyframes nc-talk {
+  0%,
+  100% {
+    height: 6px;
+  }
+  50% {
+    height: 18px;
+  }
+}
+
+.nc-body {
+  min-width: 0;
+}
+
+.nc-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--mint-deep);
+}
+
+.narration-caption.is-done .nc-meta {
+  color: var(--ink-2);
+}
+
+.nc-count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.nc-text {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* How far into the sentence the voice is. */
+.nc-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+  background: var(--mint-soft);
+}
+
+.nc-progress span {
+  display: block;
+  height: 100%;
+  background: var(--mint-deep);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* The step has been told: the Continue button invites the next one. */
+.btn-primary.is-nudged {
+  animation: nudge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes nudge-right {
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes nudge-pulse {
+  50% {
+    transform: translateY(-2px);
+    box-shadow: var(--sticker);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary.is-nudged,
+  .narration-caption.is-done .nc-badge svg,
+  .is-speaking .nc-bars i {
+    animation: none;
+  }
+
+  .is-speaking .nc-bars i {
+    height: 14px;
+  }
+}
+
 @keyframes nudge-left {
   50% {
     transform: translateX(-4px);
@@ -1961,6 +2275,61 @@ a.drawer-item:hover {
   background: var(--card);
   font-size: 13px;
   font-weight: 800;
+}
+
+/* "Lessons here are narrated": the same headphone badge as the lesson's audio button. */
+.audio-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 11px 2px 2px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--mint);
+  box-shadow: var(--sticker-s);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.audio-badge-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.hub-audio {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.hero-audio {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.outline-audio {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--mint-soft);
+  vertical-align: middle;
 }
 
 .hub-card.is-live .hub-badge {
@@ -2121,6 +2490,21 @@ a.drawer-item:hover {
   /* The question sits under the stage on narrow screens, so the arrow would point the wrong way. */
   .stage-wait svg {
     display: none;
+  }
+
+  .narration-caption {
+    margin-bottom: 12px;
+    gap: 10px;
+    padding: 10px 14px 14px 10px;
+  }
+
+  .nc-badge {
+    width: 38px;
+    height: 38px;
+  }
+
+  .nc-text {
+    font-size: 14px;
   }
 
   .stage-wait {

@@ -6,6 +6,7 @@ import { resumeStep, useProgress } from "../lib/storage";
 import { ChapterCube } from "./CourseDrawer";
 import { HowItWorks } from "./HowItWorks";
 import { Credit } from "./Credit";
+import { AudioBadge, narratedIn } from "./AudioBadge";
 import { Icon } from "./Icon";
 
 const copy = {
@@ -18,15 +19,19 @@ const copy = {
   progress: l("ilerlemen", "your progress"),
   done: l("bitti", "done"),
   next: l("Sıradaki", "Next up"),
+  audioAll: l("Her dersi dinleyerek de öğrenebilirsin: dersin üstündeki Sesli ders düğmesine bas.", "You can also learn every lesson by listening: press Audio lesson at the top of a lesson."),
+  audioSome: l("Kulaklık işaretli dersleri dinleyerek de öğrenebilirsin: dersin üstündeki Sesli ders düğmesine bas.", "Lessons marked with headphones can be listened to: press Audio lesson at the top of the lesson."),
+  audioLesson: l("Bu dersin sesli anlatımı var", "This lesson has audio narration"),
 };
 
 /** A course's front page: hero with what is inside, how it works, and the lesson outline. */
 export function CourseHome() {
   const course = useCourse();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { progress } = useProgress();
   const entries = allLessons(course).map((x) => x.entry);
   const written = entries.filter((e) => e.lesson);
+  const narrated = narratedIn(written, lang);
   const doneCount = written.filter((e) => progress.done[e.slug]).length;
   const started = Object.keys(progress.reached).length > 0;
   const resume =
@@ -60,6 +65,12 @@ export function CourseHome() {
               </li>
             ))}
           </ul>
+          {narrated > 0 && (
+            <p className="hero-audio">
+              <AudioBadge narrated={narrated} total={written.length} />
+              <span>{t(narrated >= written.length ? copy.audioAll : copy.audioSome)}</span>
+            </p>
+          )}
           <div className="hero-actions">
             <a
               className="btn btn-primary"
@@ -118,6 +129,11 @@ export function CourseHome() {
                           </a>
                         ) : (
                           <span>{t(entry.title)}</span>
+                        )}
+                        {entry.lesson?.narration?.[lang] && (
+                          <span className="outline-audio" title={t(copy.audioLesson)} aria-label={t(copy.audioLesson)}>
+                            <Icon name="headphones" size={14} />
+                          </span>
                         )}
                         {isNext && <span className="next-chip">{t(copy.next)}</span>}
                       </li>

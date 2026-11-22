@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { NarrationCursor } from "@lets-explain/core/lib/playback";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { MissionPanel } from "@lets-explain/core/components/MissionPanel";
 import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
@@ -103,6 +104,8 @@ function dwellFor(events: DockerEvent[]): number {
  * action i so its motion can finish. Starts over when `resetKey` changes.
  */
 function usePacedPlayback(count: number, paused: boolean, resetKey: string, dwell: (i: number) => number): number {
+  // While the narrator tells the step, it says when each action happens.
+  const forced = useContext(NarrationCursor);
   const [pb, setPb] = useState({ key: resetKey, cursor: 0 });
   const cursor = pb.key === resetKey ? Math.min(pb.cursor, count) : 0;
   const wait = cursor === 0 ? 450 : dwell(cursor - 1);
@@ -111,7 +114,7 @@ function usePacedPlayback(count: number, paused: boolean, resetKey: string, dwel
     const id = setTimeout(() => setPb((p) => ({ key: resetKey, cursor: (p.key === resetKey ? p.cursor : 0) + 1 })), wait);
     return () => clearTimeout(id);
   }, [cursor, count, paused, resetKey, wait]);
-  return cursor;
+  return forced === null ? cursor : Math.min(forced, count);
 }
 
 export function makeDockerScene(config: DockerSceneConfig): DockerScene {

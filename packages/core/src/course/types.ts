@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import type { LessonNarration } from "./narration";
 import type { L } from "@lets-explain/core/i18n";
 
 export type CalloutKind = "insight" | "reality" | "analogy" | "warning";
@@ -126,6 +127,8 @@ export interface Lesson {
   quiz: QuizQuestion[];
   /** The try-it step's missions, listed so the recap can count stars. */
   missions?: { id: string; title: L }[];
+  /** The lesson told aloud, step by step (see narration.ts). */
+  narration?: LessonNarration;
 }
 
 export interface LessonEntry {

@@ -2,6 +2,7 @@ import { CourseProvider } from "@lets-explain/core/course/context";
 import type { Course } from "@lets-explain/core/course/types";
 import { HowItWorks } from "@lets-explain/core/components/HowItWorks";
 import { Credit, StarCta } from "@lets-explain/core/components/Credit";
+import { AudioBadge, narratedIn } from "@lets-explain/core/components/AudioBadge";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { glideTo } from "@lets-explain/core/lib/smoothScroll";
 import { l, useLang } from "@lets-explain/core/i18n";
@@ -116,7 +117,7 @@ export function Hub() {
 }
 
 function LiveCard({ course }: { course: Course }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { progress } = useProgress();
   const lessons = course.chapters.flatMap((c) => c.lessons).filter((e) => e.lesson);
   const done = lessons.filter((e) => progress.done[e.slug]).length;
@@ -124,12 +125,14 @@ function LiveCard({ course }: { course: Course }) {
   const started = Object.keys(progress.reached).length > 0;
   const resume = lessons.find((e) => !progress.done[e.slug] && progress.reached[e.slug] !== undefined) ?? lessons.find((e) => !progress.done[e.slug]);
   const id = course.id as IslandId;
+  const narrated = narratedIn(lessons, lang);
 
   return (
     <article className="hub-card is-live">
       <a className="hub-card-art" href={courseHref(course.id)} style={{ background: ISLAND_TINT[id]?.soft }} aria-label={course.name}>
         <IslandCard id={id} />
         <span className="hub-badge">{t(copy.live)}</span>
+        <AudioBadge narrated={narrated} total={lessons.length} className="hub-audio" />
       </a>
       <div className="hub-card-body">
         <h3>
