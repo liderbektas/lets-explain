@@ -21,6 +21,9 @@ export function TopBar({ course, onMenu }: Props) {
         <BrandMark />
         <span>Let's explain</span>
       </a>
+      <span className="beta-chip" title={t(ui.betaNote)}>
+        {t(ui.beta)}
+      </span>
       {course && (
         <a className="course-chip" href={courseHref(course.id)}>
           {course.name}

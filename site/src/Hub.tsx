@@ -2,7 +2,7 @@ import { CourseProvider } from "@lets-explain/core/course/context";
 import type { Course } from "@lets-explain/core/course/types";
 import { HowItWorks } from "@lets-explain/core/components/HowItWorks";
 import { Credit, StarCta } from "@lets-explain/core/components/Credit";
-import { AudioBadge, narratedIn } from "@lets-explain/core/components/AudioBadge";
+import { AudioBadge, narratedIn, otherLang } from "@lets-explain/core/components/AudioBadge";
 import { Icon } from "@lets-explain/core/components/Icon";
 import { glideTo } from "@lets-explain/core/lib/smoothScroll";
 import { l, useLang } from "@lets-explain/core/i18n";
@@ -126,13 +126,14 @@ function LiveCard({ course }: { course: Course }) {
   const resume = lessons.find((e) => !progress.done[e.slug] && progress.reached[e.slug] !== undefined) ?? lessons.find((e) => !progress.done[e.slug]);
   const id = course.id as IslandId;
   const narrated = narratedIn(lessons, lang);
+  const elsewhere = narratedIn(lessons, otherLang(lang));
 
   return (
     <article className="hub-card is-live">
       <a className="hub-card-art" href={courseHref(course.id)} style={{ background: ISLAND_TINT[id]?.soft }} aria-label={course.name}>
         <IslandCard id={id} />
         <span className="hub-badge">{t(copy.live)}</span>
-        <AudioBadge narrated={narrated} total={lessons.length} className="hub-audio" />
+        <AudioBadge narrated={narrated} total={lessons.length} elsewhere={elsewhere} className="hub-audio" />
       </a>
       <div className="hub-card-body">
         <h3>

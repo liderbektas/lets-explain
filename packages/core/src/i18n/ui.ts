@@ -2,6 +2,11 @@ import { l } from ".";
 
 export const ui = {
   brand: l("Kafka, adım adım", "Kafka, step by step"),
+  beta: l("Beta", "Beta"),
+  betaNote: l(
+    "Site beta aşamasında: dersler gelişiyor, bazı yerler değişebilir. Geri bildirimini GitHub'dan iletebilirsin.",
+    "The site is in beta: lessons are still evolving and some parts may change. Feedback is welcome on GitHub.",
+  ),
   learn: l("Öğren", "Learn"),
   lessonsMenu: l("Dersler", "Lessons"),
   map: l("Harita", "Map"),

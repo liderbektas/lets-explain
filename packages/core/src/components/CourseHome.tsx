@@ -6,7 +6,7 @@ import { resumeStep, useProgress } from "../lib/storage";
 import { ChapterCube } from "./CourseDrawer";
 import { HowItWorks } from "./HowItWorks";
 import { Credit } from "./Credit";
-import { AudioBadge, narratedIn } from "./AudioBadge";
+import { AudioBadge, narratedIn, otherLang } from "./AudioBadge";
 import { Icon } from "./Icon";
 
 const copy = {
@@ -22,16 +22,19 @@ const copy = {
   audioAll: l("Her dersi dinleyerek de öğrenebilirsin: dersin üstündeki Sesli ders düğmesine bas.", "You can also learn every lesson by listening: press Audio lesson at the top of a lesson."),
   audioSome: l("Kulaklık işaretli dersleri dinleyerek de öğrenebilirsin: dersin üstündeki Sesli ders düğmesine bas.", "Lessons marked with headphones can be listened to: press Audio lesson at the top of the lesson."),
   audioLesson: l("Bu dersin sesli anlatımı var", "This lesson has audio narration"),
+  audioElsewhere: l("Bu kursun sesli anlatımı İngilizce.", "This course is narrated in Turkish."),
+  audioSwitch: l("İngilizceye geç", "Switch to Turkish"),
 };
 
 /** A course's front page: hero with what is inside, how it works, and the lesson outline. */
 export function CourseHome() {
   const course = useCourse();
-  const { t, lang } = useLang();
+  const { t, lang, setLang } = useLang();
   const { progress } = useProgress();
   const entries = allLessons(course).map((x) => x.entry);
   const written = entries.filter((e) => e.lesson);
   const narrated = narratedIn(written, lang);
+  const elsewhere = narrated === 0 ? narratedIn(written, otherLang(lang)) : 0;
   const doneCount = written.filter((e) => progress.done[e.slug]).length;
   const started = Object.keys(progress.reached).length > 0;
   const resume =
@@ -69,6 +72,15 @@ export function CourseHome() {
             <p className="hero-audio">
               <AudioBadge narrated={narrated} total={written.length} />
               <span>{t(narrated >= written.length ? copy.audioAll : copy.audioSome)}</span>
+            </p>
+          )}
+          {elsewhere > 0 && (
+            <p className="hero-audio">
+              <AudioBadge narrated={0} total={written.length} elsewhere={elsewhere} />
+              <span>{t(copy.audioElsewhere)}</span>
+              <button className="btn btn-small" onClick={() => setLang(otherLang(lang))}>
+                {t(copy.audioSwitch)}
+              </button>
             </p>
           )}
           <div className="hero-actions">

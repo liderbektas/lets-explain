@@ -218,6 +218,22 @@ button {
   height: 36px;
 }
 
+/* Beta tag next to the logo: the site is still being built. */
+.beta-chip {
+  margin-left: -4px;
+  padding: 1px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sun-soft);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: help;
+}
+
 .topbar-actions {
   margin-left: auto;
   display: flex;
@@ -2282,12 +2298,12 @@ button.nc-badge.is-paused {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 2px 11px 2px 2px;
+  padding: 3px 13px 3px 3px;
   border: var(--stroke) solid var(--ink);
   border-radius: 999px;
   background: var(--mint);
   box-shadow: var(--sticker-s);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -2295,8 +2311,8 @@ button.nc-badge.is-paused {
 .audio-badge-icon {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border: var(--stroke) solid var(--ink);
   border-radius: 50%;
   background: var(--card);
@@ -2477,7 +2493,8 @@ button.nc-badge.is-paused {
 
 /* On a phone inside a course, the course chip says where you are; the logo mark is enough. */
 @media (max-width: 560px) {
-  .topbar.has-course .brand span {
+  .topbar.has-course .brand span,
+  .topbar.has-course .beta-chip {
     display: none;
   }
 
