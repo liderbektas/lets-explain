@@ -92,8 +92,8 @@ export const acksAndIsr: Lesson = {
           "The followers slowed down, yet the producer got its ack at once: the leader wrote the order and said \"done\". Right now the record is only on broker 1.",
         ),
         l(
-          "Soluk koliye ve \"HW\" direğine bak: kayıt henüz bütün ISR'de değil, consumer'lar onu göremiyor. Ama producer \"tamam\" cevabını çoktan aldı.",
-          "Look at the faded parcel and the \"HW\" post: the record is not on the whole ISR yet, so consumers cannot see it. But the producer already heard \"done\".",
+          "Soluk vagona ve \"HW\" direğine bak: kayıt henüz bütün ISR'de değil, consumer'lar onu göremiyor. Ama producer \"tamam\" cevabını çoktan aldı.",
+          "Look at the faded wagon and the \"HW\" post: the record is not on the whole ISR yet, so consumers cannot see it. But the producer already heard \"done\".",
         ),
       ],
       callouts: [

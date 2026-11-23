@@ -74,8 +74,8 @@ export const kafkaVsQueues: Lesson = {
           "Worker A took message 0. From that moment the message is its own; the other workers do not see it.",
         ),
         l(
-          "İşi bitince kuyruğa onay (ack) gönderdi ve mesaj **silindi**: öğütücüye düştü.",
-          "When it finished, it sent the queue an ack and the message was **deleted**: it fell into the shredder.",
+          "İşi bitince kuyruğa onay (ack) gönderdi ve mesaj **silindi**: raydan kaldırıldı.",
+          "When it finished, it sent the queue an ack and the message was **deleted**: it was lifted off the track.",
         ),
       ],
     },

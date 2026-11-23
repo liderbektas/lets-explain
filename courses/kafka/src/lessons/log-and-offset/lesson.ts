@@ -38,8 +38,8 @@ export const logAndOffset: Lesson = {
           "A log is a list you can only add to at the **end**. You cannot insert in the middle and you cannot change a record. That restriction is why Kafka is both simple and very fast.",
         ),
         l(
-          "Bandı bir log gibi düşün. Kesikli çizgili boş yer, sıradaki kaydın konacağı yer. Bandın ucunda da bu log'a yazacak olan sipariş servisi bekliyor.",
-          "Think of the belt as the log. The dashed empty spot is where the next record goes. At the end of the belt, the order service is waiting to write.",
+          "Rayı bir log gibi düşün. Kesikli çizgili boş yer, sıradaki kaydın konacağı yer. Rayın ucunda da bu log'a yazacak olan sipariş servisi bekliyor.",
+          "Think of the track as the log. The dashed empty spot is where the next record goes. At the end of the track, the order service is waiting to write.",
         ),
       ],
       callouts: [
@@ -58,12 +58,12 @@ export const logAndOffset: Lesson = {
       title: l("Yazmak = sona eklemek", "Writing means appending"),
       body: [
         l(
-          "Sipariş servisi üç sipariş yazdı. Her yeni koli bandın sonuna kondu, başka hiçbir yere değil.",
-          "The order service wrote three orders. Each new parcel went to the end of the belt and nowhere else.",
+          "Sipariş servisi üç sipariş yazdı. Her yeni vagon rayın sonuna eklendi, başka hiçbir yere değil.",
+          "The order service wrote three orders. Each new wagon went to the end of the track and nowhere else.",
         ),
         l(
-          "Her kolinin üstündeki numaraya dikkat et: 0, 1, 2. Bu numaraya [[offset]] denir.",
-          "Look at the number on each parcel: 0, 1, 2. That number is the [[offset]].",
+          "Her vagonun yanındaki numaraya dikkat et: 0, 1, 2. Bu numaraya [[offset]] denir.",
+          "Look at the number on each wagon: 0, 1, 2. That number is the [[offset]].",
         ),
       ],
       callouts: [
@@ -309,8 +309,8 @@ export const logAndOffset: Lesson = {
           "Billing restarted and asked Kafka: \"Where was I?\" The answer: offset 6.",
         ),
         l(
-          "Böylece 6, 7 ve 8'i **ikinci kez** okudu. Koliler üstünde \"2×\" yanıyor ve sayaçta \"Tekrar okunan: 3\" yazıyor: bu üç sipariş için ikinci kez fatura kesildi!",
-          "So it read 6, 7 and 8 **a second time**. The parcels flash \"2×\" and the counter says \"Read again: 3\": those three orders were invoiced twice!",
+          "Böylece 6, 7 ve 8'i **ikinci kez** okudu. Vagonların üstünde \"2×\" yanıyor ve sayaçta \"Tekrar okunan: 3\" yazıyor: bu üç sipariş için ikinci kez fatura kesildi!",
+          "So it read 6, 7 and 8 **a second time**. The wagons flash \"2×\" and the counter says \"Read again: 3\": those three orders were invoiced twice!",
         ),
         l(
           "Bu bir hata değil, Kafka'nın varsayılan davranışı: hiçbir kayıt kaybolmaz ama bazıları birden fazla okunabilir. Buna **at-least-once** (en az bir kez) teslim denir.",

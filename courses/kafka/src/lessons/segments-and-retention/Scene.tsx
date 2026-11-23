@@ -3,6 +3,7 @@ import { fileName, recordCount, segmentFor, type StorageEvent, type StorageLog }
 import { replayS, sCtx, storageShell } from "../../engine/storageCli";
 import { l, useLang, type L } from "@lets-explain/core/i18n";
 import { InfoCard, SEGMENT_STAGE, SegmentStage } from "../../iso/SegmentStage";
+import { MiniWagon } from "../../iso/rail";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { describeStorage } from "../shared/describeStorage";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -15,8 +16,8 @@ const SLUG = "segments-and-retention";
 
 const text = {
   label: l(
-    "Bir partition'ın log'u: segment tepsileri, üstlerinde kayıt kolileri, solda retention öğütücüsü",
-    "A partition's log: segment trays with record parcels on them, the retention shredder on the left",
+    "Bir partition'ın log'u: her segment bir tren, kayıtlar vagonlar, solda retention tüneli",
+    "A partition's log: each segment a train, records as wagons, the retention tunnel on the left",
   ),
   producer: l("Sipariş servisi", "Order service"),
   consumer: l("Consumer", "Consumer"),
@@ -35,10 +36,10 @@ const text = {
   ask: (o: number) => l(`offset ${o}?`, `offset ${o}?`),
   missing: (o: number, start: number) => l(`offset ${o} silinmiş → ${start}`, `offset ${o} is gone → ${start}`),
   survivor: (d: number) => l(`${d} günlük ama duruyor`, `${d} days old, still here`),
-  legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
+  legendParcel: l("kayıt = vagon (yanında offset)", "record = wagon (offset on its side)"),
   legendOld: l("retention'dan eski kayıt", "record older than retention"),
-  legendTray: l("tepsi = bir segment dosyası", "tray = one segment file"),
-  legendActive: l("turuncu tepsi = aktif segment", "orange tray = active segment"),
+  legendTray: l("tren = bir segment dosyası", "train = one segment file"),
+  legendActive: l("turuncu ray = aktif segment", "orange stretch = active segment"),
 };
 
 export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps) {
@@ -94,10 +95,10 @@ export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps)
   ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendParcel) },
-    ...(showAge ? [{ swatch: <MiniCube fill="var(--peach)" />, label: t(text.legendOld) }] : []),
-    { swatch: <MiniTray fill="#f6efe2" />, label: t(text.legendTray) },
-    { swatch: <MiniTray fill="var(--tangerine)" />, label: t(text.legendActive) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendParcel) },
+    ...(showAge ? [{ swatch: <MiniWagon fill="var(--peach)" />, label: t(text.legendOld) }] : []),
+    { swatch: <MiniSegment fill="#e6dac4" />, label: t(text.legendTray) },
+    { swatch: <MiniSegment fill="#ffc4a6" />, label: t(text.legendActive) },
   ];
 
   const lines = describeStorage(shownEvents, lang);
@@ -142,18 +143,18 @@ export function SegmentsScene({ step, paused, replayKey, controls }: SceneProps)
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
+
+
+/** Legend swatch for a segment: a short stretch of track with its ballast tinted. */
+function MiniSegment({ fill }: { fill: string }) {
   return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
+    <g stroke="var(--ink)" strokeWidth="1.3" strokeLinejoin="round">
+      <polygon points="-12,1 0,-5 12,1 0,7" style={{ fill }} />
+      <line x1={-7} y1={-0.5} x2={5} y2={5.5} stroke="#7d5d3d" />
+      <line x1={-3} y1={-2.5} x2={9} y2={3.5} stroke="#6d6976" strokeWidth={2} />
+      <line x1={-9} y1={0.5} x2={3} y2={6.5} stroke="#6d6976" strokeWidth={2} />
     </g>
   );
-}
-
-function MiniTray({ fill }: { fill: string }) {
-  return <polygon points="-10,0 0,-5 10,0 0,5" style={{ fill }} stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round" />;
 }
 
 /* ------------------------------------------------- "what changed" per step */

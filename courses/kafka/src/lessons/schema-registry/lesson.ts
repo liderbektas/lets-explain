@@ -77,8 +77,8 @@ export const schemaRegistry: Lesson = {
           "The order service renamed `total` to `amount`. Kafka wrote the two new records without a word.",
         ),
         l(
-          "Fatura onları okumaya çalıştı ve `total` alanını bulamadı. Kırmızı ünlem işaretli koliler, okunamayan kayıtlar.",
-          "Billing tried to read them and could not find `total`. The parcels with a red exclamation mark are the records it could not read.",
+          "Fatura onları okumaya çalıştı ve `total` alanını bulamadı. Kırmızı ünlem işaretli vagonlar, okunamayan kayıtlar.",
+          "Billing tried to read them and could not find `total`. The wagons with a red exclamation mark are the records it could not read.",
         ),
         l(
           "Hata yazan tarafta yapıldı ama okuyan tarafta, belki saatler sonra, gece yarısı patladı. Bu tür kayıtlara **poison pill** (zehirli hap) denir.",

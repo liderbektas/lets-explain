@@ -34,8 +34,8 @@ export const logCompaction: Lesson = {
           "The `user-addresses` topic holds users' addresses. Every record has a key (the user) and a value (the city). Ali is in İzmir, Ece in Ankara, Can in Bursa.",
         ),
         l(
-          "Kolilerin altındaki harf kaydın key'i. Sağ üstteki kart, bu log'u baştan sona okuyan birinin kafasında oluşan tabloyu gösteriyor.",
-          "The letter under each parcel is the record's key. The card at the top right shows the table that forms in the head of someone reading this log from start to end.",
+          "Vagonların üstündeki harf kaydın key'i. Sağ üstteki kart, bu log'u baştan sona okuyan birinin kafasında oluşan tabloyu gösteriyor.",
+          "The letter on top of each wagon is the record's key. The card at the top right shows the table that forms in the head of someone reading this log from start to end.",
         ),
         l(
           "Böyle topic'lerde önemli olan geçmiş değil, her key'in **son** değeridir.",
@@ -196,8 +196,8 @@ export const logCompaction: Lesson = {
       title: l("Bir key'i silmek: tombstone", "Deleting a key: the tombstone"),
       body: [
         l(
-          "Log'a kayıt silinmez, sadece eklenir. Bir key'i silmek için o key'le value'su boş bir kayıt yazılır: [[tombstone]]. Sahnede gri koli ve \"✕\" işareti.",
-          "Nothing is erased from a log, only added. To delete a key you write a record with that key and an empty value: a [[tombstone]]. It is the grey parcel marked \"✕\" in the scene.",
+          "Log'a kayıt silinmez, sadece eklenir. Bir key'i silmek için o key'le value'su boş bir kayıt yazılır: [[tombstone]]. Sahnede gri vagon ve \"✕\" işareti.",
+          "Nothing is erased from a log, only added. To delete a key you write a record with that key and an empty value: a [[tombstone]]. It is the grey wagon marked \"✕\" in the scene.",
         ),
         l(
           "Cleaner Ece'nin eski adresini (7) sildi, çünkü tombstone daha yeni. Tombstone'u ise bıraktı. Tabloya bak: Ece artık \"silindi\".",

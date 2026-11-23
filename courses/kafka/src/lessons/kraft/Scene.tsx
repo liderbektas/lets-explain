@@ -1,8 +1,8 @@
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage, type StageBroker, type StagePartition } from "../../iso/ClusterStage";
-import { NameTag } from "../../iso/PartitionStage";
-import { Building, Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { MiniWagon, NameTag, SignalBox, Station } from "../../iso/rail";
+import { Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
 import { kCtx, kraftShell, replayK } from "./cli";
 import type { EventLine } from "../shared/describe";
@@ -55,6 +55,8 @@ function toStage(s: KState, t: (x: L) => string, before?: KState): { brokers: St
     name: `Controller ${c.id}`,
     alive: c.alive,
     roof: TINTS.sun,
+    kind: "signalbox",
+    lit: s.active === c.id,
     badge: s.active === c.id ? { text: t(text.activeBadge), tone: "sun" } : undefined,
   }));
   const partitions: StagePartition[] = [
@@ -182,9 +184,9 @@ export function KraftScene({ step, paused, replayKey, controls: frameControls }:
   ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniHouse roof="var(--sun)" />, label: t(text.legendController) },
-    { swatch: <MiniHouse roof="var(--sky)" />, label: t(text.legendBroker) },
-    { swatch: <MiniCube fill="var(--sky)" />, label: t(text.legendRecord) },
+    { swatch: <g transform="translate(0 9)" className="rail-mini"><SignalBox s={8} tint={TINTS.sun} lit /></g>, label: t(text.legendController) },
+    { swatch: <g transform="translate(0 6)" className="rail-mini"><Station s={9} roof={TINTS.sky} platform={false} /></g>, label: t(text.legendBroker) },
+    { swatch: <MiniWagon kind="payment" />, label: t(text.legendRecord) },
     { swatch: <rect x={-10} y={-9} width={20} height={12} rx={6} className="hw-tag" />, label: t(text.legendHw) },
   ];
 
@@ -221,7 +223,7 @@ export function KraftScene({ step, paused, replayKey, controls: frameControls }:
                     <line x1={x} y1={BROKER_Y - 48} x2={active[0]} y2={active[1] + 26} className="quorum-line is-hot" />
                   )}
                   <g transform={`translate(${x} ${BROKER_Y})`}>
-                    <Building s={22} roof={TINTS.sky} status={b.alive ? "ok" : "down"} w={1.3} h={0.9} />
+                    <Station s={22} roof={TINTS.sky} status={b.alive ? "ok" : "down"} w={1.3} h={0.9} />
                     <NameTag y={-54} text={`Broker ${b.id}`} tint={b.alive ? TINTS.sky : TINTS.grey} />
                     {b.fenced && <Pill x={62} y={-30} text={t(text.fenced)} tone="danger" size={11} animate={false} />}
                     <text x={0} y={36} textAnchor="middle" className="label-soft">
@@ -249,25 +251,7 @@ export function KraftScene({ step, paused, replayKey, controls: frameControls }:
   );
 }
 
-function MiniHouse({ roof }: { roof: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-8,-2 0,2 0,8 -8,4" fill="#f3ebdc" />
-      <polygon points="0,2 8,-2 8,4 0,8" fill="#e2d6c1" />
-      <polygon points="-9,-3 0,-8 9,-3 0,2" style={{ fill: roof }} />
-    </g>
-  );
-}
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 export function changesFor(step: number): Change[] {
   if (step >= SANDBOX_STEP) return [];

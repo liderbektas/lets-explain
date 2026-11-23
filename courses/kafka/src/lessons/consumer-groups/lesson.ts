@@ -33,8 +33,8 @@ export const consumerGroups: Lesson = {
           "Every copy of the billing service runs with the same `group.id`: `billing`. Readers that share a group.id are together called a [[consumerGroup]].",
         ),
         l(
-          "Şimdilik takımda tek kişi var: Fatura 1. Topic'in üç partition'ının üçü de ona verildi. Altı siparişin hepsini okudu ve commit etti; bantların önündeki mühürler commit edilen yerleri gösteriyor.",
-          "For now the team has one member: Billing 1. All three of the topic's partitions went to it. It read all six orders and committed; the seals in front of the belts show the committed positions.",
+          "Şimdilik takımda tek kişi var: Fatura 1. Topic'in üç partition'ının üçü de ona verildi. Altı siparişin hepsini okudu ve commit etti; rayların önündeki mühürler commit edilen yerleri gösteriyor.",
+          "For now the team has one member: Billing 1. All three of the topic's partitions went to it. It read all six orders and committed; the seals in front of the tracks show the committed positions.",
         ),
         l(
           "Group'un iki görevi var: işi üyeler arasında **paylaştırmak** ve ilerlemeyi **group adına** hatırlamak. Commit edilen offset bir okuyucuya değil, group'a aittir.",

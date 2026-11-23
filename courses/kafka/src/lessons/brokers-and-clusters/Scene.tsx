@@ -3,15 +3,16 @@ import type { RState } from "../../engine/replication";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage } from "../../iso/ClusterStage";
 import { Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { MiniWagon, Station } from "../../iso/rail";
 import { describeReplicated } from "../cluster-kit/describe";
-import { clusterLabels, partitionTint, replicatedChanges, toStage, TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
+import { clusterLabels, replicatedChanges, toStage, TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
 import { rCtx, replayR, replicationShell } from "../../engine/replicationCli";
 import { model, run, SANDBOX_STEP, SLUG, stepActions } from "./model";
 import { FREE, scenarios } from "./scenarios";
 
 const text = {
-  label: l("Broker'lar bina, her partition bir bant, kayıtlar koli", "Brokers as buildings, each partition a belt, records as parcels"),
+  label: l("Broker'lar istasyon, her partition bir ray, kayıtlar vagon", "Brokers as stations, each partition a track, records as wagons"),
   producer: l("Sipariş servisi", "Order service"),
   brokersUp: l("Ayakta broker", "Brokers up"),
   online: l("Çalışan partition", "Partitions online"),
@@ -22,7 +23,7 @@ const text = {
   metaReply: l("P0 → B1 · P1 → B2 · P2 → B3", "P0 → B1 · P1 → B2 · P2 → B3"),
   bootstrap: l("bootstrap.servers", "bootstrap.servers"),
   legendBroker: l("broker = bir Kafka sunucusu", "broker = one Kafka server"),
-  legendBelt: l("bant = broker'daki partition", "belt = a partition on that broker"),
+  legendBelt: l("ray = broker'daki partition", "track = a partition on that broker"),
   legendLeader: l("leader = o partition'ın evi", "leader = where that partition lives"),
   legendDown: l("çökmüş broker", "crashed broker"),
 };
@@ -55,8 +56,8 @@ export function BrokersScene({ step, paused, replayKey, controls: frameControls 
   ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniHouse />, label: t(text.legendBroker) },
-    ...[0, 1, 2].map((i) => ({ swatch: <MiniCube fill={partitionTint(i).body} />, label: `P${i}` })),
+    { swatch: <g transform="translate(0 6)" className="rail-mini"><Station s={9} roof={TINTS.sky} platform={false} /></g>, label: t(text.legendBroker) },
+    ...(["order", "payment", "neutral"] as const).map((kind, i) => ({ swatch: <MiniWagon kind={kind} />, label: `P${i}` })),
     { swatch: <rect x={-10} y={-8} width={20} height={11} rx={5.5} className="pill pill-sun" />, label: t(text.legendLeader) },
   ];
 
@@ -106,25 +107,7 @@ export function BrokersScene({ step, paused, replayKey, controls: frameControls 
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
-function MiniHouse() {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-8,-2 0,2 0,8 -8,4" fill="#f3ebdc" />
-      <polygon points="0,2 8,-2 8,4 0,8" fill="#e2d6c1" />
-      <polygon points="-9,-3 0,-8 9,-3 0,2" style={{ fill: TINTS.sky.body }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------- "what changed" per step */
 

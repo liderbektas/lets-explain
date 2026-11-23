@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Partition } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
+import { MiniWagon, RAIL_STAGE as STAGE, RailStage, type Reader } from "../../iso/RailStage";
 import { CommitSeal, Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -17,8 +17,8 @@ const READER_TINT: Tint = TINTS.coral;
 
 const text = {
   label: l(
-    "Sipariş log'u bir bant; e-posta servisi kayıtları okuyup müşteriye e-posta gönderiyor. Sağ üstte servisin belleği ve müşterilerin gelen kutusu.",
-    "The order log as a belt; the email service reads records and emails customers. Top right: the service's memory and the customers' inboxes.",
+    "Sipariş log'u bir ray; e-posta servisi kayıtları okuyup müşteriye e-posta gönderiyor. Sağ üstte servisin belleği ve müşterilerin gelen kutusu.",
+    "The order log as a railway track; the email service reads records and emails customers. Top right: the service's memory and the customers' inboxes.",
   ),
   producer: l("Sipariş servisi", "Order service"),
   reader: l("E-posta servisi", "Email service"),
@@ -37,7 +37,7 @@ const text = {
   off: l("kapalı", "off"),
   inbox: l("Müşterilerin gelen kutusu", "Customers' inboxes"),
   lostTag: l("kayıp", "lost"),
-  legendParcel: l("sipariş kaydı (üstünde offset)", "order record (offset on top)"),
+  legendParcel: l("sipariş kaydı = vagon (yanında offset)", "order record = wagon (offset on its side)"),
   legendFlag: l("bayrak = sıradaki okunacak offset", "flag = next offset to read"),
   legendSeal: l("mühür = commit edilen offset", "seal = committed offset"),
   legendMail: l("zarf = müşteriye giden e-posta", "envelope = email sent to the customer"),
@@ -199,7 +199,7 @@ export function DeliverySemanticsScene({ step, paused, replayKey, controls }: Sc
   ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendParcel) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendParcel) },
     {
       swatch: (
         <g transform="translate(-6 5)">
@@ -258,7 +258,7 @@ export function DeliverySemanticsScene({ step, paused, replayKey, controls }: Sc
       label={t(text.label)}
       footer={footer}
     >
-      <PartitionStage
+      <RailStage
         partition={toPartition(state)}
         readers={[reader]}
         producerName={t(text.producer)}
@@ -267,7 +267,7 @@ export function DeliverySemanticsScene({ step, paused, replayKey, controls }: Sc
         marks={marks}
         kindOf={() => "order"}
         labels={{ next: t(text.next), retention: "" }}
-        showShredder={false}
+        removal="none"
       />
       <SidePanel state={state} lost={lost} t={t} />
       <AnimatePresence>
@@ -373,15 +373,6 @@ function Envelope({ x, y, tone = "ok", scale = 1 }: { x: number; y: number; tone
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------ "what changed" per step */
 

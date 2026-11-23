@@ -4,7 +4,7 @@ import { TINTS } from "@lets-explain/core/iso/shapes";
 import { useTicker } from "@lets-explain/core/lib/playback";
 import { simulate } from "./engine/cluster";
 import type { Action } from "./engine/types";
-import { PartitionStage, STAGE, type Reader } from "./iso/PartitionStage";
+import { RAIL_STAGE as STAGE, RailStage, type Reader } from "./iso/RailStage";
 
 const copy = {
   orders: l("Sipariş", "Orders"),
@@ -15,7 +15,7 @@ const copy = {
 /** A small loop for the course home: orders arrive, two readers follow at their own pace. */
 export function KafkaHero() {
   const { t } = useLang();
-  // Start with a few records already on the belt, so the first look is never an empty log.
+  // Start with a few records already on the track, so the first look is never an empty log.
   const tick = 5 + (useTicker(true, false, 1100) % 16);
   const state = useMemo(() => {
     const actions: Action[] = [
@@ -38,7 +38,7 @@ export function KafkaHero() {
   ];
   return (
     <svg className="stage-svg" viewBox={`70 10 ${STAGE.width - 70} ${STAGE.height - 10}`} aria-hidden="true">
-      <PartitionStage
+      <RailStage
         partition={partition}
         readers={readers}
         producerName={t(copy.orders)}
@@ -46,7 +46,7 @@ export function KafkaHero() {
         marks={new Map()}
         kindOf={(v) => (v.startsWith("cancel") ? "cancel" : "order")}
         labels={{ next: "", retention: "retention" }}
-        showShredder={false}
+        removal="none"
       />
     </svg>
   );

@@ -24,8 +24,8 @@ const SLUG = "producers-and-keys";
 
 const text = {
   label: l(
-    "orders topic'i: kayıtlar müşteriye göre renkli, her partition bir bant",
-    "The orders topic: records coloured by customer, each partition a belt",
+    "orders topic'i: vagonlar müşteriye göre renkli, her partition bir ray",
+    "The orders topic: wagons coloured by customer, each partition a track",
   ),
   producer: l("Sipariş servisi", "Order service"),
   partitions: l("Partition", "Partitions"),

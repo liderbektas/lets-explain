@@ -1,43 +1,43 @@
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
-import { NameTag } from "../../iso/PartitionStage";
-import { Belt, CommitSeal, Flag, GhostSlot, Parcel, Person, Pill, TINTS, type ParcelState, type PersonState, type PillTone, type Tint } from "@lets-explain/core/iso/shapes";
+import { Bed, BufferStop, GhostWagon, NameTag, Track, Wagon } from "../../iso/rail";
+import { CommitSeal, Flag, Person, Pill, TINTS, type ParcelState, type PersonState, type PillTone, type Tint } from "@lets-explain/core/iso/shapes";
 
 /**
- * A topic as stacked conveyor belts, one per partition. The producer stands at the far end
- * and drops parcels on; consumers stand at the near end of the partitions they own, with a
- * flag on each belt at the next offset they will read. Shared by the ordering and lag lessons.
+ * A topic as parallel tracks, one per partition, records as wagons. The producer stands at the
+ * far end and puts wagons on; consumers stand at the head of the partitions they own, with a
+ * flag on each track at the next offset they will read. Shared by the ordering and lag lessons.
  */
 
-export type ParcelKind = "order" | "cancel" | "payment" | "neutral";
+export type WagonKind = "order" | "cancel" | "payment" | "neutral";
 
-export interface BeltRecord {
+export interface TrackRecord {
   offset: number;
   label: string;
-  kind: ParcelKind;
+  kind: WagonKind;
   state?: ParcelState;
   tint?: Tint;
-  /** A red "!" over the parcel: it was handled out of order. */
+  /** A red "!" over the wagon: it was handled out of order. */
   alert?: boolean;
   /** Screen point it arrives from when it is not a fresh send from the producer (a request already in flight). */
   from?: [number, number];
 }
 
-export interface BeltPartition {
+export interface TrackPartition {
   logStart: number;
   logEnd: number;
-  records: BeltRecord[];
+  records: TrackRecord[];
   /** Next offset its owner reads, drawn as the owner's flag. */
   position?: number;
   committed?: number;
   ownerTint?: Tint;
-  /** A sticker above the far end of the belt, such as "lag 4". */
+  /** A sticker past the far end of the track, such as "lag 4". */
   badge?: { text: string; tone: PillTone };
   hot?: boolean;
 }
 
-export interface BeltReader {
+export interface TrackReader {
   id: string;
   name: string;
   tint: Tint;
@@ -49,12 +49,12 @@ export interface BeltReader {
 }
 
 interface Props {
-  partitions: BeltPartition[];
-  readers: BeltReader[];
-  producer: { name: string; state: PersonState; pulse?: number; kind?: ParcelKind };
+  partitions: TrackPartition[];
+  readers: TrackReader[];
+  producer: { name: string; state: PersonState; pulse?: number; kind?: WagonKind };
   partitionLabel: (i: number) => string;
   nextLabel?: string;
-  /** How many slots each belt shows; older parcels slide off the near end. */
+  /** How many slots each track shows; older wagons scroll off the head. */
   window?: number;
   /** Extra drawing on top, in stage pixels. */
   children?: ReactNode;
@@ -65,58 +65,67 @@ interface Props {
 export const STAGE = { width: 860, height: 470 };
 const S = 34;
 const SLOT = 1.1;
+/** Wagons a little smaller than on the main line, so three tracks fit. */
+export const WAGON = 0.86;
 const GAP = 2.4;
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 const walk = { type: "spring", stiffness: 120, damping: 20 } as const;
 
-/** Where things sit on the stage, so a scene can draw extras (parcels in flight) in the same place. */
-export function beltsGeometry(count: number, window = 7, origin?: { ox: number; oy: number }, badges = false) {
+/** Where things sit on the stage, so a scene can draw extras (records in flight) in the same place. */
+export function tracksGeometry(count: number, window = 7, origin?: { ox: number; oy: number }, badges = false) {
   // Keep the group centred whatever the partition count.
   const frame: Frame = {
-    // More belts stack further down-left, so the whole group shifts right to stay on stage.
+    // More tracks stack further down-left, so the whole group shifts right to stay on stage.
     ox: (origin?.ox ?? 330) + (count - 3) * 60,
     oy: (origin?.oy ?? 130) + ((4 - count) * GAP * S) / 4,
     s: S,
   };
   const at = (x: number, y: number, z = 0) => project(frame, x, y, z);
-  const beltEnd = window * SLOT + 0.4;
+  const trackEnd = window * SLOT + 0.4;
   const laneY = (i: number) => i * GAP;
   const slotX = (slot: number) => 0.55 + slot * SLOT;
-  // Badges sit just past the belt ends, so the producer steps back to make room.
-  const producerAt = at(beltEnd + (badges ? 2.9 : 1.9), laneY(count - 1) / 2);
-  return { s: S, at, beltEnd, laneY, slotX, producerAt };
+  // Badges sit just past the track ends, so the producer steps back to make room.
+  const producerAt = at(trackEnd + (badges ? 2.9 : 1.9), laneY(count - 1) / 2);
+  return { s: S, at, trackEnd, laneY, slotX, producerAt };
 }
 
-export function BeltsStage({ partitions, readers, producer, partitionLabel, nextLabel, window = 7, children, origin }: Props) {
+export function TracksStage({ partitions, readers, producer, partitionLabel, nextLabel, window = 7, children, origin }: Props) {
   const count = partitions.length;
-  const { at, beltEnd, laneY, slotX, producerAt } = beltsGeometry(count, window, origin, partitions.some((p) => p.badge));
-  const firstOf = (p: BeltPartition) => Math.max(p.logStart, p.logEnd - window);
-  const xOf = (p: BeltPartition, offset: number) => slotX(Math.max(offset, firstOf(p)) - firstOf(p));
+  const { at, trackEnd, laneY, slotX, producerAt } = tracksGeometry(count, window, origin, partitions.some((p) => p.badge));
+  const firstOf = (p: TrackPartition) => Math.max(p.logStart, p.logEnd - window);
+  const xOf = (p: TrackPartition, offset: number) => slotX(Math.max(offset, firstOf(p)) - firstOf(p));
 
   const idle = readers.filter((r) => r.partitions.length === 0);
-  const homeOf = (r: BeltReader) => {
+  const homeOf = (r: TrackReader) => {
     if (r.partitions.length > 0) return at(-2.6, laneY(r.partitions[0]!));
     const k = idle.indexOf(r);
-    // Idle readers wait in front of the last belt, out of the way.
+    // Idle readers wait in front of the last track, out of the way.
     return at(5 + k * 2.2, laneY(count - 1) + 3.6);
   };
 
   const layers: ReactNode[] = [];
+  const [bx, by] = at(0, 0);
+  layers.push(
+    <g key="bed" transform={`translate(${bx} ${by})`}>
+      <Bed s={S} x0={-1.0} x1={trackEnd + 0.45} y0={-0.85} y1={laneY(count - 1) + 0.85} />
+    </g>,
+  );
   partitions.forEach((p, i) => {
     const y = laneY(i);
     const first = firstOf(p);
     const ghost = at(xOf(p, p.logEnd), y);
-    const [lx, ly] = at(-0.5, y + 0.15);
+    const [lx, ly] = at(-0.95, y + 0.15);
     layers.push(
-      <g key={`belt-${i}`}>
+      <g key={`track-${i}`}>
         <text x={lx} y={ly + 4} textAnchor="end" className={`label-soft belts-plabel ${p.hot ? "is-hot" : ""}`}>
           {partitionLabel(i)}
         </text>
         <g transform={`translate(${at(0, y)[0]} ${at(0, y)[1]})`}>
-          <Belt s={S} from={-0.05} to={beltEnd} slot={SLOT} />
+          <Track s={S} from={-0.6} to={trackEnd + 0.2} tone={p.hot ? "hot" : undefined} />
+          <BufferStop s={S} x={-0.45} />
         </g>
         <motion.g initial={false} animate={{ x: ghost[0], y: ghost[1] }} transition={spring}>
-          <GhostSlot s={S} />
+          <GhostWagon s={S} size={WAGON} />
         </motion.g>
         {nextLabel && p.logEnd - first < window && (
           <motion.text initial={false} animate={{ x: ghost[0] + S * 0.9, y: ghost[1] + 4 }} transition={spring} className="label-soft belts-next">
@@ -131,12 +140,12 @@ export function BeltsStage({ partitions, readers, producer, partitionLabel, next
               return (
                 <motion.g
                   key={r.offset}
-                  initial={r.from ? { x: r.from[0], y: r.from[1], opacity: 1, scale: 1 } : { x: producerAt[0], y: producerAt[1] - 40, opacity: 0, scale: 0.6 }}
+                  initial={r.from ? { x: r.from[0], y: r.from[1], opacity: 1, scale: 1 } : { x: at(trackEnd + 0.6, y)[0], y: at(trackEnd + 0.6, y)[1], opacity: 0, scale: 1 }}
                   animate={{ x, y: py, opacity: 1, scale: 1 }}
-                  exit={{ x: at(-0.5, y)[0], y: at(-0.5, y)[1], opacity: 0 }}
-                  transition={spring}
+                  exit={{ x: at(-0.3, y)[0], y: at(-0.3, y)[1], opacity: 0 }}
+                  transition={r.from ? spring : { type: "spring", stiffness: 90, damping: 18, opacity: { duration: 0.25 } }}
                 >
-                  <Parcel s={S} kind={r.kind} label={r.label} state={r.state ?? "normal"} readTint={r.tint} size={0.74} />
+                  <Wagon s={S} kind={r.kind} open={false} label={r.label || r.offset} state={r.state ?? "normal"} readTint={r.tint} size={WAGON} />
                   {r.alert && (
                     <g transform={`translate(0 ${-S * 1.55})`}>
                       <g className="pop">
@@ -147,9 +156,11 @@ export function BeltsStage({ partitions, readers, producer, partitionLabel, next
                       </g>
                     </g>
                   )}
-                  <text y={S * 0.62} textAnchor="middle" className="belts-offset">
-                    {r.offset}
-                  </text>
+                  {r.label !== "" && (
+                    <text y={S * 0.72} textAnchor="middle" className="belts-offset">
+                      {r.offset}
+                    </text>
+                  )}
                 </motion.g>
               );
             })}
@@ -173,17 +184,17 @@ export function BeltsStage({ partitions, readers, producer, partitionLabel, next
           </motion.g>
         )}
         {p.badge && (
-          <Pill key={`badge-${i}-${p.badge.text}`} x={at(beltEnd + 0.95, y)[0]} y={at(beltEnd + 0.95, y)[1] - 4} text={p.badge.text} tone={p.badge.tone} size={12} />
+          <Pill key={`badge-${i}-${p.badge.text}`} x={at(trackEnd + 0.95, y)[0]} y={at(trackEnd + 0.95, y)[1] - 4} text={p.badge.text} tone={p.badge.tone} size={12} />
         )}
       </g>,
     );
 
-    // Readers stand by the first partition they own, drawn after that belt so depth is right.
+    // Readers stand by the first partition they own, drawn after that track so depth is right.
     for (const r of readers.filter((x) => x.partitions[0] === i)) layers.push(readerNode(r));
   });
   for (const r of idle) layers.push(readerNode(r));
 
-  function readerNode(r: BeltReader) {
+  function readerNode(r: TrackReader) {
     const [hx, hy] = homeOf(r);
     const down = r.state === "crashed";
     return (
@@ -213,8 +224,8 @@ export function BeltsStage({ partitions, readers, producer, partitionLabel, next
           state={producer.state}
           scale={1.05}
           carrying={
-            <g transform="scale(0.5)">
-              <Parcel s={S * 1.4} kind={producer.kind ?? "order"} />
+            <g transform="translate(0 6) scale(0.42)">
+              <Wagon s={50} kind={producer.kind ?? "order"} open={false} />
             </g>
           }
         />

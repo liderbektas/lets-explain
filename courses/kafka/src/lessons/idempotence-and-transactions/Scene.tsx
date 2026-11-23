@@ -2,7 +2,7 @@ import { AnimatePresence } from "motion/react";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Partition } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
+import { MarkerWagon, MiniWagon, RAIL_STAGE as STAGE, RailStage, type Reader } from "../../iso/RailStage";
 import { Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -30,8 +30,8 @@ const RU_TINT: Tint = TINTS.sun;
 
 const text = {
   label: l(
-    "invoices log'u bir bant. Fatura servisi her sipariş için bir fatura yazıyor; iki okuyucu farklı isolation.level ile okuyor. Sağ üstte producer'ın ayarları.",
-    "The invoices log as a belt. The billing service writes one invoice per order; two readers read with different isolation levels. Top right: the producer's settings.",
+    "invoices log'u bir ray. Fatura servisi her sipariş için bir fatura yazıyor; iki okuyucu farklı isolation.level ile okuyor. Sağ üstte producer'ın ayarları.",
+    "The invoices log as a railway track. The billing service writes one invoice per order; two readers read with different isolation levels. Top right: the producer's settings.",
   ),
   producer: l("Fatura servisi", "Billing service"),
   rc: l("Muhasebe", "Accounting"),
@@ -54,10 +54,12 @@ const text = {
   down: l("Servis çöktü", "Service is down"),
   input: l("orders okuma: sıradaki {p} · commit {c}", "orders input: next {p} · committed {c}"),
   lso: l("read_committed bekliyor: açık transaction", "read_committed waits: open transaction"),
-  legendData: l("fatura kaydı (üstünde offset)", "invoice record (offset on top)"),
+  legendData: l("fatura kaydı = vagon (yanında offset)", "invoice record = wagon (offset on its side)"),
   legendAborted: l("iptal edilen transaction'ın kaydı", "record of an aborted transaction"),
   legendMarker: l("kontrol kaydı (commit/abort işareti)", "control record (commit/abort marker)"),
-  legendOpen: l("soluk = transaction henüz açık", "faded = transaction still open"),
+  legendOpen: l("soluk, mühürlü = transaction henüz açık", "faded, sealed = transaction still open"),
+  gate: l("broker: PID + seq kontrolü", "broker: PID + seq check"),
+  rejected: l("seq #{n} zaten yazıldı, atıldı", "seq #{n} already written, dropped"),
   legendReaders: l("Muhasebe: read_committed · Rapor: read_uncommitted", "Accounting: read_committed · Reports: read_uncommitted"),
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
@@ -289,10 +291,10 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
   }
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendData) },
-    { swatch: <MiniCube fill="var(--peach)" />, label: t(text.legendAborted) },
-    { swatch: <MiniCube fill="var(--sky)" />, label: t(text.legendMarker) },
-    { swatch: <g opacity={0.35}><MiniCube fill="var(--mint)" /></g>, label: t(text.legendOpen) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendData) },
+    { swatch: <MiniWagon kind="cancel" />, label: t(text.legendAborted) },
+    { swatch: <MiniMarker />, label: t(text.legendMarker) },
+    { swatch: <MiniWagon kind="order" sealed dim />, label: t(text.legendOpen) },
   ];
   if (step >= 7) legend.push({ swatch: <circle r={5} cy={-3} className="ink" style={{ fill: RC_TINT.body }} />, label: t(text.legendReaders) });
 
@@ -324,6 +326,7 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
   ) : null;
 
   const rcWaiting = lastStable(state) < state.log.length;
+  const rejected = lastEvents.find((e): e is Extract<TEvent, { type: "retryDropped" }> => e.type === "retryDropped") ?? null;
   return (
     <SceneFrame
       metrics={metrics}
@@ -335,7 +338,7 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
       label={t(text.label)}
       footer={footer}
     >
-      <PartitionStage
+      <RailStage
         partition={toPartition(state)}
         readers={readers}
         producerName={t(text.producer)}
@@ -343,8 +346,15 @@ export function IdempotenceScene({ step, paused, replayKey, controls }: ScenePro
         producerPulse={pulse}
         marks={marks}
         kindOf={kindOf}
+        look={(offset) => {
+          const r = state.log[offset];
+          if (!r) return {};
+          if (r.kind !== "data") return { marker: r.kind };
+          return { sealed: isOpen(state, r), end: r.seq !== null ? `#${r.seq}` : undefined };
+        }}
+        gate={state.idempotent ? { label: t(text.gate), rejected: rejected ? { pulse, text: fill(t(text.rejected), { n: rejected.seq }) } : null } : null}
         labels={{ next: t(text.next), retention: "" }}
-        showShredder={false}
+        removal="none"
       />
       <SettingsPanel state={state} t={t} />
       <AnimatePresence>
@@ -396,15 +406,6 @@ function SettingsPanel({ state, t }: { state: TState; t: (x: L) => string }) {
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------ "what changed" per step */
 
@@ -452,4 +453,13 @@ export function changesFor(step: number): Change[] {
     });
   }
   return out;
+}
+
+/** Legend swatch for a control record: the marker flatcar, small. */
+function MiniMarker() {
+  return (
+    <g transform="translate(0 3)" className="rail-mini">
+      <MarkerWagon s={14} kind="commit" />
+    </g>
+  );
 }

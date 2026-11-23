@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
-import { NameTag } from "../../iso/PartitionStage";
-import { Belt, Building, CommitSeal, Flag, GhostSlot, Parcel, Person, Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { BufferStop, GhostWagon, MiniWagon, NameTag, Station, Track, Wagon } from "../../iso/rail";
+import { CommitSeal, Flag, Person, Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { EventLine } from "../shared/describe";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -30,7 +30,7 @@ const H = 470;
 const F: Frame = { ox: 104, oy: 262, s: 29 };
 const SLOT = 1.1;
 const WINDOW = 8;
-const BELT_END = WINDOW * SLOT + 0.75;
+const TRACK_END = WINDOW * SLOT + 0.75;
 const at = (x: number, y: number, z = 0) => project(F, x, y, z);
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 const APP: [number, number] = [214, 118];
@@ -42,8 +42,8 @@ const SHORT: Record<City, string> = { İstanbul: "İst", Ankara: "Ank", İzmir: 
 
 const text = {
   label: l(
-    "Solda orders topic'i bir bant, ortada sayım uygulaması ve state store, sağda changelog ve sonuç topic'i",
-    "On the left the orders topic as a belt, in the middle the counting app and its state store, on the right the changelog and the result topic",
+    "Solda orders topic'i bir ray, ortada sayım uygulaması ve state store, sağda changelog ve sonuç topic'i",
+    "On the left the orders topic as a railway track, in the middle the counting app and its state store, on the right the changelog and the result topic",
   ),
   producer: l("Sipariş servisi", "Order service"),
   app: l("Sayım uygulaması", "Counting app"),
@@ -108,7 +108,7 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
   ];
 
   const legend: LegendItem[] = [
-    ...CITIES.map((c) => ({ swatch: <MiniCube fill={FILL[c]} />, label: cityName(c, lang) })),
+    ...CITIES.map((c) => ({ swatch: <MiniWagon kind={KIND[c]} open={false} />, label: cityName(c, lang) })),
     {
       swatch: (
         <g transform="translate(-6 5)">
@@ -138,7 +138,7 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
   const orderedNow = lastEvents.some((e) => e.type === "ordered");
   const restoredNow = lastEvents.some((e) => e.type === "restored");
   const abortedNow = lastEvents.some((e) => e.type === "crashed" && e.aborted > 0);
-  const producerAt = at(BELT_END + 1.0, 1.1);
+  const producerAt = at(TRACK_END + 1.0, 1.1);
   const [flagX, flagY] = at(xOf(state.position), 0.95);
   const [sealX, sealY] = at(xOf(state.committed) - 0.7, 1.85);
 
@@ -179,13 +179,14 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
       <path d={`M${APP[0] + 40} ${APP[1] - 10} C ${APP[0] + 90} ${APP[1] - 10}, 300 70, 318 70`} className={`link ks-flow ${processedNow.size ? "is-hot" : ""}`} />
 
       <g transform={`translate(${F.ox} ${F.oy})`}>
-        <Belt s={F.s} from={-0.05} to={BELT_END} slot={SLOT} />
+        <Track s={F.s} from={-0.6} to={TRACK_END + 0.2} />
+        <BufferStop s={F.s} x={-0.45} />
       </g>
       <text x={at(0, 0)[0] - 4} y={at(0, 0)[1] - 44} className="ks-title">
         orders
       </text>
       <motion.g initial={false} animate={{ x: at(xOf(state.input.length), 0)[0], y: at(xOf(state.input.length), 0)[1] }} transition={spring}>
-        <GhostSlot s={F.s} />
+        <GhostWagon s={F.s} />
       </motion.g>
       <AnimatePresence initial={false}>
         {visibleInput.map((r) => {
@@ -193,14 +194,15 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
           return (
             <motion.g
               key={r.offset}
-              initial={{ x: producerAt[0], y: producerAt[1] - 40, opacity: 0, scale: 0.6 }}
-              animate={{ x, y, opacity: 1, scale: 1 }}
-              exit={{ x: at(-0.6, 0)[0], y: at(-0.6, 0)[1], opacity: 0 }}
-              transition={spring}
+              initial={{ x: at(TRACK_END + 0.6, 0)[0], y: at(TRACK_END + 0.6, 0)[1], opacity: 0 }}
+              animate={{ x, y, opacity: 1 }}
+              exit={{ x: at(-0.3, 0)[0], y: at(-0.3, 0)[1], opacity: 0 }}
+              transition={{ type: "spring", stiffness: 90, damping: 18, opacity: { duration: 0.25 } }}
             >
-              <Parcel
+              <Wagon
                 s={F.s}
                 kind={KIND[r.city]}
+                open={false}
                 label={r.offset}
                 state={againNow.has(r.offset) ? "dup" : processedNow.has(r.offset) ? "read" : "normal"}
                 readTint={TINTS.lilac}
@@ -224,7 +226,7 @@ export function KafkaStreamsScene({ step, paused, replayKey, controls }: ScenePr
 
       {/* The app: an ordinary service with the Streams library inside. */}
       <g transform={`translate(${APP[0]} ${APP[1]})`}>
-        <Building s={26} roof={TINTS.lilac} status={state.alive ? "ok" : "down"} w={1.7} />
+        <Station s={26} roof={TINTS.lilac} status={state.alive ? "ok" : "down"} w={1.7} />
         <NameTag y={34} text={t(text.app)} tint={state.alive ? TINTS.lilac : TINTS.grey} />
         <text y={62} textAnchor="middle" className="label-soft">
           {t(text.library)}
@@ -391,15 +393,6 @@ function TableCard({
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------------- event wording */
 

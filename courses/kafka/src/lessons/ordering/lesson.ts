@@ -37,8 +37,8 @@ export const ordering: Lesson = {
           "If shipping sees \"shipped\" before \"paid\", it might send out an unpaid parcel. The events have to be handled **in the order they were written**.",
         ),
         l(
-          "Sahnede `orders` [[topic]]'inin üç [[partition]]'ı var. Her bandın başında bir Kargo [[consumer]]'ı duruyor. Üçü aynı [[consumerGroup|consumer group]]'ta ve partition'ları aralarında paylaşıyorlar.",
-          "The stage shows the `orders` [[topic]] with three [[partition|partitions]]. A shipping [[consumer]] stands at the start of each belt. All three are in one [[consumerGroup|consumer group]] and share the partitions between them.",
+          "Sahnede `orders` [[topic]]'inin üç [[partition]]'ı var. Her rayın başında bir Kargo [[consumer]]'ı duruyor. Üçü aynı [[consumerGroup|consumer group]]'ta ve partition'ları aralarında paylaşıyorlar.",
+          "The stage shows the `orders` [[topic]] with three [[partition|partitions]]. A shipping [[consumer]] stands at the start of each track. All three are in one [[consumerGroup|consumer group]] and share the partitions between them.",
         ),
       ],
       callouts: [

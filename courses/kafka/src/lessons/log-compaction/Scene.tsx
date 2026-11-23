@@ -3,6 +3,7 @@ import { allRecords, recordCount, type StorageEvent, type StorageLog } from "../
 import { replayS, sCtx, storageShell } from "../../engine/storageCli";
 import { l, useLang, type L } from "@lets-explain/core/i18n";
 import { InfoCard, SEGMENT_STAGE, SegmentStage } from "../../iso/SegmentStage";
+import { MiniWagon, WAGON_SHADES } from "../../iso/rail";
 import { TINTS } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { describeStorage } from "../shared/describeStorage";
@@ -16,8 +17,8 @@ const SLUG = "log-compaction";
 
 const text = {
   label: l(
-    "Sıkıştırılan bir topic: segment tepsileri, üstlerinde key'i yazan kayıt kolileri, sağ üstte baştan okuyanın göreceği tablo",
-    "A compacted topic: segment trays with parcels tagged by key, and at the top right the table a reader from the start would see",
+    "Sıkıştırılan bir topic: her segment bir tren, vagonların üstünde key'leri, sağ üstte baştan okuyanın göreceği tablo",
+    "A compacted topic: each segment a train of wagons tagged by key, and at the top right the table a reader from the start would see",
   ),
   producer: l("Üyelik servisi", "Accounts service"),
   segment: (b: number) => l(`segment ${b}`, `segment ${b}`),
@@ -36,7 +37,7 @@ const text = {
   stays: l("yenisi aktif segment'te", "the newer one is in the active segment"),
   tombstone: l("tombstone", "tombstone"),
   legendTomb: l("tombstone (value = null)", "tombstone (value = null)"),
-  legendTray: l("tepsi = bir segment", "tray = one segment"),
+  legendTray: l("tren = bir segment", "train = one segment"),
 };
 
 export function LogCompactionScene({ step, paused, replayKey, controls }: SceneProps) {
@@ -79,9 +80,9 @@ export function LogCompactionScene({ step, paused, replayKey, controls }: SceneP
   ];
 
   const legend: LegendItem[] = [
-    ...people.map((p) => ({ swatch: <MiniCube fill={p.tint.body} />, label: t(p.name) })),
-    { swatch: <MiniCube fill="#efe7d8" />, label: t(text.legendTomb) },
-    { swatch: <MiniTray fill="#f6efe2" />, label: t(text.legendTray) },
+    ...people.map((p) => ({ swatch: <MiniWagon shades={WAGON_SHADES[p.shades]} />, label: t(p.name) })),
+    { swatch: <MiniWagon kind="neutral" />, label: t(text.legendTomb) },
+    { swatch: <MiniSegment fill="#e6dac4" />, label: t(text.legendTray) },
   ];
 
   const table = tableOf(log);
@@ -128,6 +129,7 @@ export function LogCompactionScene({ step, paused, replayKey, controls }: SceneP
           shredder: t(text.shredder),
           hidden: (n) => t(text.hidden(n)),
         }}
+        head="cleaner"
         producerName={t(text.producer)}
         producerState={produced ? "hop" : "idle"}
         producerPulse={pulse}
@@ -139,19 +141,7 @@ export function LogCompactionScene({ step, paused, replayKey, controls }: SceneP
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
-function MiniTray({ fill }: { fill: string }) {
-  return <polygon points="-10,0 0,-5 10,0 0,5" style={{ fill }} stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round" />;
-}
 
 /* ------------------------------------------------- "what changed" per step */
 
@@ -190,4 +180,16 @@ export function changesFor(step: number): Change[] {
   if (step === 3) out.push({ kind: "good", text: both("Offset'ler aynı kaldı: 2, 4, 5. Aradaki boşluklar normal", "Offsets stayed the same: 2, 4, 5. The gaps are normal") });
   if (step === 7) out.push({ kind: "good", text: both("Baştan okuyan biri her key'in son değerini alıyor", "A reader from the start gets every key's latest value") });
   return out;
+}
+
+/** Legend swatch for a segment: a short stretch of track with its ballast tinted. */
+function MiniSegment({ fill }: { fill: string }) {
+  return (
+    <g stroke="var(--ink)" strokeWidth="1.3" strokeLinejoin="round">
+      <polygon points="-12,1 0,-5 12,1 0,7" style={{ fill }} />
+      <line x1={-7} y1={-0.5} x2={5} y2={5.5} stroke="#7d5d3d" />
+      <line x1={-3} y1={-2.5} x2={9} y2={3.5} stroke="#6d6976" strokeWidth={2} />
+      <line x1={-9} y1={0.5} x2={3} y2={6.5} stroke="#6d6976" strokeWidth={2} />
+    </g>
+  );
 }

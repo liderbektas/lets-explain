@@ -1,6 +1,6 @@
-/* Cluster drawings: replica belts, the high watermark post. */
+/* Cluster drawings: replica sidings, their signals, the high watermark post. */
 
-.cluster-belt.is-dim {
+.cluster-siding.is-dim {
   opacity: 0.45;
 }
 
@@ -32,4 +32,8 @@
 .quorum-line.is-hot {
   stroke: var(--sun-deep, #d9a826);
   stroke-dasharray: 6 5;
+}
+
+.siding-flag {
+  fill: var(--sun);
 }

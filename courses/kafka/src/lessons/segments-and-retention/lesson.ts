@@ -34,8 +34,8 @@ export const segmentsAndRetention: Lesson = {
           "In the log lesson we pictured a partition as one long list. On disk, each partition has a folder, such as `orders-0/`. The log lives in that folder not as one huge file but in pieces.",
         ),
         l(
-          "Her parçaya [[segment]] denir. Sahnedeki her tepsi bir segment dosyası. Kayıtlar hep en sondaki tepsiye, [[activeSegment|aktif segment]]'e yazılır.",
-          "Each piece is called a [[segment]]. Every tray in the scene is one segment file. Records always go to the last tray, the [[activeSegment|active segment]].",
+          "Her parçaya [[segment]] denir. Sahnedeki her tren bir segment dosyası. Kayıtlar hep en sondaki trene, [[activeSegment|aktif segment]]'e yazılır.",
+          "Each piece is called a [[segment]]. Every train in the scene is one segment file. Records always go to the last train, the [[activeSegment|active segment]].",
         ),
         l(
           "Şimdilik iki sipariş yazıldı ve ikisi de aynı segment'te: offset 0 ve 1.",
@@ -170,16 +170,16 @@ export const segmentsAndRetention: Lesson = {
       title: l("Kayıtlar yaşlanıyor", "Records get older"),
       body: [
         l(
-          "Altı gün geçti; arada 3. gün bir sipariş daha geldi. Her tepsinin üstünde, içindeki **en yeni** kaydın kaç günlük olduğu yazıyor.",
-          "Six days went by, with one more order on day 3. Above each tray you can see how old its **newest** record is.",
+          "Altı gün geçti; arada 3. gün bir sipariş daha geldi. Her trenin önünde, içindeki **en yeni** kaydın kaç günlük olduğu yazıyor.",
+          "Six days went by, with one more order on day 3. In front of each train you can see how old its **newest** record is.",
         ),
         l(
           "[[retention|Retention]] tam olarak buna bakar. Varsayılan süre 7 gün: `retention.ms = 604800000`. Bir segment'in en yeni kaydı 7 günden eskiyse, segment silinebilir.",
           "[[retention|Retention]] looks at exactly that. The default is 7 days: `retention.ms = 604800000`. Once a segment's newest record is older than 7 days, the segment can be deleted.",
         ),
         l(
-          "Şimdilik hiçbir segment 7 günü geçmedi. Turuncu koli, yani retention'dan eski bir kayıt, henüz yok.",
-          "No segment is past 7 days yet. There is no orange parcel, a record older than retention, so far.",
+          "Şimdilik hiçbir segment 7 günü geçmedi. Turuncu vagon, yani retention'dan eski bir kayıt, henüz yok.",
+          "No segment is past 7 days yet. There is no orange wagon, a record older than retention, so far.",
         ),
       ],
       callouts: [
@@ -214,8 +214,8 @@ export const segmentsAndRetention: Lesson = {
       title: l("Retention kayıt değil, segment siler", "Retention deletes segments, not records"),
       body: [
         l(
-          "8. gün geldi. Segment 0 ve segment 3'ün içindeki en yeni kayıt 8 günlük, yani 7 günü geçti. İki segment de öğütücüye gitti.",
-          "Day 8 is here. The newest records in segments 0 and 3 are 8 days old, past the 7-day limit, so both segments went into the shredder.",
+          "8. gün geldi. Segment 0 ve segment 3'ün içindeki en yeni kayıt 8 günlük, yani 7 günü geçti. İki segment de tünele girip silindi.",
+          "Day 8 is here. The newest records in segments 0 and 3 are 8 days old, past the 7-day limit, so both segments went into the tunnel and were deleted.",
         ),
         l(
           "Bütün bir dosyayı silmek çok ucuzdur: Kafka dosyanın içini yeniden yazmaz, sadece dosyayı siler.",
@@ -337,8 +337,8 @@ export const segmentsAndRetention: Lesson = {
         {
           kind: "insight",
           text: l(
-            "Tepsilerin üstündeki \"en yeni kayıt\" etiketini izle: retention sadece ona bakar. Kırmızı olan segment bir sonraki kontrolde gider.",
-            "Watch the \"newest record\" label above each tray: it is all retention looks at. A red one goes at the next check.",
+            "Trenlerin önündeki \"en yeni kayıt\" etiketini izle: retention sadece ona bakar. Kırmızı olan segment bir sonraki kontrolde gider.",
+            "Watch the \"newest record\" label in front of each train: it is all retention looks at. A red one goes at the next check.",
           ),
         },
       ],

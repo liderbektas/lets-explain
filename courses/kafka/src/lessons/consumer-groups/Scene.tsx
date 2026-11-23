@@ -32,7 +32,7 @@ const text = {
   analyticsLag: l("Analitik lag", "Analytics lag"),
   again: l("Tekrar okunan", "Read again"),
   yours: l("(senin)", "(yours)"),
-  legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
+  legendParcel: l("kayıt = vagon (yanında offset)", "record = wagon (offset on its side)"),
   legendFlag: l("bayrak = sıradaki offset", "flag = next offset"),
   legendSeal: l("mühür = group'un commit ettiği offset", "seal = offset the group committed"),
   p1: l("Rebalance: Fatura 1 → P0+P1 · Fatura 2 → P2", "Rebalance: Billing 1 → P0+P1 · Billing 2 → P2"),

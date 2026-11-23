@@ -1,8 +1,24 @@
-/* Segment trays, key tags and corner cards for the Storage lessons. */
+/* Segment trains, key tags and corner cards for the Storage lessons. */
 
-.tray-expired polygon {
-  stroke: var(--red);
+.segment-band {
+  stroke: none !important;
+}
+.segment-band.is-closed {
+  fill: #e6dac4;
+}
+.segment-band.is-active {
+  fill: #ffc4a6;
+}
+.segment-band.is-hot {
+  fill: var(--sun);
+}
+.segment-band.is-expired {
+  fill: #ffb0a8;
+}
+.segment-joint {
+  stroke: var(--ink);
   stroke-width: 3;
+  stroke-linecap: round;
 }
 
 .key-tag {

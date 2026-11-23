@@ -2,11 +2,14 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import "./cluster.css";
 import { rel } from "@lets-explain/core/iso/geometry";
-import { NameTag } from "./PartitionStage";
-import { Belt, Building, GhostSlot, Parcel, Person, Pill, TINTS, type ParcelState, type PersonState, type PillTone, type Tint } from "@lets-explain/core/iso/shapes";
+import { GhostWagon, NameTag, SignalBox, Station, Track, Wagon } from "./rail";
+import { Person, Pill, TINTS, type ParcelState, type PersonState, type PillTone, type Tint } from "@lets-explain/core/iso/shapes";
 
 /**
- * Brokers as buildings in a row, each with a short belt per partition copy it holds.
+ * Brokers as railway stations in a row, each with a short siding per partition copy it holds:
+ * the copy's records are wagons on it. A signal at the head of each siding shows the copy's
+ * state: green with a flag for the leader, green for an in-sync follower, red when it fell out
+ * of the ISR or is offline. Followers catch up by taking the wagons they miss from the leader.
  * Used for clusters, replication and the KRaft controller quorum (there the "partition"
  * is the metadata log).
  */
@@ -17,7 +20,7 @@ export interface StageRecord {
   state?: ParcelState;
   /**
    * Set when the record reached this copy in the latest action: written by the producer onto
-   * the leader, or copied from the leader by a follower. The parcel then travels that way.
+   * the leader, or copied from the leader by a follower. The wagon then rolls in from there.
    */
   arrived?: "producer" | "copy";
 }
@@ -32,10 +35,10 @@ export interface StageReplica {
 
 export interface StagePartition {
   id: string;
-  /** Short name on the belt, such as "P0". */
+  /** Short name of the siding, such as "P0". */
   label: string;
   replicas: StageReplica[];
-  /** High watermark marker on the leader's belt; omit to hide. */
+  /** High watermark marker on the leader's siding; omit to hide. */
   hw?: number;
 }
 
@@ -45,6 +48,10 @@ export interface StageBroker {
   alive: boolean;
   slow?: boolean;
   roof?: Tint;
+  /** A station (broker) or a signal box (KRaft controller). */
+  kind?: "station" | "signalbox";
+  /** A signal box in charge has its cabin lit. */
+  lit?: boolean;
   /** Small pill above the roof, e.g. "aktif". */
   badge?: { text: string; tone: PillTone };
 }
@@ -62,18 +69,20 @@ interface Props {
   brokers: StageBroker[];
   partitions: StagePartition[];
   labels: ClusterLabels;
-  /** Records shown per belt. */
+  /** Records shown per siding. */
   window?: number;
   producer?: { name: string; state: PersonState; pulse?: number; target?: string | null; tint?: Tint };
-  /** Top-left of the row, and the gap between buildings, in screen px. */
+  /** Top-left of the row, and the gap between stations, in screen px. */
   top?: number;
-  /** Extra drawing on top, given the layout so it can point at belts. */
+  /** Extra drawing on top, given the layout so it can point at sidings. */
   overlay?: (layout: ClusterLayout) => ReactNode;
   s?: number;
 }
 
 export const CLUSTER_STAGE = { width: 860, height: 470 };
 const SLOT = 0.95;
+/** Wagon scale on a siding: a little smaller than on the main line, so five fit. */
+const WAGON = 0.82;
 const ROW = 1.5;
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 /** Followers fetch from the leader after it has the record, so copies leave a beat later. */
@@ -81,23 +90,23 @@ const COPY_DELAY = 0.4;
 
 export interface ClusterLayout {
   s: number;
-  /** Screen position of a broker building's footprint centre. */
+  /** Screen position of a broker station's footprint centre. */
   broker: (id: number) => [number, number];
-  /** Screen position of a slot on a broker's belt for a partition; slot 0 is the first shown. */
+  /** Screen position of a slot on a broker's siding for a partition; slot 0 is the first shown. */
   slot: (brokerId: number, partitionId: string, slotIndex: number) => [number, number] | null;
-  /** Screen position of the next free slot on the leader's belt for a partition. */
+  /** Screen position of the next free slot on the leader's siding for a partition. */
   ghost: (partitionId: string) => [number, number] | null;
   producer: [number, number];
 }
 
 export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, producer, top = 150, overlay, s: wantedS = 30 }: Props) {
   const count = Math.max(brokers.length, 1);
-  // Four buildings leave less room, so belts get shorter and the drawing a little smaller.
+  // Four stations leave less room, so sidings get shorter and the drawing a little smaller.
   const crowded = count >= 4;
   const window = crowded ? Math.min(wanted, 4) : wanted;
   const s = crowded ? Math.min(wantedS, 27) : wantedS;
-  // Belts run down-right from each building, so the row leans left to leave room for the last belt.
-  // The last broker's belt and its label must end inside the stage.
+  // Sidings run down-right from each station, so the row leans left to leave room for the last one.
+  // The last broker's siding and its label must end inside the stage.
   const reach = (1.05 + window * SLOT + 0.45 + 1.35) * s + 58;
   const left = 90;
   const right = CLUSTER_STAGE.width - reach;
@@ -105,10 +114,10 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
   const anchor = (i: number): [number, number] => [count > 1 ? left + i * gap : (left + right) / 2, top];
   const index = new Map(brokers.map((b, i) => [b.id, i]));
 
-  // Each broker lists the partitions it holds, in partition order, one belt per row.
+  // Each broker lists the partitions it holds, in partition order, one siding per row.
   const rowsOf = (brokerId: number) => partitions.filter((p) => p.replicas.some((r) => r.broker === brokerId));
   const firstShown = (p: StagePartition) => Math.max(0, Math.max(...p.replicas.map((r) => r.end), 0) - window);
-  const beltStart = (brokerId: number, partitionId: string): [number, number] | null => {
+  const sidingStart = (brokerId: number, partitionId: string): [number, number] | null => {
     const i = index.get(brokerId);
     if (i === undefined) return null;
     const row = rowsOf(brokerId).findIndex((p) => p.id === partitionId);
@@ -118,7 +127,7 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
     return [ax + dx, ay + dy];
   };
   const slotAt = (brokerId: number, partitionId: string, k: number): [number, number] | null => {
-    const start = beltStart(brokerId, partitionId);
+    const start = sidingStart(brokerId, partitionId);
     if (!start) return null;
     const [dx, dy] = rel(s, 0.55 + k * SLOT, 0);
     return [start[0] + dx, start[1] + dy];
@@ -140,13 +149,13 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
 
   const target = producer?.target ? layout.ghost(producer.target) : null;
 
-  // Belts that appear after the first draw (a reassigned replica) still animate their copies in.
+  // Sidings that appear after the first draw (a reassigned replica) still animate their copies in.
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
   }, []);
 
-  /** Where a parcel that just arrived on a belt starts, relative to that belt; null to drop in. */
+  /** Where a wagon that just arrived on a siding starts, relative to that siding; null to roll in. */
   const arrivalFrom = (p: StagePartition, r: StageRecord, start: [number, number]): [number, number] | null => {
     if (r.arrived === "producer") return producer ? [producerAt[0] - start[0], producerAt[1] - 40 - start[1]] : null;
     if (r.arrived !== "copy") return null;
@@ -167,14 +176,18 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
         return (
           <g key={b.id}>
             <g transform={`translate(${ax} ${ay})`}>
-              <Building s={s} roof={b.roof ?? TINTS.sky} status={!b.alive ? "down" : b.slow ? "busy" : "ok"} w={1.45} h={1.0} />
-              <NameTag y={-64} text={b.name} tint={b.alive ? (b.roof ?? TINTS.sky) : TINTS.grey} />
-              {b.badge && <Pill x={0} y={-92} text={b.badge.text} tone={b.badge.tone} size={11} />}
+              {b.kind === "signalbox" ? (
+                <SignalBox s={s} tint={b.roof ?? TINTS.sun} status={b.alive ? "ok" : "down"} lit={b.lit} />
+              ) : (
+                <Station s={s} roof={b.roof ?? TINTS.sky} status={!b.alive ? "down" : b.slow ? "busy" : "ok"} w={1.45} h={0.95} />
+              )}
+              <NameTag y={b.kind === "signalbox" ? -s * 2.55 : -64} text={b.name} tint={b.alive ? (b.roof ?? TINTS.sky) : TINTS.grey} />
+              {b.badge && <Pill x={0} y={b.kind === "signalbox" ? -s * 2.55 - 28 : -92} text={b.badge.text} tone={b.badge.tone} size={11} />}
               {b.alive && b.slow && <Pill x={-58} y={-30} text={labels.slow} tone="warn" size={11} />}
             </g>
             {rows.map((p) => {
               const replica = p.replicas.find((r) => r.broker === b.id)!;
-              const start = beltStart(b.id, p.id)!;
+              const start = sidingStart(b.id, p.id)!;
               const first = firstShown(p);
               const end = window * SLOT + 0.45;
               const [ex, ey] = rel(s, end + 1.35, 0.15);
@@ -183,11 +196,12 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
               const roleText = labels[replica.role];
               const dim = !b.alive || replica.role === "offline";
               return (
-                <g key={p.id} transform={`translate(${start[0]} ${start[1]})`} className={dim ? "cluster-belt is-dim" : "cluster-belt"}>
-                  <Belt s={s} from={0} to={end} slot={SLOT} />
+                <g key={p.id} transform={`translate(${start[0]} ${start[1]})`} className={dim ? "cluster-siding is-dim" : "cluster-siding"}>
+                  <Track s={s} from={0} to={end} />
+                  <SidingSignal s={s} role={b.alive ? replica.role : "offline"} />
                   {replica.role === "leader" && b.alive && (
                     <g transform={`translate(${rel(s, 0.55 + Math.min(replica.end - first, window) * SLOT, 0)[0]} ${rel(s, 0.55 + Math.min(replica.end - first, window) * SLOT, 0)[1]})`}>
-                      <GhostSlot s={s} size={0.64} />
+                      <GhostWagon s={s} size={WAGON} />
                     </g>
                   )}
                   <AnimatePresence initial={mounted.current && replica.records.some((r) => r.arrived)}>
@@ -205,7 +219,7 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
                             exit={{ opacity: 0, y: y + 10 }}
                             transition={copy ? { ...spring, delay: COPY_DELAY } : spring}
                           >
-                            <Parcel s={s} size={0.64} kind={r.kind ?? "order"} label={r.offset} state={r.state ?? "normal"} />
+                            <Wagon s={s} size={WAGON} kind={r.kind ?? "order"} label={r.offset} state={r.state ?? "normal"} />
                           </motion.g>
                         );
                       })}
@@ -239,8 +253,8 @@ export function ClusterStage({ brokers, partitions, labels, window: wanted = 5, 
               state={producer.state}
               scale={1.1}
               carrying={
-                <g transform="scale(0.5)">
-                  <Parcel s={44} kind="order" />
+                <g transform="translate(0 6) scale(0.42)">
+                  <Wagon s={50} kind="order" />
                 </g>
               }
             />
@@ -272,5 +286,23 @@ function HwMarker({ s, x, label, delay }: { s: number; x: number; label: string;
         </text>
       </motion.g>
     </motion.g>
+  );
+}
+
+/**
+ * A small semaphore at the head of a siding. Green: the copy is in sync (the leader also flies a
+ * flag); red: it fell out of the ISR or is offline. It only reports state; it never moves wagons.
+ */
+function SidingSignal({ s, role }: { s: number; role: "leader" | "follower" | "behind" | "offline" }) {
+  const [x, y] = rel(s, 0.05, -0.62);
+  const h = s * 1.25;
+  const ok = role === "leader" || role === "follower";
+  return (
+    <g transform={`translate(${x} ${y})`} className="siding-signal">
+      <line x1={0} y1={0} x2={0} y2={-h} className="signal-mast" />
+      <rect x={-5} y={-h - 9} width={10} height={16} rx={4} className="ink signal-head" />
+      <circle cx={0} cy={-h - 1} r={3.2} className={`signal-lamp ${ok ? "is-lit" : "is-red"}`} />
+      {role === "leader" && <path d={`M0 ${-h - 9}v-14h15l-3 4 3 4H0`} className="ink siding-flag" />}
+    </g>
   );
 }

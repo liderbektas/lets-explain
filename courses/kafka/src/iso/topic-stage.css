@@ -7,6 +7,20 @@
   font-weight: 800;
 }
 
-.belt-new .belt-top {
+.track-new .rail-ballast-top {
   fill: var(--tangerine-soft);
+}
+
+/* Lag per track */
+.topic-stage-lag,
+.topic-lag {
+  stroke-width: 1.5;
+}
+.topic-lag.is-zero {
+  opacity: 0.75;
+}
+.topic-lag-text {
+  font-family: var(--font-display) !important;
+  font-size: 10.5px;
+  font-weight: 800;
 }

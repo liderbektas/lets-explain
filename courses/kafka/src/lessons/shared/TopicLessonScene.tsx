@@ -5,7 +5,8 @@ import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import type { Action, ClusterState, KafkaRecord, Partition, SimEvent } from "../../engine/types";
 import { l, useLang, type Lang } from "@lets-explain/core/i18n";
-import { TopicStage, TOPIC_STAGE, type ParcelLook, type StageReader } from "../../iso/TopicStage";
+import { MiniWagon } from "../../iso/rail";
+import { TopicStage, TOPIC_STAGE, type RecordLook, type StageReader } from "../../iso/TopicStage";
 import type { ParcelState, Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { useGame } from "@lets-explain/core/lib/storage";
@@ -29,7 +30,7 @@ export function kafkaCtx(startBox: KafkaBox, run: ShellRun): KafkaCtx {
 
 /**
  * The scene shell shared by the multi-partition lessons. A lesson gives it the
- * simulation (one action per playback tick), how to draw readers and parcels,
+ * simulation (one action per playback tick), how to draw readers and wagons,
  * its counters, and for the try-it step its buttons and missions.
  */
 
@@ -74,7 +75,7 @@ interface Config {
   metrics: (view: SceneView, ctx: { start: ClusterState | null }) => Metric[];
   legend: (view: SceneView) => LegendItem[];
   describe: (events: SimEvent[], view: SceneView) => EventLine[];
-  look?: (record: KafkaRecord, partition: Partition, view: SceneView) => ParcelLook;
+  look?: (record: KafkaRecord, partition: Partition, view: SceneView) => RecordLook;
   partitionLabel?: (index: number, view: SceneView) => string;
   producerName: { tr: string; en: string };
   controls: (api: SandboxApi, view: SceneView) => ReactNode;
@@ -248,15 +249,9 @@ export function TopicLessonScene({ config, step, paused, replayKey, controls }: 
   );
 }
 
-/** A small cube for legends. */
+/** A small wagon for legends, coloured like the records it stands for. */
 export function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
+  return <MiniWagon fill={fill} />;
 }
 
 export function FlagSwatch({ fill }: { fill: string }) {

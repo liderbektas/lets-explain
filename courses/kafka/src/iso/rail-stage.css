@@ -1,0 +1,378 @@
+/* Railway look for every Kafka stage: track, wagons, tunnel, stations, signal box. */
+
+.rail-track polygon,
+.rail-bed polygon,
+.rail-tunnel polygon,
+.rail-buffer polygon,
+.wagon polygon,
+.rail-wheel {
+  stroke: var(--ink);
+  stroke-width: var(--stroke);
+  stroke-linejoin: round;
+}
+
+/* Bed and track */
+.rail-bed-top {
+  fill: #fffaf0;
+}
+.rail-bed-left {
+  fill: #ede2cd;
+}
+.rail-bed-right {
+  fill: #dccdb2;
+}
+.rail-bed .rail-bed-rim {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 3;
+}
+.rail-ballast-top {
+  fill: #e6dac4;
+}
+.rail-ballast-side {
+  fill: #cdbd9e;
+}
+.rail-track .rail-sleeper polygon {
+  fill: #b98f63;
+  stroke: #7d5d3d;
+  stroke-width: 1.2;
+}
+.rail-track .rail-sleeper polygon:last-child {
+  fill: #cfa577;
+}
+.rail-track .rail-steel polygon {
+  stroke-width: 1.5;
+}
+.rail-steel-top {
+  fill: #c9c4d0;
+}
+.rail-steel-side {
+  fill: #6d6976;
+}
+
+/* Wagons */
+.rail-wheel {
+  fill: #45424d;
+}
+.rail-hub {
+  fill: #c9c4d0;
+}
+.rail-coupler {
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.rail-rib {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  opacity: 0.45;
+}
+.rail-seam {
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.wagon .rail-well {
+  fill: #eaa56d;
+  stroke-width: 1.5;
+}
+.wagon .rail-well-wall {
+  fill: #cf8650;
+  stroke: none;
+}
+.rail-shadow {
+  fill: rgba(43, 42, 51, 0.1);
+}
+.rail-plate {
+  fill: #fffdf8;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.rail-plate-text {
+  font-family: var(--font-display) !important;
+  font-size: 19px;
+  font-weight: 800;
+}
+.rail-plate-text.is-small {
+  font-size: 16px;
+}
+.wagon.is-dim {
+  opacity: 0.35;
+}
+.wagon.is-dup .wagon-body polygon {
+  stroke: var(--red);
+  stroke-width: 3;
+}
+
+/* Next slot */
+.rail-ghost {
+  fill: rgba(255, 255, 255, 0.55);
+  stroke: var(--ink-3);
+  stroke-width: 1.8;
+  stroke-dasharray: 5 4;
+}
+.rail-ghost-edge {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.rail-next-pill {
+  fill: var(--card);
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.rail-next-text {
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink-2) !important;
+}
+.rail-hidden {
+  font-family: var(--font-display) !important;
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink-3) !important;
+}
+
+/* Tunnel */
+.rail-stone-top {
+  fill: #e7dcc8;
+}
+.rail-stone-left {
+  fill: #cdbd9e;
+}
+.rail-tunnel .rail-stone-right {
+  fill: #b9a684;
+  stroke: var(--ink);
+  stroke-width: var(--stroke);
+  stroke-linejoin: round;
+}
+.rail-tunnel-dark {
+  fill: #2f2d37;
+}
+.rail-stone-arch {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.rail-sign {
+  fill: var(--card);
+}
+.rail-sign-arrow {
+  fill: var(--ink-3);
+}
+.rail-sign-text {
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink-2) !important;
+}
+.rail-stone-tick {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+/* Legend swatch: the same wagon, small, with thinner lines. */
+.rail-mini polygon,
+.rail-mini circle {
+  stroke-width: 1.1 !important;
+}
+.rail-mini .rail-coupler {
+  stroke-width: 2;
+}
+.rail-mini .rail-shadow,
+.rail-mini .rail-rib,
+.rail-mini .rail-seam {
+  display: none;
+}
+
+/* Small wagons (crowded stages) keep lines thinner so they don't turn to ink. */
+.wagon.is-small polygon,
+.wagon.is-small .rail-wheel {
+  stroke-width: 1.5;
+}
+.wagon.is-small .rail-coupler {
+  stroke-width: 3;
+}
+.wagon.is-small .rail-plate {
+  stroke-width: 1.2;
+}
+
+/* A highlighted track: a new partition, or a hot one. */
+.rail-track.is-new .rail-ballast-top {
+  fill: var(--tangerine-soft);
+}
+.rail-track.is-hot .rail-ballast-top {
+  fill: #ffd9c9;
+}
+.rail-track.is-dim {
+  opacity: 0.5;
+}
+
+/* Held back: an open transaction's seal. */
+.rail-seal-strip {
+  stroke: var(--red);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.rail-seal-dot {
+  fill: var(--red);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+/* Buffer stop */
+.rail-buffer-beam {
+  fill: var(--red);
+}
+.rail-buffer-beam-end {
+  fill: #c94c46;
+}
+.rail-buffer-beam-top {
+  fill: #ff8a84;
+}
+
+/* Stations */
+.station-eave {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.station-edge {
+  stroke: var(--sun);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.station-sign {
+  fill: var(--ink);
+}
+.station-sign-text {
+  fill: var(--card) !important;
+  font-family: var(--font-display) !important;
+  font-size: 9.5px;
+  font-weight: 800;
+}
+.station.is-down .door,
+.station.is-down .window,
+.signal-box.is-down .door,
+.signal-box.is-down .window {
+  fill: #cfc9d4;
+}
+
+/* Signal box */
+.signal-mast {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.signal-head {
+  fill: #45424d;
+}
+.signal-lamp {
+  fill: #6d6976;
+}
+.signal-lamp.is-lit {
+  fill: #7ee08f;
+}
+.signal-lamp.is-red {
+  fill: var(--red);
+}
+
+/* Idempotence gate at the entry */
+.rail-gate-arm-ink {
+  stroke: var(--ink);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.rail-gate-arm-base {
+  stroke: #fffdf8;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+}
+.rail-gate-arm-stripe {
+  stroke: var(--red);
+  stroke-width: 4.5;
+  stroke-dasharray: 7 7;
+}
+.rail-gate-lamp {
+  fill: #7ee08f;
+}
+.rail-gate-lamp.is-red {
+  fill: var(--red);
+}
+.rail-gate-tag {
+  fill: var(--card);
+}
+.rail-gate-text {
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink-2) !important;
+}
+.rail-reject-pill {
+  fill: var(--red-soft);
+}
+.rail-reject-text {
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--red) !important;
+}
+.rail-rejected {
+  opacity: 0.8;
+}
+
+/* Sequence number on a wagon's end */
+.rail-end-plate {
+  fill: rgba(255, 253, 248, 0.92);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.rail-end-text {
+  font-family: var(--font-display) !important;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* Transaction markers */
+.rail-marker.is-commit {
+  fill: #7ee08f;
+}
+.rail-marker.is-abort {
+  fill: var(--red);
+}
+.rail-marker-mark {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rail-marker.is-abort + .rail-marker-mark {
+  stroke: #fff;
+}
+.rail-mini.is-dim {
+  opacity: 0.35;
+}
+
+.signal-box .window.is-lit {
+  fill: var(--sun);
+}
+.rail-mini .station polygon,
+.rail-mini .signal-box polygon {
+  stroke-width: 1.1;
+}
+.rail-mini .station-eave {
+  stroke-width: 1.1;
+}
+
+.rail-ghost-plate {
+  fill: rgba(255, 253, 248, 0.85);
+  stroke: var(--ink-3);
+  stroke-width: 1.3;
+  stroke-dasharray: 3 2;
+}
+.rail-ghost-text {
+  font-family: var(--font-display) !important;
+  font-weight: 800;
+  fill: var(--ink-3) !important;
+}

@@ -29,8 +29,8 @@ export const brokersAndClusters: Lesson = {
       title: l("Kafka'yı çalıştıran sunucu: broker", "The server that runs Kafka: a broker"),
       body: [
         l(
-          "Şimdiye kadar log'ları bantlar olarak çizdik. Peki bu bantlar nerede duruyor? Bir sunucunun diskinde. Kafka çalıştıran her sunucuya [[broker]] denir.",
-          "So far we have drawn logs as belts. Where do those belts actually live? On a server's disk. Every server that runs Kafka is called a [[broker]].",
+          "Şimdiye kadar log'ları raylar olarak çizdik. Peki bu raylar nerede duruyor? Bir sunucunun diskinde. Kafka çalıştıran her sunucuya [[broker]] denir.",
+          "So far we have drawn logs as railway tracks. Where do those tracks actually live? On a server's disk. Every server that runs Kafka is called a [[broker]].",
         ),
         l(
           "Burada `orders` topic'inin üç [[partition]]'ı var: P0, P1 ve P2. Üçü de tek broker'da duruyor ve sipariş servisi her birine birer sipariş yazdı.",

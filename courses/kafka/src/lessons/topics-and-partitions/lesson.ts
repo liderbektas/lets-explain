@@ -33,8 +33,8 @@ export const topicsAndPartitions: Lesson = {
           "Last lesson had a single log. A real system has many kinds of events: orders, payments, shipments. Kafka keeps a separate, named log for each kind and calls it a [[topic]].",
         ),
         l(
-          "Burada `orders` adında bir topic var. Sipariş servisi üç sipariş yazdı. Bandın solundaki **P0** etiketi bir şeyi daha söylüyor: bu bant topic'in kendisi değil, topic'in ilk ve şimdilik tek [[partition]]'ı.",
-          "Here is a topic called `orders`. The order service wrote three orders. The **P0** tag at the left of the belt says one more thing: this belt is not the topic itself but the topic's first, and so far only, [[partition]].",
+          "Burada `orders` adında bir topic var. Sipariş servisi üç sipariş yazdı. Rayın solundaki **P0** etiketi bir şeyi daha söylüyor: bu ray topic'in kendisi değil, topic'in ilk ve şimdilik tek [[partition]]'ı.",
+          "Here is a topic called `orders`. The order service wrote three orders. The **P0** tag at the left of the track says one more thing: this track is not the topic itself but the topic's first, and so far only, [[partition]].",
         ),
         l(
           "Bir topic bir ya da daha fazla partition'dan oluşur. Her partition, önceki dersteki gibi sadece sonuna yazılan sıralı bir log'dur.",
@@ -101,8 +101,8 @@ export const topicsAndPartitions: Lesson = {
       title: l("Topic'i partition'lara bölmek", "Splitting the topic into partitions"),
       body: [
         l(
-          "Çözüm topic'i bölmek: `orders` artık 3 partition'lı. Sahnede P1 ve P2 adında iki yeni bant belirdi.",
-          "The fix is to split the topic: `orders` now has 3 partitions. Two new belts, P1 and P2, appear on the stage.",
+          "Çözüm topic'i bölmek: `orders` artık 3 partition'lı. Sahnede P1 ve P2 adında iki yeni ray belirdi.",
+          "The fix is to split the topic: `orders` now has 3 partitions. Two new tracks, P1 and P2, appear on the stage.",
         ),
         l(
           "P0'daki 7 kayıt olduğu yerde kaldı. Yeni partition'lar boş başladı. Kafka kayıtları değiştirmediği gibi partition'lar arasında taşımaz da.",

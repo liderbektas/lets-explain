@@ -7,8 +7,9 @@ import { groupStats } from "../../engine/cluster";
 import type { Partition } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { rel } from "@lets-explain/core/iso/geometry";
-import { NameTag, PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
-import { Belt, CommitSeal, Parcel, Person, Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
+import { MiniWagon, RAIL_STAGE as STAGE, RailStage, type Reader } from "../../iso/RailStage";
+import { NameTag, Track, Wagon } from "../../iso/rail";
+import { CommitSeal, Person, Pill, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { describeEvents } from "../shared/describe";
 import { kafkaCtx } from "../shared/TopicLessonScene";
@@ -61,7 +62,7 @@ const text = {
   lag: l("lag", "lag"),
   partitions: l("Partition", "Partitions"),
   members: l("Group üyesi", "Group members"),
-  legendMsg: l("mesaj / kayıt (üstünde numara)", "message / record (number on top)"),
+  legendMsg: l("mesaj / kayıt = vagon (yanında numara)", "message / record = wagon (number on its side)"),
   legendHeld: l("tik = bir worker'ın elinde", "tick = held by a worker"),
   legendFlagQ: l("bayrak = worker'ın elindeki mesaj", "flag = the message a worker holds"),
   legendFlagK: l("bayrak = sıradaki okunacak offset", "flag = next offset to read"),
@@ -219,7 +220,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
   /* ---- drawing per view */
   let drawing: ReactNode = null;
   let metrics: Metric[] = [];
-  const legend: LegendItem[] = [{ swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendMsg) }];
+  const legend: LegendItem[] = [{ swatch: <MiniWagon kind="order" />, label: t(text.legendMsg) }];
 
   if (view === "queue") {
     const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
@@ -243,7 +244,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
         } satisfies Reader;
       });
     drawing = (
-      <PartitionStage
+      <RailStage
         partition={queuePartition(state)}
         readers={readers}
         producerName={t(text.producer)}
@@ -252,6 +253,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
         marks={marks}
         kindOf={() => "order"}
         labels={{ next: t(text.queueNext), retention: t(text.shredder) }}
+        removal="lift"
       />
     );
     // The queue is only drawn while the lesson plays, never in the typed try-it step.
@@ -287,7 +289,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
       };
     });
     drawing = (
-      <PartitionStage
+      <RailStage
         partition={part}
         readers={readers}
         producerName={t(text.producer)}
@@ -296,7 +298,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
         marks={marks}
         kindOf={() => "order"}
         labels={{ next: t(text.next), retention: "" }}
-        showShredder={false}
+        removal="none"
       />
     );
     const lagOf = (g: GroupRef) => (state.kafka.groups[g.group] ? groupStats(state.kafka, g.group).lag : "—");
@@ -366,7 +368,7 @@ export function KafkaVsQueuesScene({ step, paused, replayKey, controls }: SceneP
       footer={footer}
     >
       {drawing}
-      {/* Top right is free in every view; top left holds the shredder. */}
+      {/* Top right is free in every view; the head of the line is at top left. */}
       <Pill x={STAGE.width - Math.round((t(title).length * 13 * 0.58 + 22) / 2) - 16} y={24} text={t(title)} tone="ink" size={13} animate={false} />
       <AnimatePresence>
         {step === 8 && (
@@ -400,12 +402,12 @@ function GroupsView({ phase, t }: { phase: number; t: (x: L) => string }) {
         const [px, py] = rel(s, 3.2, 1.9);
         return (
           <g key={li} transform={`translate(${lane.ox} ${lane.oy})`}>
-            <Belt s={s} from={0} to={6.8} />
+            <Track s={s} from={-0.2} to={6.8} />
             {[0, 1, 2, 3, 4].map((i) => {
               const [x, y] = rel(s, 0.55 + i * 1.1, 0);
               return (
                 <g key={i} transform={`translate(${x} ${y})`}>
-                  <Parcel s={s} label={i} />
+                  <Wagon s={s} label={i} />
                 </g>
               );
             })}
@@ -441,15 +443,6 @@ function FlagSwatch() {
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------ "what changed" per step */
 

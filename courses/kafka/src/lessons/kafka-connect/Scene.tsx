@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
-import { NameTag } from "../../iso/PartitionStage";
-import { Belt, Building, Flag, GhostSlot, Parcel, Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { BufferStop, GhostWagon, MiniWagon, NameTag, Station, Track, Wagon } from "../../iso/rail";
+import { Flag, Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { EventLine } from "../shared/describe";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -30,7 +30,7 @@ const H = 470;
 const F: Frame = { ox: 262, oy: 236, s: 32 };
 const SLOT = 1.1;
 const WINDOW = 7;
-const BELT_END = WINDOW * SLOT + 0.75;
+const TRACK_END = WINDOW * SLOT + 0.75;
 const at = (x: number, y: number, z = 0) => project(F, x, y, z);
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 
@@ -40,8 +40,8 @@ const INDEX_AT: [number, number] = [118, 96];
 
 const text = {
   label: l(
-    "Sağda veritabanı, ortada Connect worker'ları ve topic bandı, solda arama indeksi",
-    "The database on the right, Connect workers and the topic belt in the middle, the search index on the left",
+    "Sağda veritabanı, ortada Connect worker'ları ve topic'in rayı, solda arama indeksi",
+    "The database on the right, Connect workers and the topic's track in the middle, the search index on the left",
   ),
   db: l("Veritabanı: orders", "Database: orders"),
   index: l("Arama indeksi", "Search index"),
@@ -57,7 +57,7 @@ const text = {
   docs: l("İndeksteki belge", "Docs in index"),
   indexDup: l("İndekste kopya", "Copies in index"),
   smt: l("SMT: kartı maskele", "SMT: mask card"),
-  legendParcel: l("kayıt (üstünde satır id)", "record (row id on top)"),
+  legendParcel: l("kayıt = vagon (yanında satır id)", "record = wagon (row id on its side)"),
   legendMasked: l("kartı maskeli kayıt", "record with masked card"),
   legendDup: l("aynı satır ikinci kez", "the same row again"),
   legendFlag: l("sink'in sıradaki offset'i", "the sink's next offset"),
@@ -104,8 +104,8 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
   ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendParcel) },
-    { swatch: <MiniCube fill="var(--sky)" />, label: t(text.legendMasked) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendParcel) },
+    { swatch: <MiniWagon kind="payment" />, label: t(text.legendMasked) },
     {
       swatch: (
         <g>
@@ -128,7 +128,7 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
     },
   ];
 
-  // Belt: the last records, newest at the far end next to the source.
+  // Track: the last records, newest at the far end next to the source.
   const first = Math.max(0, state.topic.length - WINDOW);
   const xOf = (offset: number) => 0.55 + (Math.max(offset, first) - first) * SLOT;
   const visible = state.topic.filter((r) => r.offset >= first);
@@ -137,7 +137,7 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
   const sourcedNow = lastEvents.some((e) => e.type === "sourced");
   const sunkNow = lastEvents.some((e) => e.type === "sunk");
   const crashedNow = lastEvents.find((e) => e.type === "crashed");
-  const entry = at(BELT_END + 0.4, 0);
+  const entry = at(TRACK_END + 0.4, 0);
   const [flagX, flagY] = at(xOf(state.sinkPosition), 1.0);
 
   const lines = describe(shown, lang);
@@ -194,7 +194,7 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
       </g>
       {WORKERS.map((w) => (
         <g key={w} transform={`translate(${WORKER_AT[w][0]} ${WORKER_AT[w][1]})`}>
-          <Building s={22} roof={TINTS.lilac} status={state.workers[w] ? "ok" : "down"} />
+          <Station s={22} roof={TINTS.lilac} status={state.workers[w] ? "ok" : "down"} />
           <NameTag y={26} text={workerName(w, lang)} tint={state.workers[w] ? TINTS.lilac : TINTS.grey} />
         </g>
       ))}
@@ -204,10 +204,11 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
       <OffsetsCard x={300} y={164} state={state} t={t} />
 
       <g transform={`translate(${F.ox} ${F.oy})`}>
-        <Belt s={F.s} from={-0.05} to={BELT_END} slot={SLOT} />
+        <Track s={F.s} from={-0.6} to={TRACK_END + 0.2} />
+        <BufferStop s={F.s} x={-0.45} />
       </g>
       <motion.g initial={false} animate={{ x: at(xOf(state.topic.length), 0)[0], y: at(xOf(state.topic.length), 0)[1] }} transition={spring}>
-        <GhostSlot s={F.s} />
+        <GhostWagon s={F.s} />
       </motion.g>
       <AnimatePresence initial={false}>
         {visible.map((r) => {
@@ -216,12 +217,12 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
           return (
             <motion.g
               key={r.offset}
-              initial={{ x: entry[0] + 30, y: entry[1] - 40, opacity: 0, scale: 0.6 }}
-              animate={{ x, y, opacity: 1, scale: 1 }}
-              exit={{ x: at(-0.6, 0)[0], y: at(-0.6, 0)[1], opacity: 0 }}
-              transition={spring}
+              initial={{ x: entry[0] + 30, y: entry[1] + 15, opacity: 0 }}
+              animate={{ x, y, opacity: 1 }}
+              exit={{ x: at(-0.3, 0)[0], y: at(-0.3, 0)[1], opacity: 0 }}
+              transition={{ type: "spring", stiffness: 90, damping: 18, opacity: { duration: 0.25 } }}
             >
-              <Parcel s={F.s} kind={r.card === MASKED ? "payment" : "order"} label={r.rowId} state={repeat ? "dup" : "normal"} />
+              <Wagon s={F.s} kind={r.card === MASKED ? "payment" : "order"} label={r.rowId} state={repeat ? "dup" : "normal"} />
             </motion.g>
           );
         })}
@@ -239,7 +240,7 @@ export function KafkaConnectScene({ step, paused, replayKey, controls }: ScenePr
       <RowsCard x={632} y={150} title={t(text.db)} state={state} notCopied={t(text.notCopied)} />
 
       <g transform={`translate(${INDEX_AT[0]} ${INDEX_AT[1]})`}>
-        <Building s={24} roof={TINTS.coral} />
+        <Station s={24} roof={TINTS.coral} />
       </g>
       {/* The sink task writes each record to the index, so new documents come from the task. */}
       <IndexCard x={14} y={150} title={t(text.index)} state={state} from={sinkChip} />
@@ -400,15 +401,6 @@ function Database() {
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------------- event wording */
 

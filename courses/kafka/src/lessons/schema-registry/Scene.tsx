@@ -6,8 +6,8 @@ import "./scene.css";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
-import { NameTag } from "../../iso/PartitionStage";
-import { Belt, Building, Flag, GhostSlot, Parcel, Person, Pill, TINTS, type PersonState } from "@lets-explain/core/iso/shapes";
+import { BufferStop, GhostWagon, MiniWagon, NameTag, Station, Track, Wagon } from "../../iso/rail";
+import { Flag, Person, Pill, TINTS, type PersonState } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { EventLine } from "../shared/describe";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -19,15 +19,15 @@ const H = 470;
 const F: Frame = { ox: 200, oy: 140, s: 38 };
 const SLOT = 1.1;
 const WINDOW = 8;
-const BELT_END = WINDOW * SLOT + 0.75;
+const TRACK_END = WINDOW * SLOT + 0.75;
 const LANE = 2.3;
 const at = (x: number, y: number, z = 0) => project(F, x, y, z);
 const spring = { type: "spring", stiffness: 170, damping: 22 } as const;
 
 const text = {
   label: l(
-    "Sipariş servisi bir banda kayıt yazıyor, Fatura okuyor, sağ üstte Schema Registry şemaları tutuyor",
-    "The order service writes records onto a belt, billing reads them, and the Schema Registry at the top right keeps the schemas",
+    "Sipariş servisi raya vagon vagon kayıt yazıyor, Fatura okuyor, sağ üstte Schema Registry şemaları tutuyor",
+    "The order service puts records onto a railway track as wagons, billing reads them, and the Schema Registry at the top right keeps the schemas",
   ),
   producer: l("Sipariş servisi", "Order service"),
   reader: l("Fatura", "Billing"),
@@ -112,8 +112,8 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
   }
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="#efe7d8" />, label: t(text.legendRaw) },
-    { swatch: <MiniCube fill="var(--sky)" />, label: t(text.legendId) },
+    { swatch: <MiniWagon kind="neutral" />, label: t(text.legendRaw) },
+    { swatch: <MiniWagon kind="payment" />, label: t(text.legendId) },
     { swatch: <FailBadge r={7} />, label: t(text.legendFailed) },
     {
       swatch: (
@@ -126,11 +126,11 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
     },
   ];
 
-  // Belt: the last few records, newest nearest the producer.
+  // Track: the last few records, newest nearest the producer.
   const first = Math.max(0, state.records.length - WINDOW);
   const xOf = (offset: number) => 0.55 + (Math.max(offset, first) - first) * SLOT;
   const visible = state.records.filter((r) => r.offset >= first);
-  const producerAt = at(BELT_END + 0.7, -1.0);
+  const producerAt = at(TRACK_END + 0.7, -1.0);
   const readerAt = at(xOf(state.reader.position), LANE);
   const [lookX, lookY] = at(xOf(state.reader.position), 0.68);
   const readerState: PersonState = failedNow ? "busy" : readNow.size > 0 ? "hop" : "idle";
@@ -172,7 +172,7 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
             <RegistryLink from={producerAt} to={[REG[0] - 30, REG[1] + 130]} active={registeredNow || Boolean(rejectedNow)} bad={Boolean(rejectedNow)} />
             <RegistryLink from={[readerAt[0], readerAt[1] - 60]} to={[REG[0] - 112, REG[1] + 90]} active={fetchedNow} />
             <g transform={`translate(${REG[0]} ${REG[1]})`}>
-              <Building s={26} roof={TINTS.sun} w={1.6} h={1.1} />
+              <Station s={26} roof={TINTS.sun} w={1.6} h={1.05} />
             </g>
             <RegistryCard x={598} y={REG[1] + 36} state={state} title={t(text.registry)} />
           </motion.g>
@@ -180,10 +180,11 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
       </AnimatePresence>
 
       <g transform={`translate(${F.ox} ${F.oy})`}>
-        <Belt s={F.s} from={-0.05} to={BELT_END} slot={SLOT} />
+        <Track s={F.s} from={-0.6} to={TRACK_END + 0.2} />
+        <BufferStop s={F.s} x={-0.45} />
       </g>
       <motion.g initial={false} animate={{ x: at(xOf(state.records.length), 0)[0], y: at(xOf(state.records.length), 0)[1] }} transition={spring}>
-        <GhostSlot s={F.s} />
+        <GhostWagon s={F.s} />
       </motion.g>
 
       <AnimatePresence initial={false}>
@@ -193,14 +194,15 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
           return (
             <motion.g
               key={r.offset}
-              initial={{ x: producerAt[0], y: producerAt[1] - 40, opacity: 0, scale: 0.6 }}
-              animate={{ x, y, opacity: 1, scale: 1 }}
-              exit={{ x: at(-0.5, 0)[0], y: at(-0.5, 0)[1], opacity: 0 }}
-              transition={spring}
+              initial={{ x: at(TRACK_END + 0.6, 0)[0], y: at(TRACK_END + 0.6, 0)[1], opacity: 0 }}
+              animate={{ x, y, opacity: 1 }}
+              exit={{ x: at(-0.3, 0)[0], y: at(-0.3, 0)[1], opacity: 0 }}
+              transition={{ type: "spring", stiffness: 90, damping: 18, opacity: { duration: 0.25 } }}
             >
-              <Parcel
+              <Wagon
                 s={F.s}
                 kind={kindFor(r.schemaId)}
+                open={false}
                 label={r.schemaId === null ? "{ }" : `#${r.schemaId}`}
                 state={readNow.has(r.offset) ? "read" : "normal"}
                 readTint={TINTS.coral}
@@ -235,8 +237,8 @@ export function SchemaRegistryScene({ step, paused, replayKey, controls }: Scene
           state={producedNow ? "hop" : rejectedNow && lastEvents.includes(rejectedNow) ? "busy" : "idle"}
           scale={1.15}
           carrying={
-            <g transform="scale(0.55)">
-              <Parcel s={F.s} kind={state.registry ? "payment" : "neutral"} />
+            <g transform="translate(0 6) scale(0.42)">
+              <Wagon s={50} kind={state.registry ? "payment" : "neutral"} />
             </g>
           }
         />
@@ -395,15 +397,6 @@ function FailBadge({ r }: { r: number }) {
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 /* ------------------------------------------------------- event wording */
 

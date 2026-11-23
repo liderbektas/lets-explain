@@ -2,11 +2,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { Parcel, Pill, type PillTone } from "@lets-explain/core/iso/shapes";
+import { Pill, type PillTone } from "@lets-explain/core/iso/shapes";
+import { MiniWagon, Wagon } from "../../iso/rail";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { EventLine } from "../shared/describe";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { BeltsStage, beltsGeometry, STAGE, type BeltPartition, type BeltReader, type ParcelKind } from "./BeltsStage";
+import { TracksStage, tracksGeometry, STAGE, WAGON, type TrackPartition, type TrackReader, type WagonKind } from "./TracksStage";
 import { FREE, orderingCtx, scenarios } from "./scenarios";
 import { orderingShell, replayO, type OBox, type OShellAction } from "./shell";
 import { base, CONSUMERS, ownerOf, RETRY_STEPS, SANDBOX_STEP, stepActions, violations, type OEvent, type OState } from "./model";
@@ -14,7 +15,7 @@ import "./scene.css";
 
 const SLUG = "ordering";
 
-export const ORDER_KIND: Record<string, ParcelKind> = { "1042": "order", "1043": "payment", "1045": "cancel", "1048": "neutral" };
+export const ORDER_KIND: Record<string, WagonKind> = { "1042": "order", "1043": "payment", "1045": "cancel", "1048": "neutral" };
 
 const stageName: L[] = [
   l("", ""),
@@ -25,8 +26,8 @@ const stageName: L[] = [
 
 const text = {
   label: l(
-    "orders topic'inin partition'ları bant olarak, olaylar koli olarak; kargo consumer'ları bantların başında",
-    "The orders topic's partitions as belts, events as parcels; shipping consumers at the near end",
+    "orders topic'inin partition'ları ray olarak, olaylar vagon olarak; kargo consumer'ları rayların başında",
+    "The orders topic's partitions as tracks, events as wagons; shipping consumers at the head of the tracks",
   ),
   producer: l("Sipariş servisi", "Order service"),
   next: l("sıradaki", "next"),
@@ -37,7 +38,7 @@ const text = {
   handledOrder: l("İşlenme sırası", "Order handled"),
   nothingYet: l("Henüz işlenen yok", "Nothing handled yet"),
   legendColor: l("renk = hangi sipariş", "colour = which order"),
-  legendNumber: l("üstteki sayı: 1 oluşturuldu · 2 ödendi · 3 kargolandı", "number on top: 1 created · 2 paid · 3 shipped"),
+  legendNumber: l("vagondaki sayı: 1 oluşturuldu · 2 ödendi · 3 kargolandı", "number on the wagon: 1 created · 2 paid · 3 shipped"),
   legendOffset: l("alttaki sayı = offset", "number below = offset"),
   legendFlag: l("bayrak = sıradaki okunacak offset", "flag = next offset to read"),
   outOfOrder: l("sıra bozuldu!", "out of order!"),
@@ -86,7 +87,7 @@ export function describe(events: OEvent[], lang: Lang): EventLine[] {
   });
 }
 
-function beltPartitions(state: OState, lastEvents: OEvent[]): BeltPartition[] {
+function trackPartitions(state: OState, lastEvents: OEvent[]): TrackPartition[] {
   return state.partitions.map((records, i) => {
     const owner = ownerOf(state, i);
     const position = records.length === 0 ? undefined : nextOffsetFor(state, i);
@@ -117,7 +118,7 @@ function nextOffsetFor(state: OState, p: number) {
   return next;
 }
 
-function beltReaders(state: OState, lastEvents: OEvent[], pulse: number, lang: Lang, paused: string[] = []): BeltReader[] {
+function trackReaders(state: OState, lastEvents: OEvent[], pulse: number, lang: Lang, paused: string[] = []): TrackReader[] {
   return state.consumers.map((c) => {
     // An instance paused with kill -STOP sits still and says so.
     if (paused.includes(c.id)) return { id: c.id, name: `${tl(lang, c.name)} · ${tl(lang, text.stopped)}`, tint: c.tint, state: "idle" as const, pulse, partitions: c.assigned };
@@ -165,7 +166,9 @@ function HandledOrder({ state, x, y }: { state: OState; x: number; y: number }) 
           <g key={order} transform={`translate(14 ${50 + i * 32})`}>
             <motion.g initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
               <g transform="translate(8 4)">
-                <Parcel s={14} kind={ORDER_KIND[order] ?? "neutral"} size={0.9} />
+                <g transform="translate(0 -3)">
+                  <MiniWagon kind={ORDER_KIND[order] ?? "neutral"} open={false} />
+                </g>
               </g>
               <text x={22} y={6} className="order-row-name">
                 {order}
@@ -195,10 +198,10 @@ function HandledOrder({ state, x, y }: { state: OState; x: number; y: number }) 
 
 export function OrderingScene({ step, paused, replayKey, controls }: SceneProps) {
   if (RETRY_STEPS.includes(step)) return <RetryScene step={step} paused={paused} replayKey={replayKey} controls={controls} />;
-  return <BeltsScene step={step} paused={paused} replayKey={replayKey} controls={controls} />;
+  return <TracksScene step={step} paused={paused} replayKey={replayKey} controls={controls} />;
 }
 
-function BeltsScene({ step, paused, replayKey, controls }: SceneProps) {
+function TracksScene({ step, paused, replayKey, controls }: SceneProps) {
   const { t, lang } = useLang();
   const sandbox = step === SANDBOX_STEP;
   const box = useTypedSandbox({
@@ -290,9 +293,9 @@ function BeltsScene({ step, paused, replayKey, controls }: SceneProps) {
       label={t(text.label)}
       footer={footer}
     >
-      <BeltsStage
-        partitions={beltPartitions(state, lastEvents)}
-        readers={beltReaders(state, lastEvents, pulse, lang, stopped)}
+      <TracksStage
+        partitions={trackPartitions(state, lastEvents)}
+        readers={trackReaders(state, lastEvents, pulse, lang, stopped)}
         producer={{
           name: t(text.producer),
           state: produced ? "hop" : "idle",
@@ -303,18 +306,18 @@ function BeltsScene({ step, paused, replayKey, controls }: SceneProps) {
         nextLabel={t(text.next)}
       >
         <HandledOrder state={state} x={648} y={22} />
-      </BeltsStage>
+      </TracksStage>
     </SceneFrame>
   );
 }
 
-function MiniCubes({ kinds }: { kinds: ParcelKind[] }) {
-  const shown = kinds.length ? kinds.slice(0, 3) : (["order"] as ParcelKind[]);
+function MiniCubes({ kinds }: { kinds: WagonKind[] }) {
+  const shown = kinds.length ? kinds.slice(0, 3) : (["order"] as WagonKind[]);
   return (
     <g transform={`translate(${-(shown.length - 1) * 4} 3)`}>
       {shown.map((k, i) => (
         <g key={i} transform={`translate(${i * 8} 0)`}>
-          <Parcel s={11} kind={k} size={0.8} />
+          <Wagon s={10} kind={k} open={false} />
         </g>
       ))}
     </g>
@@ -405,11 +408,11 @@ function RetryScene({ step, paused, replayKey, controls }: SceneProps) {
   const frames = RETRY_FRAMES[step]!;
   const cursor = usePlayback(frames.length - 1, paused, `${step}-${replayKey}`, 1300);
   const frame = frames[cursor]!;
-  const geo = beltsGeometry(1);
-  const kindOf = (stage: number): ParcelKind => (stage === 1 ? "order" : "payment");
+  const geo = tracksGeometry(1);
+  const kindOf = (stage: number): WagonKind => (stage === 1 ? "order" : "payment");
   const flightPos = (f: Flight, k: number): [number, number] => {
     if (f.where === "producer") return [geo.producerAt[0] - 6 + k * 16, geo.producerAt[1] - 96 - k * 10];
-    const [x, y] = geo.at(geo.beltEnd - 0.2 + k * 0.9, -1.3, 1.4);
+    const [x, y] = geo.at(geo.trackEnd - 0.2 + k * 0.9, -1.3, 1.4);
     return [x, y];
   };
   // A request that was in the air and went through lands from where it was. One that timed out
@@ -436,14 +439,14 @@ function RetryScene({ step, paused, replayKey, controls }: SceneProps) {
 
   return (
     <SceneFrame metrics={metrics} controls={controls} legend={legend} paused={paused} width={STAGE.width} height={STAGE.height} label={t(text.label)}>
-      <BeltsStage
+      <TracksStage
         partitions={[{ logStart: 0, logEnd: records.length, records }]}
         readers={[]}
         producer={{ name: t(text.producer), state: cursor === 1 ? "hop" : "idle", pulse: cursor }}
         partitionLabel={() => "p0"}
         nextLabel={t(text.next)}
       >
-        {/* A request that landed is now the record on the belt: it hands over at once instead of fading. */}
+        {/* A request that landed is now the wagon on the track: it hands over at once instead of fading. */}
         <AnimatePresence custom={frame.log}>
           {frame.flights.map((f, k) => {
             const [x, y] = flightPos(f, k);
@@ -457,7 +460,7 @@ function RetryScene({ step, paused, replayKey, controls }: SceneProps) {
                 exit="gone"
                 transition={{ type: "spring", stiffness: 120, damping: 18 }}
               >
-                <Parcel s={geo.s} kind={kindOf(f.stage)} label={String(f.stage)} size={0.74} />
+                <Wagon s={geo.s} kind={kindOf(f.stage)} open={false} label={String(f.stage)} size={WAGON} />
                 {f.seq !== undefined && (
                   <text y={-geo.s * 1.15} textAnchor="middle" className="seq-tag">
                     seq {f.seq}
@@ -469,7 +472,7 @@ function RetryScene({ step, paused, replayKey, controls }: SceneProps) {
           })}
         </AnimatePresence>
         <Pill key={`${step}-${cursor}`} x={430} y={404} text={t(frame.note.text)} tone={frame.note.tone} size={13} />
-      </BeltsStage>
+      </TracksStage>
     </SceneFrame>
   );
 }

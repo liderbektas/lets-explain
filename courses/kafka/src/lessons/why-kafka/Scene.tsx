@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
 import { project, type Frame } from "@lets-explain/core/iso/geometry";
-import { NameTag } from "../../iso/PartitionStage";
-import { Belt, Building, Parcel, Pill, TINTS, type BuildingStatus } from "@lets-explain/core/iso/shapes";
+import { BufferStop, NameTag, Station, Track, Wagon, type StationStatus } from "../../iso/rail";
+import { Pill, TINTS } from "@lets-explain/core/iso/shapes";
 import { useTicker } from "@lets-explain/core/lib/playback";
 import type { SceneProps } from "@lets-explain/core/course/types";
 import { connections as linkCount, type WorldEvent } from "./model";
@@ -18,7 +18,7 @@ const W = 860;
 const H = 520;
 const SRC_X = 196;
 const DST_X = 660;
-const BS = 24; // building scale
+const BS = 24; // station scale
 
 interface Service {
   id: string;
@@ -41,7 +41,7 @@ const targets: Service[] = [
 ];
 
 const text = {
-  label: l("Servisler küçük binalar, aralarında event taşıyan yollar", "Services as little buildings, with roads carrying events between them"),
+  label: l("Servisler küçük istasyonlar, aralarında event taşıyan hatlar", "Services as little stations, with lines carrying events between them"),
   connections: l("Bağlantı", "Connections"),
   services: l("Servis", "Services"),
   status: l("Durum", "Status"),
@@ -59,9 +59,9 @@ const text = {
   props1: l("diske yazar", "writes to disk"),
   props2: l("sırayı korur", "keeps order"),
   props3: l("çok okuyuculu", "many readers"),
-  legendProducer: l("mavi çatı: olay üretir", "blue roof: produces events"),
-  legendConsumer: l("turuncu çatı: olayı dinler", "coral roof: listens"),
-  legendParcel: l("koli = event", "parcel = event"),
+  legendProducer: l("mavi çatılı istasyon: olay üretir", "blue-roofed station: produces events"),
+  legendConsumer: l("turuncu çatılı istasyon: olayı dinler", "coral-roofed station: listens"),
+  legendParcel: l("vagon = event", "wagon = event"),
   record: l("bir record", "one record"),
   sent: l("Giden e-posta", "Emails sent"),
   lost: l("Kaybolan", "Lost"),
@@ -156,7 +156,7 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
   const emailDown = sandbox ? !ws.emailUp : step === 3 || (step === 6 && phase < 4);
   const spike = !sandbox && step === 4;
 
-  const statusOf = (id: string): BuildingStatus => {
+  const statusOf = (id: string): StationStatus => {
     if (id === "email" && emailDown) return "down";
     if (spike && (id === "analytics" || id === "order")) return "busy";
     if (step === 3 && id === "order") return "busy";
@@ -179,12 +179,12 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
       ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniHouse roof="var(--sky)" />, label: t(text.legendProducer) },
-    { swatch: <MiniHouse roof="var(--coral)" />, label: t(text.legendConsumer) },
+    { swatch: <MiniStation roof={TINTS.sky} />, label: t(text.legendProducer) },
+    { swatch: <MiniStation roof={TINTS.coral} />, label: t(text.legendConsumer) },
     {
       swatch: (
-        <g transform="translate(0 2)">
-          <Parcel s={9} />
+        <g transform="translate(0 3)" className="rail-mini">
+          <Wagon s={14} />
         </g>
       ),
       label: t(text.legendParcel),
@@ -234,7 +234,7 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
       }
     >
       <motion.g animate={{ opacity: dim }} transition={{ duration: 0.4 }}>
-        {/* Roads first, so buildings sit on top of them. */}
+        {/* Lines first, so stations sit on top of them. */}
         {!usesLog &&
           srcList.flatMap((s, i) =>
             dstList.map((d, j) => {
@@ -283,7 +283,7 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
               exit={{ opacity: 0 }}
               transition={{ type: "spring", stiffness: 160, damping: 22 }}
             >
-              <Building s={BS} roof={TINTS.sky} status={statusOf(s.id)} />
+              <Station s={BS} roof={TINTS.sky} status={statusOf(s.id)} />
               <g transform="translate(-104 -10)">
                 <NameTag y={0} text={t(s.name)} tint={TINTS.sky} />
               </g>
@@ -297,7 +297,7 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
               exit={{ opacity: 0 }}
               transition={{ type: "spring", stiffness: 160, damping: 22 }}
             >
-              <Building s={BS} roof={TINTS.coral} status={statusOf(d.id)} />
+              <Station s={BS} roof={TINTS.coral} status={statusOf(d.id)} />
               <g transform="translate(110 -10)">
                 <NameTag y={0} text={t(d.name)} tint={statusOf(d.id) === "down" ? TINTS.grey : TINTS.coral} />
               </g>
@@ -341,7 +341,7 @@ export function WhyKafkaScene({ step, paused, replayKey, controls }: SceneProps)
 
 type RoadState = "idle" | "flow" | "fast" | "broken";
 
-/** A curved road between two places. Parcels travel along it with native SVG motion. */
+/** A curved line between two places. Small wagons travel along it with native SVG motion. */
 function Road({ from, to, state, seed }: { from: [number, number]; to: [number, number]; state: RoadState; seed: number }) {
   const [x1, y1] = from;
   const [x2, y2] = to;
@@ -353,8 +353,10 @@ function Road({ from, to, state, seed }: { from: [number, number]; to: [number, 
     <g>
       <path d={d} className={`link ${state === "broken" ? "is-broken" : state === "fast" ? "is-hot" : ""}`} />
       {Array.from({ length: count }, (_, i) => (
-        <g key={i} opacity={0}>
-          <Parcel s={9} />
+        <g key={i} opacity={0} className="rail-mini">
+          <g transform="translate(0 3)">
+            <Wagon s={11} />
+          </g>
           <animateMotion
             dur={`${dur}s`}
             repeatCount="indefinite"
@@ -383,17 +385,10 @@ function Road({ from, to, state, seed }: { from: [number, number]; to: [number, 
   );
 }
 
-/** Parcels piling up in front of a service that cannot keep up. */
+/** Events queueing up in front of a service that cannot keep up: a growing line of wagons. */
 function Backlog({ x, y, count }: { x: number; y: number; count: number }) {
-  const spots: [number, number][] = [
-    [0, 0],
-    [-14, 7],
-    [14, 7],
-    [0, 14],
-    [-7, -9],
-    [7, -9],
-    [0, -18],
-  ];
+  // Wagons couple up one behind the other on a short siding in front of the station.
+  const spots: [number, number][] = Array.from({ length: 7 }, (_, i) => [-i * 12, -i * 6 + 10]);
   return (
     <g transform={`translate(${x} ${y})`}>
       <AnimatePresence>
@@ -405,7 +400,9 @@ function Backlog({ x, y, count }: { x: number; y: number; count: number }) {
             exit={{ opacity: 0 }}
             transition={{ type: "spring", stiffness: 220, damping: 18 }}
           >
-            <Parcel s={9} />
+            <g className="rail-mini">
+              <Wagon s={12} />
+            </g>
           </motion.g>
         ))}
       </AnimatePresence>
@@ -413,17 +410,18 @@ function Backlog({ x, y, count }: { x: number; y: number; count: number }) {
   );
 }
 
-/** The shared log in the middle: a short belt where parcels keep arriving. */
+/** The shared log in the middle: a short stretch of track where wagons keep arriving. */
 function SharedLog({ tick, title, named }: { tick: number; title: string; named: boolean }) {
   const visible = 5;
-  // Offsets start at 0 like in Kafka: the belt fills up first, then keeps scrolling.
+  // Offsets start at 0 like in Kafka: the track fills up first, then keeps scrolling.
   const offsets = Array.from({ length: Math.min(tick + 1, visible) }, (_, i) => Math.max(0, tick + 1 - visible) + i);
   const s = LOG_FRAME.s;
   const [lx, ly] = project(LOG_FRAME, LOG_LEN / 2, 0, 0);
   return (
     <motion.g initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} style={{ originX: `${lx}px`, originY: `${ly}px` }}>
       <g transform={`translate(${LOG_FRAME.ox} ${LOG_FRAME.oy})`}>
-        <Belt s={s} from={0} to={LOG_LEN} slot={1.3} />
+        <Track s={s} from={-0.3} to={LOG_LEN} />
+        <BufferStop s={s} x={-0.15} />
       </g>
       <AnimatePresence initial={false}>
         {offsets.map((offset, i) => {
@@ -438,7 +436,7 @@ function SharedLog({ tick, title, named }: { tick: number; title: string; named:
               exit={{ x: gx, y: gy, opacity: 0 }}
               transition={{ type: "spring", stiffness: 160, damping: 22 }}
             >
-              <Parcel s={s} label={offset} />
+              <Wagon s={s} label={offset} />
             </motion.g>
           );
         })}
@@ -462,7 +460,7 @@ function EventCard() {
   return (
     <motion.g initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ type: "spring", stiffness: 160, damping: 20 }}>
       <g transform="translate(250 330)">
-        <Parcel s={58} />
+        <Wagon s={58} />
       </g>
       <path d={`M262 252 C 330 230, 380 200, ${cx} ${cy + 40}`} className="dashed-arrow" />
       <rect x={cx} y={cy + 5} width={cw} height={292} rx={16} className="pill-shadow" />
@@ -495,12 +493,11 @@ function EventCard() {
   );
 }
 
-function MiniHouse({ roof }: { roof: string }) {
+/** Legend swatch: a tiny station with the given roof colour. */
+function MiniStation({ roof }: { roof: typeof TINTS.sky }) {
   return (
-    <g stroke="var(--ink)" strokeWidth="1.4" strokeLinejoin="round" transform="translate(0 2)">
-      <polygon points="-7,-2 0,2 0,8 -7,4" fill="#f3ebdc" />
-      <polygon points="0,2 7,-2 7,4 0,8" fill="#e2d6c1" />
-      <polygon points="-8,-3 0,-7 8,-3 0,1" style={{ fill: roof }} />
+    <g transform="translate(0 6)" className="rail-mini">
+      <Station s={9} roof={roof} platform={false} />
     </g>
   );
 }

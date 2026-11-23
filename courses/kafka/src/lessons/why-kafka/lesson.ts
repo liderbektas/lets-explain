@@ -35,8 +35,8 @@ export const whyKafka: Lesson = {
           "Picture an online shop. When a customer presses **Buy**, the order service runs. But the work does not end there: the payment has to be taken, stock has to go down, and the customer needs an email.",
         ),
         l(
-          "En basit çözüm şu: sipariş servisi bu üç servisi tek tek çağırır. Sahnedeki her yol böyle bir çağrı; üzerinde giden minik koliler de taşınan veriler.",
-          "The simplest solution: the order service calls those three services one by one. Each road in the scene is such a call, and the little parcels on it are the data going across.",
+          "En basit çözüm şu: sipariş servisi bu üç servisi tek tek çağırır. Sahnedeki her hat böyle bir çağrı; üzerinde giden minik vagonlar da taşınan veriler.",
+          "The simplest solution: the order service calls those three services one by one. Each line in the scene is such a call, and the little wagons on it are the data going across.",
         ),
       ],
       callouts: [
@@ -327,7 +327,7 @@ export const whyKafka: Lesson = {
       short: l("Event'in içi", "Inside an event"),
       tag: "how",
       changes: [
-        { kind: "change", text: l("Bir event'e, yani bir koliye yakından baktık", "We opened up one event, one parcel") },
+        { kind: "change", text: l("Bir event'e, yani bir vagona yakından baktık", "We opened up one event, one wagon") },
       ],
       title: l("Bir event'in içinde ne var?", "What is inside an event?"),
       body: [

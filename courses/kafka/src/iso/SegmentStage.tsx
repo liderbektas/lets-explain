@@ -1,26 +1,28 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, type TargetAndTransition } from "motion/react";
 import type { ReactNode } from "react";
 import type { Segment, StorageLog, StoredRecord } from "../engine/storage";
 import { segmentAge, isExpired } from "../engine/storage";
-import { project, type Frame } from "@lets-explain/core/iso/geometry";
+import { project, rel, type Frame } from "@lets-explain/core/iso/geometry";
 import "./segment-stage.css";
-import { NameTag } from "./PartitionStage";
-import { IsoBox, Parcel, Person, Pill, Shredder, TINTS, type ParcelState, type PersonState, type Shades, type Tint } from "@lets-explain/core/iso/shapes";
+import { Bed, BufferStop, GhostWagon, NameTag, SignPost, Station, Track, TunnelBack, TunnelPortal, Wagon, WAGON_SHADES, wagonTop, type TunnelBox, type WagonKind } from "./rail";
+import { Person, Pill, TINTS, type ParcelState, type PersonState, type Tint } from "@lets-explain/core/iso/shapes";
 
 /**
- * One partition's log as it sits on disk: a row of segment trays, oldest at the back left.
- * Each tray is one segment file; parcels on it are its records. Deleted segments fall into
- * the shredder, and the producer stands behind the active (last) tray.
+ * One partition's log as it sits on disk, drawn as a railway line cut into trains: each segment
+ * file is a train of coupled wagons on its own stretch of track, oldest at the head of the line.
+ * The open (active) segment is the last train, with room left for more wagons, and the producer
+ * stands at the end of the line. Retention takes whole trains off through the tunnel at the
+ * head; compaction lifts single wagons off where they stand, leaving gaps in the offsets.
+ * The newest train always stands at the same place, so nothing moves when old trains leave.
  */
 
 export const SEGMENT_STAGE = { width: 860, height: 470 };
-const FRAME: Frame = { ox: 150, oy: 112, s: 36 };
 const SLOT = 1.05;
-const PAD = 0.22;
-const GAP = 0.7;
+const PAD = 0.14;
+const GAP = 0.5;
 const VISIBLE = 4;
+const WAGON = 1;
 const spring = { type: "spring", stiffness: 160, damping: 22 } as const;
-const at = (x: number, y: number, z = 0) => project(FRAME, x, y, z);
 
 export interface Lookup {
   offset: number;
@@ -33,8 +35,8 @@ export interface Lookup {
 
 interface Props {
   log: StorageLog;
-  shadesOf: (r: StoredRecord) => "order" | "cancel" | "payment" | "neutral";
-  /** Small tag under a parcel, such as its key. */
+  shadesOf: (r: StoredRecord) => WagonKind;
+  /** Small tag on a wagon's roof, such as its key. */
   tagOf?: (r: StoredRecord) => { text: string; tint: Tint } | null;
   marks?: Map<number, ParcelState>;
   /** Segment bases to outline, e.g. the one a lookup lands in. */
@@ -50,6 +52,11 @@ interface Props {
   };
   /** Show how old each segment's newest record is, red once past retention. */
   showAge?: boolean;
+  /**
+   * What stands at the head of the line: the retention tunnel (old trains leave through it), or
+   * the log cleaner's shed (compaction lifts wagons off in place; nothing leaves by the head).
+   */
+  head?: "tunnel" | "cleaner";
   producerName: string;
   producerState?: PersonState;
   producerPulse?: number;
@@ -59,9 +66,8 @@ interface Props {
   children?: ReactNode;
 }
 
-const TRAY_CLOSED: Shades = ["#f6efe2", "#e4d8c3", "#d3c4aa"];
-const TRAY_ACTIVE: Shades = ["var(--tangerine-soft)", "#f7c9b3", "var(--tangerine)"];
-const TRAY_HOT: Shades = ["var(--sun-soft)", "#f3dc93", "var(--sun)"];
+/** Storage lessons have no cancel events: a peach record (old, or a key's colour) stays a box car. */
+const lookOf = (kind: WagonKind) => (kind === "cancel" ? { shades: WAGON_SHADES.cancel, open: false } : { kind });
 
 export function SegmentStage({
   log,
@@ -71,6 +77,7 @@ export function SegmentStage({
   highlight = [],
   labels,
   showAge = false,
+  head = "tunnel",
   producerName,
   producerState = "idle",
   producerPulse,
@@ -79,137 +86,109 @@ export function SegmentStage({
   children,
 }: Props) {
   const size = log.config.segmentRecords;
-  const tray = size * SLOT + PAD * 2;
-  const stride = tray + GAP;
+  const train = size * SLOT + PAD * 2;
+  const stride = train + GAP;
+  const lineEnd = VISIBLE * stride - GAP;
+  const tunnel: TunnelBox = { x0: -2.75, x1: -1.95, y0: -0.95, y1: 0.95, h: 1.0 };
+  const frame = frameFor(lineEnd, tunnel);
+  const s = frame.s;
+  const at = (x: number, y: number, z = 0) => project(frame, x, y, z);
   const shown = log.segments.slice(-VISIBLE);
   const hiddenCount = log.segments.length - shown.length;
-  const indexOf = new Map(shown.map((seg, i) => [seg.base, i]));
-  const s = FRAME.s;
-  const shredder = at(-1.7, 0.1);
+  // Right-anchored: the active train is always the last of the VISIBLE places.
+  const slotOf = new Map(shown.map((seg, i) => [seg.base, VISIBLE - shown.length + i]));
+  const startX = (seg: Segment) => (slotOf.get(seg.base) ?? 0) * stride;
   const last = shown.length - 1;
-  // The producer stands just past the end of the active tray, where records come in.
-  const producer = at(last * stride + tray + 1.2, 0.35);
-  // Keep the row centred on the stage however many segments it holds.
-  const middle = at((shown.length * stride - GAP) / 2, 0);
-  const shift = { x: 400 - middle[0], y: 245 - middle[1] };
+  const producer = at(lineEnd + 0.75, -1.2);
+  const entry = at(lineEnd + 1.1, 0);
+  const tunnelMouth = at(tunnel.x0 + 0.1, 0);
+  const isTunnel = head === "tunnel";
 
   // What leaving looks like, decided against the log as it is now (AnimatePresence `custom`):
-  // a segment file that is gone (retention, or merged away by the cleaner) falls into the shredder;
-  // one that only scrolled out of view slides off; a record dropped by compaction vanishes in place.
-  const segmentExit = (base: number, x: number, y: number) => (now: StorageLog) =>
-    now.segments.some((sg) => sg.base === base)
-      ? { x: x - 60, y: y - 30, opacity: 0 }
-      : { x: shredder[0] - 10, y: shredder[1] - 30, opacity: 0, scale: 0.3 };
-  const recordExit = (offset: number, x: number, y: number) => (now: StorageLog) =>
-    offset < now.logStartOffset
-      ? { x: shredder[0], y: shredder[1] - s * 0.6, opacity: 0, scale: 0.4 }
-      : now.segments.some((sg) => sg.records.some((r) => r.offset === offset))
-        ? { x: x - 60, y: y - 30, opacity: 0 }
-        : { x, y, opacity: 0, scale: 0.2 };
+  // a record before the log start went with its segment, through the tunnel; one still on the log
+  // only scrolled out of view; one the cleaner dropped is lifted off where it stood.
+  const recordExit = (offset: number, x: number, y: number) => (now: StorageLog): TargetAndTransition => {
+    if (offset < now.logStartOffset && isTunnel) {
+      return { x: tunnelMouth[0], y: tunnelMouth[1], opacity: [1, 1, 0], transition: { duration: 1.4, ease: "easeIn" as const, opacity: { duration: 1.4, times: [0, 0.8, 1] } } };
+    }
+    if (now.segments.some((sg) => sg.records.some((r) => r.offset === offset))) return { x: x - 50, y: y - 25, opacity: 0, transition: { duration: 0.4 } };
+    return { x, y: y - 44, opacity: 0, transition: { duration: 0.7, ease: "easeIn" as const } };
+  };
 
-  // Where a record sits: its segment's tray, at its position among the records still there.
-  const place = (seg: Segment, i: number) => at((indexOf.get(seg.base) ?? 0) * stride + PAD + SLOT * (i + 0.5), 0);
+  // Where a record sits: its segment's stretch, at its position among the records still there.
+  const place = (seg: Segment, i: number) => at(startX(seg) + PAD + SLOT * (i + 0.5), 0);
 
-  // The lookup reader stands behind the record it asks for, or behind the first tray if it is gone.
+  // The lookup reader stands behind the record it asks for, or behind the first train if it is gone.
   let lookupAt: [number, number] | null = null;
   let lookupTarget: [number, number] | null = null;
   if (lookup) {
     const seg = shown.find((sg) => sg.records.some((r) => r.offset === lookup.offset));
     if (seg) {
       const i = seg.records.findIndex((r) => r.offset === lookup.offset);
-      const x = (indexOf.get(seg.base) ?? 0) * stride + PAD + SLOT * (i + 0.5);
-      // Behind the trays, looking down at the parcel: the front stays free for tray labels.
-      lookupAt = at(x, -2.6);
-      lookupTarget = at(x, -0.15, 0.8);
+      const x = startX(seg) + PAD + SLOT * (i + 0.5);
+      lookupAt = at(x, -2.5);
+      lookupTarget = at(x, -0.3, 0.95 * WAGON);
     } else {
-      lookupAt = at(PAD + SLOT * 0.5, -2.6);
+      // Gone: the reader stands at the head of the line, where the log now starts, finding nothing.
+      lookupAt = at(0.6, -2.5);
     }
   }
 
+  const [ox, oy] = at(0, 0);
   return (
-    <g>
-      <motion.g initial={false} animate={shift} transition={spring}>
-      <g transform={`translate(${shredder[0]} ${shredder[1]})`}>
-        <Shredder s={s} />
-        <text y={-s * 1.75} textAnchor="middle" className="label-soft">
-          {labels.shredder}
-        </text>
+    <g className="segment-stage">
+      <g transform={`translate(${ox} ${oy})`}>
+        <Bed s={s} x0={isTunnel ? tunnel.x1 - 0.1 : -2.4} x1={lineEnd + 0.95} y0={-0.9} y1={0.9} />
+        {isTunnel && <TunnelBack s={s} t={tunnel} />}
+        {/* Each segment's stretch of track is tinted: the active one, or the one a lookup lands in. */}
+        <Track
+          s={s}
+          from={isTunnel ? -2.4 : -1.9}
+          to={lineEnd + 0.6}
+          bands={shown.map((seg, i) => {
+            const active = i === last;
+            const hot = highlight.includes(seg.base);
+            const expired = showAge && !active && isExpired(log, seg);
+            return { from: startX(seg), to: startX(seg) + train, className: `segment-band is-${hot ? "hot" : active ? "active" : expired ? "expired" : "closed"}` };
+          })}
+        />
+        {!isTunnel && <BufferStop s={s} x={-1.75} />}
+        {shown.map((seg) => (
+          <SegmentJoints key={seg.base} s={s} x={startX(seg)} w={train} />
+        ))}
       </g>
 
-      {hiddenCount > 0 && <Pill x={shredder[0] + 40} y={shredder[1] + 46} text={labels.hidden(hiddenCount)} animate={false} size={11} />}
+      {!isTunnel && (
+        <g transform={`translate(${at(-0.9, -1.75)[0]} ${at(-0.9, -1.75)[1]})`}>
+          <Station s={s * 0.7} roof={TINTS.lilac} w={1.4} h={0.9} />
+          <NameTag y={-s * 1.75} text={labels.shredder} tint={TINTS.lilac} />
+        </g>
+      )}
 
-      <AnimatePresence initial={false} custom={log}>
-        {shown.map((seg, i) => {
-          const active = i === last;
-          const [x, y] = at(i * stride, 0);
-          const hot = highlight.includes(seg.base);
-          const expired = showAge && !active && isExpired(log, seg);
+      {hiddenCount > 0 && <Pill x={at(isTunnel ? -1.2 : -1.0, 1.5)[0]} y={at(isTunnel ? -1.2 : -1.0, 1.5)[1] + 10} text={labels.hidden(hiddenCount)} animate={false} size={11} />}
+
+      {/* Faint outlines show how much room the active segment has left. */}
+      {shown[last] &&
+        Array.from({ length: Math.max(0, size - shown[last]!.records.length) }, (_, k) => {
+          const [gx, gy] = place(shown[last]!, shown[last]!.records.length + k);
           return (
-            <motion.g
-              key={seg.base}
-              initial={{ x: x + 40, y: y + 20, opacity: 0 }}
-              animate={{ x, y, opacity: 1 }}
-              variants={{ gone: segmentExit(seg.base, x, y) }}
-              exit="gone"
-              transition={spring}
-            >
-              <IsoBox
-                s={s}
-                at={[0, -0.65, -0.24]}
-                size={[tray, 1.3, 0.24]}
-                shades={hot ? TRAY_HOT : active ? TRAY_ACTIVE : TRAY_CLOSED}
-                className={expired ? "tray-expired" : undefined}
-              />
-              {/* Faint slots show how much room the segment has left. */}
-              {active &&
-                Array.from({ length: size - seg.records.length }, (_, k) => {
-                  const [gx, gy] = at(PAD + SLOT * (seg.records.length + k + 0.5), 0);
-                  return (
-                    <polygon
-                      key={k}
-                      className="ghost-slot"
-                      transform={`translate(${gx - x} ${gy - y})`}
-                      points={slotPoints(s)}
-                    />
-                  );
-                })}
-            </motion.g>
+            <g key={`ghost-${shown[last]!.base}-${k}`} transform={`translate(${gx} ${gy})`} opacity={k === 0 ? 1 : 0.55}>
+              <GhostWagon s={s} size={WAGON} />
+            </g>
           );
         })}
-      </AnimatePresence>
 
-      {/* Tray labels sit apart so the parcels never cover them. */}
+      {/* Segment labels sit in front of the line so the wagons never cover them. */}
       <AnimatePresence initial={false}>
         {shown.map((seg, i) => {
           const active = i === last;
-          // In front of the tray, down-left: the parcels never cover it there.
-          const [lx, ly] = at(i * stride + tray / 2, 2.15);
+          const [lx, ly] = at(startX(seg) + train / 2, 1.55);
           const expired = showAge && !active && isExpired(log, seg);
           const age = segmentAge(log, seg);
           return (
-            <motion.g
-              key={`label-${seg.base}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <Pill
-                x={lx}
-                y={ly}
-                text={`${labels.segment(seg.base)} · ${active ? labels.active : labels.closed}`}
-                tone={active ? "sun" : "plain"}
-                size={11}
-              />
-              {showAge && (
-                <Pill
-                  x={lx - 16}
-                  y={ly + 26}
-                  text={age === null ? labels.empty : labels.age(age)}
-                  tone={expired ? "danger" : "plain"}
-                  size={10.5}
-                />
-              )}
+            <motion.g key={`label-${seg.base}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+              <Pill x={lx} y={ly} text={`${labels.segment(seg.base)} · ${active ? labels.active : labels.closed}`} tone={active ? "sun" : "plain"} size={11} animate={false} />
+              {showAge && <Pill x={lx - 16} y={ly + 25} text={age === null ? labels.empty : labels.age(age)} tone={expired ? "danger" : "plain"} size={10.5} animate={false} />}
             </motion.g>
           );
         })}
@@ -220,19 +199,21 @@ export function SegmentStage({
           seg.records.map((r, i) => {
             const [x, y] = place(seg, i);
             const tag = tagOf?.(r);
+            const kind = shadesOf(r);
+            const lk = lookOf(kind);
             return (
               <motion.g
                 key={`r-${r.offset}`}
-                initial={{ x: producer[0], y: producer[1] - 50, opacity: 0, scale: 0.6 }}
-                animate={{ x, y, opacity: 1, scale: 1 }}
+                initial={{ x: entry[0], y: entry[1], opacity: 0 }}
+                animate={{ x, y, opacity: 1 }}
                 variants={{ gone: recordExit(r.offset, x, y) }}
                 exit="gone"
-                transition={spring}
+                transition={{ ...spring, stiffness: 100, opacity: { duration: 0.25 } }}
               >
-                <Parcel s={s} kind={shadesOf(r)} label={r.offset} state={marks?.get(r.offset) ?? "normal"} size={0.72} />
+                <Wagon s={s} size={WAGON} {...lk} label={r.offset} state={marks?.get(r.offset) ?? "normal"} />
                 {tag && (
-                  <g transform={`translate(${-s * 0.42} ${s * 0.5})`}>
-                    <rect x={-13} y={-9} width={26} height={17} rx={8.5} className="ink" style={{ fill: tag.tint.soft }} />
+                  <g transform={`translate(0 ${wagonTop(s, WAGON) - 2})`}>
+                    <rect x={-14} y={-9} width={28} height={17} rx={8.5} className="ink" style={{ fill: tag.tint.soft }} />
                     <text y={4} textAnchor="middle" className="key-tag">
                       {tag.text}
                     </text>
@@ -244,11 +225,20 @@ export function SegmentStage({
         )}
       </AnimatePresence>
 
+      <g transform={`translate(${ox} ${oy})`}>
+        {isTunnel && <TunnelPortal s={s} t={tunnel} />}
+        {isTunnel && (
+          <g transform={`translate(${rel(s, tunnel.x1 + 0.05, tunnel.y1 + 0.25, -0.2).join(" ")})`}>
+            <SignPost text={labels.shredder} />
+          </g>
+        )}
+      </g>
+
       {notes.map((note) => {
         const seg = shown.find((sg) => sg.records.some((r) => r.offset === note.offset));
         if (!seg) return null;
         const [x, y] = place(seg, seg.records.findIndex((r) => r.offset === note.offset));
-        return <Pill key={`note-${note.offset}`} x={x} y={y - s * 1.75} text={note.text} tone={note.tone ?? "sun"} size={12} />;
+        return <Pill key={`note-${note.offset}`} x={x} y={y - s * 1.9} text={note.text} tone={note.tone ?? "sun"} size={12} />;
       })}
 
       {lookup && lookupAt && (
@@ -269,31 +259,62 @@ export function SegmentStage({
         </g>
       )}
 
-      <motion.g initial={false} animate={{ x: producer[0], y: producer[1] }} transition={spring}>
+      <g transform={`translate(${producer[0]} ${producer[1]})`}>
         <Person
           key={producerState === "hop" ? producerPulse : "steady"}
           tint={TINTS.sky}
           state={producerState}
           scale={1.1}
           carrying={
-            <g transform="scale(0.5)">
-              <Parcel s={s} kind="order" />
+            <g transform="translate(0 6) scale(0.42)">
+              <Wagon s={50} kind="order" />
             </g>
           }
         />
-        <NameTag y={20} text={producerName} tint={TINTS.sky} />
-      </motion.g>
-      </motion.g>
+        <NameTag y={-96} text={producerName} tint={TINTS.sky} />
+      </g>
 
       {children}
     </g>
   );
 }
 
-function slotPoints(s: number) {
-  const h = 0.36;
-  const p = (x: number, y: number) => project({ ox: 0, oy: 0, s }, x, y);
-  return [p(-h, -h), p(h, -h), p(h, h), p(-h, h)].map(([x, y]) => `${x},${y}`).join(" ");
+/** Fits the whole line (head to producer, with labels) into the stage, centred. */
+function frameFor(lineEnd: number, tunnel: TunnelBox): Frame {
+  const extremes: [number, number, number][] = [
+    [tunnel.x0, tunnel.y0, tunnel.h + 0.6],
+    [tunnel.x0, tunnel.y1 + 0.4, 0],
+    [lineEnd + 1.6, -1.2, 0],
+    [lineEnd + 0.8, -1.2, 2.9],
+    [lineEnd, 2.4, 0],
+    [0, 2.6, 0],
+  ];
+  // Pixels kept free left of the tunnel (its signpost) and right of the producer (its name tag).
+  const left = 92;
+  const right = 64;
+  const unit = extremes.map(([x, y, z]) => project({ ox: 0, oy: 0, s: 1 }, x, y, z));
+  const w = Math.max(...unit.map((p) => p[0])) - Math.min(...unit.map((p) => p[0]));
+  const h = Math.max(...unit.map((p) => p[1])) - Math.min(...unit.map((p) => p[1]));
+  const s = Math.min(38, (SEGMENT_STAGE.width - left - right) / w, (SEGMENT_STAGE.height - 16) / h);
+  const p = extremes.map(([x, y, z]) => project({ ox: 0, oy: 0, s }, x, y, z));
+  const xs = p.map((q) => q[0]);
+  const ys = p.map((q) => q[1]);
+  return { ox: (SEGMENT_STAGE.width - left - right - (Math.max(...xs) + Math.min(...xs))) / 2 + left, oy: (SEGMENT_STAGE.height - (Math.max(...ys) + Math.min(...ys))) / 2 + 6, s };
+}
+
+/** The rail joints at both ends of a segment's stretch: where one train's file ends and the next begins. */
+function SegmentJoints({ s, x, w }: { s: number; x: number; w: number }) {
+  const joint = (jx: number) => {
+    const [ax, ay] = rel(s, jx, -0.46, 0.02);
+    const [bx, by] = rel(s, jx, 0.46, 0.02);
+    return <line key={jx} x1={ax} y1={ay} x2={bx} y2={by} className="segment-joint" />;
+  };
+  return (
+    <g>
+      {joint(x)}
+      {joint(x + w)}
+    </g>
+  );
 }
 
 /** A paper card in the corner of a stage, for a list such as the files of a partition. */

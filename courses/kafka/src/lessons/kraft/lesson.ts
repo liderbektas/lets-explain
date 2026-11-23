@@ -37,8 +37,8 @@ export const kraft: Lesson = {
           "This information is the [[metadata]], and the role that manages it is the [[controller]]. There are three controllers on top and three data brokers below.",
         ),
         l(
-          "Her controller'ın bandında aynı kayıtlar var: üç broker'ın kaydı ve `orders` topic'i. Bu bant, cluster'ın değişiklik defteri.",
-          "Each controller's belt holds the same records: three broker registrations and the `orders` topic. This belt is the cluster's change book.",
+          "Her controller'ın rayında aynı kayıtlar var: üç broker'ın kaydı ve `orders` topic'i. Bu ray, cluster'ın değişiklik defteri.",
+          "Each controller's track holds the same records: three broker registrations and the `orders` topic. This track is the cluster's change book.",
         ),
       ],
     },
@@ -109,12 +109,12 @@ export const kraft: Lesson = {
       title: l("Her değişiklik bir kayıt: metadata log", "Every change is a record: the metadata log"),
       body: [
         l(
-          "`payments` topic'i oluşturuldu. Aktif controller bunu kendi bandına yeni bir kayıt (offset 4) olarak ekledi, diğer iki controller hemen kopyaladı.",
-          "The `payments` topic was created. The active controller appended it to its belt as a new record (offset 4), and the other two copied it at once.",
+          "`payments` topic'i oluşturuldu. Aktif controller bunu kendi rayına yeni bir kayıt (offset 4) olarak ekledi, diğer iki controller hemen kopyaladı.",
+          "The `payments` topic was created. The active controller appended it to its track as a new record (offset 4), and the other two copied it at once.",
         ),
         l(
-          "Bu bant aslında bir Kafka topic'i: [[metadataLog]] (`__cluster_metadata`). Kafka kendi metadata'sını, tıpkı senin verin gibi, sadece sonuna yazılan bir log'da tutuyor.",
-          "That belt is a Kafka topic itself: the [[metadataLog]] (`__cluster_metadata`). Kafka keeps its own metadata the way it keeps your data: in an append-only log.",
+          "Bu ray aslında bir Kafka topic'i: [[metadataLog]] (`__cluster_metadata`). Kafka kendi metadata'sını, tıpkı senin verin gibi, sadece sonuna yazılan bir log'da tutuyor.",
+          "That track is a Kafka topic itself: the [[metadataLog]] (`__cluster_metadata`). Kafka keeps its own metadata the way it keeps your data: in an append-only log.",
         ),
         l(
           "Broker'lar da bu log'u takip eder. Altta her broker'ın altında \"metadata @ 5\" yazıyor: hepsi log'u 5 kayda kadar okudu ve haritaları güncel.",

@@ -3,6 +3,7 @@ import { sendStats, type RState } from "../../engine/replication";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { CLUSTER_STAGE, ClusterStage } from "../../iso/ClusterStage";
 import { Pill } from "@lets-explain/core/iso/shapes";
+import { MiniWagon } from "../../iso/rail";
 import { describeReplicated } from "../cluster-kit/describe";
 import { clusterLabels, replicatedChanges, toStage, TypedFooter, useSceneState, useTypedKit } from "../cluster-kit/kit";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
@@ -12,8 +13,8 @@ import { FREE, scenarios } from "./scenarios";
 
 const text = {
   label: l(
-    "Üç broker, her birinde P0'ın bir kopyası. Leader'ın bandına yazılır, follower'lar kopyalar",
-    "Three brokers, each with a copy of P0. Writes go to the leader's belt and followers copy it",
+    "Üç broker, her birinde P0'ın bir kopyası. Leader'ın rayına yazılır, follower'lar kopyalar",
+    "Three brokers, each with a copy of P0. Writes go to the leader's track and followers copy it",
   ),
   producer: l("Sipariş servisi", "Order service"),
   leader: l("Leader", "Leader"),
@@ -23,7 +24,7 @@ const text = {
   pending: l("Onay bekleyen", "Waiting for ack"),
   lost: l("Kayıp", "Lost"),
   epoch: l("leader epoch", "leader epoch"),
-  legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
+  legendParcel: l("kayıt = vagon (yanında offset)", "record = wagon (offset on its side)"),
   legendDim: l("soluk = HW üstünde, henüz okunamaz", "faded = above the HW, not readable yet"),
   legendHw: l("HW = consumer'ların okuyabildiği sınır", "HW = how far consumers can read"),
   legendBehind: l("ISR dışı = geride kalmış kopya", "out of ISR = a copy that fell behind"),
@@ -53,8 +54,8 @@ export function ReplicationScene({ step, paused, replayKey, controls: frameContr
   ];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendParcel) },
-    { swatch: <g opacity={0.35}><MiniCube fill="var(--mint)" /></g>, label: t(text.legendDim) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendParcel) },
+    { swatch: <MiniWagon kind="order" dim />, label: t(text.legendDim) },
     { swatch: <rect x={-10} y={-9} width={20} height={12} rx={6} className="hw-tag" />, label: t(text.legendHw) },
     { swatch: <rect x={-10} y={-8} width={20} height={11} rx={5.5} className="pill pill-danger" />, label: t(text.legendBehind) },
   ];
@@ -89,15 +90,6 @@ export function ReplicationScene({ step, paused, replayKey, controls: frameContr
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
-}
 
 export function changesFor(step: number): Change[] {
   if (step >= SANDBOX_STEP) return [];

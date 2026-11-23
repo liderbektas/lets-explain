@@ -110,8 +110,8 @@ export const consumerLag: Lesson = {
         {
           kind: "insight",
           text: l(
-            "Bandın soluna kayıp giden koliler de retention: log her partition'da sadece en yeni kayıtları tutuyor. Lag bu sınırı geçerse ne olacağını birazdan göreceğiz.",
-            "The parcels sliding off the left end are retention: the log keeps only the newest records per partition. Soon we'll see what happens if the lag goes past that.",
+            "Rayın başından kaybolan vagonlar da retention: log her partition'da sadece en yeni kayıtları tutuyor. Lag bu sınırı geçerse ne olacağını birazdan göreceğiz.",
+            "The wagons disappearing at the head of the track are retention: the log keeps only the newest records per partition. Soon we'll see what happens if the lag goes past that.",
           ),
         },
       ],

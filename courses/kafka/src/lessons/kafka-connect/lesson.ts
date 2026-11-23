@@ -73,8 +73,8 @@ export const kafkaConnect: Lesson = {
       title: l("Source connector: dışarıdan Kafka'ya", "Source connector: from outside into Kafka"),
       body: [
         l(
-          "Worker 1'deki **source** task'ı tabloyu okudu ve 3 satırı topic'e 3 kayıt olarak yazdı. Bandın sonundaki koliler o satırlar; üstlerinde satırın id'si yazıyor.",
-          "The **source** task on Worker 1 read the table and wrote its 3 rows into the topic as 3 records. The parcels on the belt are those rows, with each row's id on top.",
+          "Worker 1'deki **source** task'ı tabloyu okudu ve 3 satırı topic'e 3 kayıt olarak yazdı. Rayın sonundaki vagonlar o satırlar; yanlarında satırın id'si yazıyor.",
+          "The **source** task on Worker 1 read the table and wrote its 3 rows into the topic as 3 records. The wagons on the track are those rows, with each row's id on their side.",
         ),
         l(
           "Bir dış sistemden okuyup Kafka'ya yazan connector'a [[sourceConnector]] denir. Bu örnek, id'si en son gördüğünden büyük satırları soruyor: \"son id 3'tü, 3'ten büyük yeni satır var mı?\"",
@@ -132,8 +132,8 @@ export const kafkaConnect: Lesson = {
       },
       body: [
         l(
-          "Yeni sipariş (#4) topic'e mavi bir koli olarak girdi: kart numarası `**** ****` oldu. İndekse de maskeli hâli yazıldı.",
-          "The new order (#4) entered the topic as a blue parcel, with the card number turned into `**** ****`. The index got the masked version too.",
+          "Yeni sipariş (#4) topic'e mavi bir vagon olarak girdi: kart numarası `**** ****` oldu. İndekse de maskeli hâli yazıldı.",
+          "The new order (#4) entered the topic as a blue wagon, with the card number turned into `**** ****`. The index got the masked version too.",
         ),
         l(
           "Bunu yapan, kayıtları tek tek değiştiren küçük bir dönüşüm: [[smt]]. Alan maskelemek, alan eklemek ya da çıkarmak, kaydı başka bir topic'e yönlendirmek için kullanılır.",
@@ -216,8 +216,8 @@ export const kafkaConnect: Lesson = {
       },
       body: [
         l(
-          "Worker 1 çöktü. Source task'ı otomatik olarak Worker 2'ye taşındı. Ama son kayıtlı yer 4'tü, bu yüzden #5 ve #6'yı **ikinci kez** topic'e yazdı. Kolilerin üstündeki \"2×\" bunu gösteriyor.",
-          "Worker 1 died. The source task moved to Worker 2 on its own. But the last saved place was 4, so it wrote #5 and #6 into the topic **a second time**. The \"2×\" on the parcels shows that.",
+          "Worker 1 çöktü. Source task'ı otomatik olarak Worker 2'ye taşındı. Ama son kayıtlı yer 4'tü, bu yüzden #5 ve #6'yı **ikinci kez** topic'e yazdı. Vagonların üstündeki \"2×\" bunu gösteriyor.",
+          "Worker 1 died. The source task moved to Worker 2 on its own. But the last saved place was 4, so it wrote #5 and #6 into the topic **a second time**. The \"2×\" on the wagons shows that.",
         ),
         l(
           "Bu, ikinci dersteki commit'ten önce çöken consumer'ın aynısı: hiçbir satır kaybolmadı ama bazıları iki kez gitti. Connect'in varsayılan garantisi **at-least-once**.",

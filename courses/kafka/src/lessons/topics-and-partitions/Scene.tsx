@@ -13,8 +13,8 @@ const SLUG = "topics-and-partitions";
 
 const text = {
   label: l(
-    "orders topic'i: her partition bir bant, Fatura okuyucuları bantların solunda",
-    "The orders topic: each partition a belt, the billing readers at the left end",
+    "orders topic'i: her partition bir ray, Fatura okuyucuları rayların başında",
+    "The orders topic: each partition a track, the billing readers at the head of the tracks",
   ),
   producer: l("Sipariş servisi", "Order service"),
   partitions: l("Partition", "Partitions"),
@@ -22,7 +22,7 @@ const text = {
   lag: l("Fatura lag", "Billing lag"),
   readers: l("Okuyucu", "Readers"),
   readNow: l("Son turda okunan", "Read last round"),
-  legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
+  legendParcel: l("kayıt = vagon (yanında offset)", "record = wagon (offset on its side)"),
   legendFlag: l("bayrak = o partition'da sıradaki offset", "flag = next offset on that partition"),
   legendTag: l("P0, P1… = partition numarası", "P0, P1… = partition number"),
   oneLane: l("Tek şerit: okuyucu yetişemiyor", "One lane: the reader can't keep up"),

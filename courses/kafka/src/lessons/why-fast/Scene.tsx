@@ -2,8 +2,8 @@ import { type ReactNode } from "react";
 import { motion } from "motion/react";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L } from "@lets-explain/core/i18n";
-import { NameTag } from "../../iso/PartitionStage";
-import { Belt, Building, IsoBox, Parcel, Person, Pill, TINTS, type Shades } from "@lets-explain/core/iso/shapes";
+import { BufferStop, MiniWagon, NameTag, Station, Track, Wagon } from "../../iso/rail";
+import { IsoBox, Person, Pill, TINTS, type Shades } from "@lets-explain/core/iso/shapes";
 import { usePlayback, useTicker } from "@lets-explain/core/lib/playback";
 import type { SceneProps } from "@lets-explain/core/course/types";
 import { BATCHES, measure, SANDBOX_STEP, steps, type Measure, type Settings } from "./model";
@@ -51,7 +51,7 @@ const text = {
   legendParcel: l("kayıt", "record"),
   legendCrate: l("paket (batch), üstünde kayıt sayısı", "batch, with its record count"),
   legendLz4: l("lz4 ile sıkıştırılmış paket", "batch compressed with lz4"),
-  legendBelt: l("bant = bir partition", "belt = one partition"),
+  legendBelt: l("ray = bir partition", "track = one partition"),
   rowBatch: l("Batch", "Batch"),
   rowComp: l("Sıkıştırma", "Compression"),
   rowParts: l("Partition", "Partitions"),
@@ -86,12 +86,19 @@ export function WhyFastScene({ step, paused, replayKey, controls }: SceneProps) 
     : [];
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendParcel) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendParcel) },
     ...(pipeline
       ? [
-          { swatch: <MiniCube fill="var(--sun)" />, label: t(text.legendCrate) },
-          ...(settings.compression === "lz4" ? [{ swatch: <MiniCube fill="var(--sky)" />, label: t(text.legendLz4) }] : []),
-          { swatch: <polygon points="-10,0 0,-5 10,0 0,5" fill="#ece2cf" stroke="var(--ink)" strokeWidth="1.5" />, label: t(text.legendBelt) },
+          { swatch: <MiniCrate fill="var(--sun)" />, label: t(text.legendCrate) },
+          ...(settings.compression === "lz4" ? [{ swatch: <MiniCrate fill="var(--sky)" />, label: t(text.legendLz4) }] : []),
+          {
+            swatch: (
+              <g transform="translate(-14 -4)" className="rail-mini">
+                <Track s={9} from={0} to={3} />
+              </g>
+            ),
+            label: t(text.legendBelt),
+          },
         ]
       : []),
   ];
@@ -154,11 +161,15 @@ function describeChange(a: Settings, b: Settings, t: (x: L) => string) {
 
 /* --------------------------------------------------------------- pipeline */
 
-const BELT_S = 22;
-const BELT_LEN = 4.5;
+const TRACK_S = 22;
+const TRACK_LEN = 4.5;
 const CRATE: Shades = ["var(--sun)", "#f0c24f", "#d9a826"];
 
-/** Producer → road → broker → one belt per partition → consumers. Flow speed follows the numbers. */
+/**
+ * Producer → road → broker → one track per partition → consumers. Batches travel the road at the
+ * measured rate; on each track the wagons stay put and copies go out to the consumer, as fast as
+ * that consumer reads.
+ */
 function Pipeline({ settings, m, t, fmt }: { settings: Settings; m: Measure; t: (x: L) => string; fmt: (n: number) => string }) {
   const producer: [number, number] = [86, 360];
   const broker: [number, number] = [330, 262];
@@ -169,7 +180,7 @@ function Pipeline({ settings, m, t, fmt }: { settings: Settings; m: Measure; t: 
   const lz4 = settings.compression === "lz4";
 
   const slots = Math.max(settings.partitions, settings.consumers);
-  const beltAt = (k: number): [number, number] => [440 + k * 30.8, 318 - k * 15.4];
+  const trackAt = (k: number): [number, number] => [440 + k * 30.8, 318 - k * 15.4];
   const order = Array.from({ length: slots }, (_, k) => slots - 1 - k);
   const perConsumerTrip = Math.max(1.2, 4.2 - Math.log10(Math.max(m.consume / Math.max(m.working, 1), 10)) * 0.65);
 
@@ -202,7 +213,7 @@ function Pipeline({ settings, m, t, fmt }: { settings: Settings; m: Measure; t: 
             {t(text.disk)}
           </text>
         </g>
-        <Building s={36} roof={TINTS.sun} w={2.1} h={1.35} />
+        <Station s={36} roof={TINTS.sun} w={2.1} h={1.3} />
         <g transform="translate(0 -112)">
           <IsoBox s={28} at={[-1, -0.45, 0]} size={[2, 0.9, 0.3]} shades={["var(--mint-soft)", "var(--mint-mid)", "var(--mint-deep)"]} />
           <text y={-16} textAnchor="middle" className="wf-small">
@@ -214,24 +225,31 @@ function Pipeline({ settings, m, t, fmt }: { settings: Settings; m: Measure; t: 
       {m.networkBound && <Pill x={222} y={352} text={t(text.netFull)} tone="warn" size={12} />}
 
       {order.map((k) => {
-        const [bx, by] = beltAt(k);
-        const hasBelt = k < settings.partitions;
+        const [bx, by] = trackAt(k);
+        const hasTrack = k < settings.partitions;
         const hasConsumer = k < settings.consumers;
-        const working = hasBelt && hasConsumer;
-        const end: [number, number] = [bx + BELT_LEN * BELT_S, by + (BELT_LEN / 2) * BELT_S];
-        const flow = `M${bx + 8} ${by + 2} L${end[0] - 6} ${end[1] - 2}`;
+        const working = hasTrack && hasConsumer;
+        const end: [number, number] = [bx + TRACK_LEN * TRACK_S, by + (TRACK_LEN / 2) * TRACK_S];
+        // Copies leave from above the track and fly to the consumer standing past its end.
+        const flow = `M${bx + 20} ${by - 18} L${end[0] + 22} ${end[1] - 26}`;
         return (
           <g key={k}>
-            {hasBelt && (
+            {hasTrack && (
               <g transform={`translate(${bx} ${by})`}>
-                <Belt s={BELT_S} from={0} to={BELT_LEN} slot={1.1} />
+                <Track s={TRACK_S} from={-0.2} to={TRACK_LEN} />
+                <BufferStop s={TRACK_S} x={-0.05} />
+                {[0, 1, 2, 3].map((i) => (
+                  <g key={i} transform={`translate(${(0.5 + i * 0.95) * TRACK_S} ${((0.5 + i * 0.95) * TRACK_S) / 2})`} className="rail-mini">
+                    <Wagon s={TRACK_S} size={0.66} kind="order" />
+                  </g>
+                ))}
               </g>
             )}
-            {hasBelt &&
+            {hasTrack &&
               [0, 1].map((i) => (
-                <g key={i} opacity={working ? 1 : 0.55}>
+                <g key={i} opacity={working ? 1 : 0.55} className="rail-mini">
                   <g>
-                    <Parcel s={BELT_S} size={0.6} kind="order" />
+                    <Wagon s={TRACK_S * 0.6} kind="order" />
                     <animateMotion dur={`${working ? perConsumerTrip : 6}s`} begin={`${(-i * perConsumerTrip) / 2}s`} repeatCount="indefinite" path={flow} />
                   </g>
                 </g>
@@ -245,7 +263,7 @@ function Pipeline({ settings, m, t, fmt }: { settings: Settings; m: Measure; t: 
           </g>
         );
       })}
-      <g transform={`translate(${beltAt(0)[0] + BELT_LEN * BELT_S + 26} ${beltAt(0)[1] + (BELT_LEN / 2) * BELT_S + 52})`}>
+      <g transform={`translate(${trackAt(0)[0] + TRACK_LEN * TRACK_S + 26} ${trackAt(0)[1] + (TRACK_LEN / 2) * TRACK_S + 52})`}>
         <NameTag y={0} text={`${settings.consumers} ${t(text.consumer).toLowerCase()} · ${settings.partitions} partition`} tint={TINTS.lilac} />
       </g>
     </g>
@@ -277,12 +295,13 @@ function DiskDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; t
         {t(text.seq)}
       </text>
       <g transform={`translate(${seqOrigin[0]} ${seqOrigin[1]})`}>
-        <Belt s={34} from={0} to={6.6} slot={1.1} />
+        <Track s={34} from={-0.2} to={6.6} />
+        <BufferStop s={34} x={-0.05} />
         {Array.from({ length: n }, (_, i) => {
           const x = (0.55 + i * 1.1) * 34;
           return (
             <g key={i} transform={`translate(${x} ${x / 2})`}>
-              <Parcel s={34} size={0.7} kind="order" label={i} />
+              <Wagon s={34} size={0.9} kind="order" label={i} />
             </g>
           );
         })}
@@ -304,7 +323,7 @@ function DiskDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; t
         return (
           <g key={i} transform={`translate(${x} ${y})`}>
             <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i === shown.length - 1 ? seek : 0, duration: 0.15 }}>
-              <Parcel s={28} size={0.7} kind="order" label={i} />
+              <Wagon s={28} size={0.8} kind="order" label={i} />
             </motion.g>
           </g>
         );
@@ -352,7 +371,7 @@ function CacheDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; 
         const [x, y] = slotRam(i);
         return (
           <g key={`r-${written}-${i}`} transform={`translate(${x} ${y + 10})`}>
-            <Parcel s={30} size={0.7} kind="order" label={written - Math.min(written, 3) + i} />
+            <Wagon s={30} size={0.8} kind="order" label={written - Math.min(written, 3) + i} />
           </g>
         );
       })}
@@ -360,7 +379,7 @@ function CacheDiorama({ tick, revealed, t }: { tick: number; revealed: boolean; 
         const [x, y] = slotDisk(i);
         return (
           <g key={`d-${i}`} transform={`translate(${x} ${y + 6})`}>
-            <Parcel s={26} size={0.66} kind="neutral" label={i} />
+            <Wagon s={26} size={0.75} kind="neutral" label={i} />
           </g>
         );
       })}
@@ -413,11 +432,11 @@ function ZeroCopyDiorama({ revealed, t }: { revealed: boolean; t: (x: L) => stri
         <>
           {/* Same data, two routes: the classic one stops in the JVM and the socket buffer, sendfile goes straight to the NIC. */}
           <g>
-            <Parcel s={26} size={0.6} kind="neutral" />
+            <Wagon s={26} size={0.7} kind="neutral" />
             <animateMotion dur="4.8s" repeatCount="indefinite" path={classic} />
           </g>
           <g>
-            <Parcel s={26} size={0.6} kind="order" />
+            <Wagon s={26} size={0.7} kind="order" />
             <animateMotion dur="2.4s" repeatCount="indefinite" path={zero} />
           </g>
           <Pill x={440} y={86} text={t(text.classic)} tone="plain" />
@@ -430,7 +449,8 @@ function ZeroCopyDiorama({ revealed, t }: { revealed: boolean; t: (x: L) => stri
   );
 }
 
-function MiniCube({ fill }: { fill: string }) {
+/** Legend swatch for a batch: a small crate. */
+function MiniCrate({ fill }: { fill: string }) {
   return (
     <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
       <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />

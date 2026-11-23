@@ -146,8 +146,8 @@ export const replication: Lesson = {
       title: l("High watermark: okunabilir sınır", "The high watermark: the readable line"),
       body: [
         l(
-          "Broker 3 yavaşladı; yeni kayıtlar (offset 5 ve 6) sadece broker 1 ve 2'de. Bantta \"HW 5\" yazan direk bu sınırı gösteriyor ve soluk koliler henüz okunamıyor.",
-          "Broker 3 slowed down; the new records (offsets 5 and 6) are only on brokers 1 and 2. The \"HW 5\" post on the belt marks the line, and the faded parcels cannot be read yet.",
+          "Broker 3 yavaşladı; yeni kayıtlar (offset 5 ve 6) sadece broker 1 ve 2'de. Rayda \"HW 5\" yazan direk bu sınırı gösteriyor ve soluk vagonlar henüz okunamıyor.",
+          "Broker 3 slowed down; the new records (offsets 5 and 6) are only on brokers 1 and 2. The \"HW 5\" post on the track marks the line, and the faded wagons cannot be read yet.",
         ),
         l(
           "Bu sınıra [[highWatermark]] denir: ISR'deki bütün kopyaların sahip olduğu son kaydın bir sonrası. Consumer'lar sadece altındaki kayıtları görür.",

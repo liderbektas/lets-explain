@@ -32,8 +32,8 @@ export const whyFast: Lesson = {
           "Kafka writes every record to disk and keeps it for days. We learned that \"disks are slow\", yet a Kafka cluster of ordinary servers can move millions of records a second.",
         ),
         l(
-          "Bunun tek bir sihri yok; birkaç basit fikir üst üste biniyor. Sahnede yolun tamamını görüyorsun: producer, broker (bellekteki önbelleği ve diskiyle), partition bantları ve consumer'lar.",
-          "There is no single trick; a few simple ideas stack up. The scene shows the whole road: the producer, the broker (with its memory cache and disk), the partition belts and the consumers.",
+          "Bunun tek bir sihri yok; birkaç basit fikir üst üste biniyor. Sahnede yolun tamamını görüyorsun: producer, broker (bellekteki önbelleği ve diskiyle), partition rayları ve consumer'lar.",
+          "There is no single trick; a few simple ideas stack up. The scene shows the whole road: the producer, the broker (with its memory cache and disk), the partition tracks and the consumers.",
         ),
         l(
           "Üstteki sayaçlar bu küçük modelin sayıları: saniyede kaç kayıt yazılıyor, kaç istek gidiyor, ağ ne kadar dolu ve consumer'lar ne kadar okuyabiliyor.",

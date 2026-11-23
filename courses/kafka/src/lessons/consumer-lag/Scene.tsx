@@ -1,11 +1,12 @@
 import { useTypedSandbox } from "@lets-explain/core/components/TypedSandbox";
 import { SceneFrame, type LegendItem, type Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { Flag, Parcel, TINTS, type PillTone } from "@lets-explain/core/iso/shapes";
+import { Flag, TINTS, type PillTone } from "@lets-explain/core/iso/shapes";
+import { MiniWagon } from "../../iso/rail";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import type { EventLine } from "../shared/describe";
 import type { Change, SceneProps } from "@lets-explain/core/course/types";
-import { BeltsStage, STAGE, type BeltPartition, type BeltReader } from "../ordering/BeltsStage";
+import { TracksStage, STAGE, type TrackPartition, type TrackReader } from "../ordering/TracksStage";
 import "../ordering/scene.css";
 import { FREE, lagCtx, scenarios } from "./scenarios";
 import { lagShell, replayLag, type LagAction, type LagBox } from "./shell";
@@ -35,8 +36,8 @@ const WINDOW = 8;
 
 const text = {
   label: l(
-    "clicks topic'inin partition'ları bant olarak; analytics group'unun consumer'ları bantların başında, bayrakları commit ettikleri offset'te",
-    "The clicks topic's partitions as belts; the analytics group's consumers at the near end, flags at their committed offsets",
+    "clicks topic'inin partition'ları ray olarak; analytics group'unun consumer'ları rayların başında, bayrakları commit ettikleri offset'te",
+    "The clicks topic's partitions as tracks; the analytics group's consumers at the head of the tracks, flags at their committed offsets",
   ),
   producer: l("Tıklama servisi", "Click service"),
   next: l("sıradaki", "next"),
@@ -156,7 +157,7 @@ function lagTone(lag: number): PillTone {
   return "danger";
 }
 
-function beltsOf(state: LState): BeltPartition[] {
+function tracksOf(state: LState): TrackPartition[] {
   const owners = assignment(state);
   const ownerOf = (i: number) => Object.entries(owners).find(([, ps]) => ps.includes(i))?.[0];
   return state.partitions.map((p, i) => {
@@ -177,7 +178,7 @@ function beltsOf(state: LState): BeltPartition[] {
   });
 }
 
-function readersOf(state: LState, lastEvents: LEvent[], pulse: number, lang: Lang): BeltReader[] {
+function readersOf(state: LState, lastEvents: LEvent[], pulse: number, lang: Lang): TrackReader[] {
   const owners = assignment(state);
   const second = lastEvents.find((e) => e.type === "second");
   const consumed = lastEvents.find((e) => e.type === "consumed");
@@ -259,8 +260,8 @@ export function ConsumerLagScene({ step, paused, replayKey, controls }: ScenePro
   }
 
   const legend: LegendItem[] = [
-    { swatch: <g transform="translate(0 3)"><Parcel s={11} kind="order" size={0.85} /></g>, label: t(text.legendUnread) },
-    { swatch: <g transform="translate(0 3)"><Parcel s={11} kind="order" size={0.85} state="dim" /></g>, label: t(text.legendRead) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendUnread) },
+    { swatch: <MiniWagon kind="order" dim />, label: t(text.legendRead) },
     { swatch: <g transform="translate(-6 6) scale(0.42)"><Flag tint={TINTS.lilac} label="" height={30} /></g>, label: t(text.legendFlag) },
     { swatch: <rect x={-10} y={-6} width={20} height={12} rx={6} className="pill pill-warn" />, label: t(text.legendBadge) },
   ];
@@ -310,8 +311,8 @@ export function ConsumerLagScene({ step, paused, replayKey, controls }: ScenePro
       label={t(text.label)}
       footer={footer}
     >
-      <BeltsStage
-        partitions={beltsOf(state)}
+      <TracksStage
+        partitions={tracksOf(state)}
         readers={readersOf(state, lastEvents, pulse, lang)}
         producer={{ name: t(text.producer), state: produced ? "hop" : "idle", pulse }}
         partitionLabel={(i) => `p${i}`}

@@ -4,7 +4,7 @@ import { kafkaShell, replayShell, type KafkaBox, type ShellAction } from "../../
 import { groupStats } from "../../engine/cluster";
 import type { ClusterState, SimEvent } from "../../engine/types";
 import { l, useLang, type L, type Lang } from "@lets-explain/core/i18n";
-import { PartitionStage, STAGE, type Reader } from "../../iso/PartitionStage";
+import { MiniWagon, RAIL_STAGE, RailStage, type Reader } from "../../iso/RailStage";
 import { CommitSeal, TINTS, type ParcelState, type Tint } from "@lets-explain/core/iso/shapes";
 import { usePlayback } from "@lets-explain/core/lib/playback";
 import { describeEvents } from "../shared/describe";
@@ -16,7 +16,7 @@ import { base, consumers, P, readerFor, SANDBOX_STEP, stepActions, TOPIC, type C
 const SLUG = "log-and-offset";
 
 const text = {
-  label: l("orders log'u bir bant, kayıtlar koli, okuyucular bayraklı karakterler", "The orders log as a belt, records as parcels, readers as characters with flags"),
+  label: l("orders log'u bir ray, kayıtlar numaralı vagonlar, okuyucular bayraklı karakterler", "The orders log as a railway track, records as numbered wagons, readers as characters with flags"),
   producer: l("Sipariş servisi", "Order service"),
   next: l("sıradaki", "next"),
   retention: l("retention", "retention"),
@@ -28,7 +28,7 @@ const text = {
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),
   waiting: l("Birazdan başlıyor…", "Starting…"),
   nothing: l("Bir komut yaz; log'da ne olduğunu burada sade bir dille gör.", "Type a command; see what happened on the log here, in plain words."),
-  legendParcel: l("kayıt (üstünde offset)", "record (offset on top)"),
+  legendParcel: l("kayıt = vagon (yanında offset)", "record = wagon (offset on its side)"),
   legendCancel: l("iptal event'i", "cancel event"),
   legendFlag: l("bayrak = sıradaki okunacak offset", "flag = next offset to read"),
   legendSeal: l("mühür = commit edilen offset", "seal = committed offset"),
@@ -81,7 +81,7 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
 
   const pulse = box.run ? box.run.events.length : cursor;
 
-  // Highlights for this moment: parcels just read (or read again).
+  // Highlights for this moment: wagons just read (or read again).
   const marks = new Map<number, { state: ParcelState; tint?: Tint; to?: string }>();
   for (const e of lastEvents) {
     if (e.type !== "delivered") continue;
@@ -140,8 +140,8 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
   }
 
   const legend: LegendItem[] = [
-    { swatch: <MiniCube fill="var(--mint)" />, label: t(text.legendParcel) },
-    { swatch: <MiniCube fill="var(--peach)" />, label: t(text.legendCancel) },
+    { swatch: <MiniWagon kind="order" />, label: t(text.legendParcel) },
+    { swatch: <MiniWagon kind="cancel" />, label: t(text.legendCancel) },
     {
       swatch: (
         <g transform="translate(-6 5)">
@@ -199,12 +199,12 @@ export function LogAndOffsetScene({ step, paused, replayKey, controls }: ScenePr
       controls={controls}
       legend={legend}
       paused={paused}
-      width={STAGE.width}
-      height={STAGE.height}
+      width={RAIL_STAGE.width}
+      height={RAIL_STAGE.height}
       label={t(text.label)}
       footer={footer}
     >
-      <PartitionStage
+      <RailStage
         partition={partition}
         readers={readers}
         producerName={t(text.producer)}
@@ -233,16 +233,6 @@ function typedReader(state: ClusterState, c: ConsumerDef, events: SimEvent[]) {
     position: member ? (member.positions[P] ?? group.committed[P]) : group.committed[P],
     committed: group.committed[P],
   };
-}
-
-function MiniCube({ fill }: { fill: string }) {
-  return (
-    <g stroke="var(--ink)" strokeWidth="1.5" strokeLinejoin="round">
-      <polygon points="-7,-4 0,0 0,7 -7,3" style={{ fill }} />
-      <polygon points="0,0 7,-4 7,3 0,7" style={{ fill }} opacity="0.75" />
-      <polygon points="-7,-4 0,-8 7,-4 0,0" style={{ fill }} />
-    </g>
-  );
 }
 
 /* ------------------------------------------------- "what changed" per step */

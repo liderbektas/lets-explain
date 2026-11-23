@@ -30,8 +30,8 @@ export const kafkaStreams: Lesson = {
       changes: [{ kind: "add", text: l("+3 sipariş topic'e yazıldı", "+3 orders written to the topic") }],
       body: [
         l(
-          "Yönetim, her şehirden kaç sipariş geldiğini **canlı** görmek istiyor. Siparişler `orders` topic'ine akıyor (soldaki bant). Renkler şehirleri gösteriyor.",
-          "Management wants to see **live** how many orders come from each city. Orders flow into the `orders` topic (the belt on the left), coloured by city.",
+          "Yönetim, her şehirden kaç sipariş geldiğini **canlı** görmek istiyor. Siparişler `orders` topic'ine akıyor (soldaki ray). Renkler şehirleri gösteriyor.",
+          "Management wants to see **live** how many orders come from each city. Orders flow into the `orders` topic (the track on the left), coloured by city.",
         ),
         l(
           "Bir consumer yazıp sayıları bellekte tutabiliriz. Ama uygulama çökünce sayılar ne olacak? İki kopya çalıştırırsak sayıları nasıl paylaşacağız? Bir siparişi iki kez saymamayı nasıl garanti edeceğiz?",
@@ -45,8 +45,8 @@ export const kafkaStreams: Lesson = {
       title: l("Kafka Streams: uygulamanın içindeki kütüphane", "Kafka Streams: a library inside your app"),
       body: [
         l(
-          "[[kafkaStreams]], bu soruların cevabını hazır getiren bir Java kütüphanesi. Ortadaki mor çatılı bina sıradan bir uygulama; kütüphane onun **içinde** çalışıyor.",
-          "[[kafkaStreams]] is a Java library that answers these questions for you. The purple-roofed building in the middle is an ordinary app, and the library runs **inside** it.",
+          "[[kafkaStreams]], bu soruların cevabını hazır getiren bir Java kütüphanesi. Ortadaki mor çatılı istasyon sıradan bir uygulama; kütüphane onun **içinde** çalışıyor.",
+          "[[kafkaStreams]] is a Java library that answers these questions for you. The purple-roofed station in the middle is an ordinary app, and the library runs **inside** it.",
         ),
         l(
           "Ayrı bir işleme cluster'ı kurmazsın. Daha fazla güç gerekirse aynı uygulamadan bir kopya daha başlatırsın; aynı `application.id`'yi kullanan kopyalar işi kendi aralarında paylaşır.",
