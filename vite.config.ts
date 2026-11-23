@@ -28,10 +28,31 @@ const spaFallback = (): Plugin => ({
   },
 });
 
+/**
+ * Cloudflare Web Analytics: counts visits and page views without cookies. Only in the build,
+ * so local development does not show up in the numbers. The token is public by design.
+ */
+const CF_ANALYTICS_TOKEN = "85f335dbe67d405cace74a8a797eed85";
+const webAnalytics = (): Plugin => ({
+  name: "cloudflare-web-analytics",
+  apply: "build",
+  transformIndexHtml: () => [
+    {
+      tag: "script",
+      attrs: {
+        type: "module",
+        src: "https://static.cloudflareinsights.com/beacon.min.js",
+        "data-cf-beacon": JSON.stringify({ token: CF_ANALYTICS_TOKEN }),
+      },
+      injectTo: "body",
+    },
+  ],
+});
+
 export default defineConfig({
   root: here("./site"),
   base: "/",
-  plugins: [react(), spaFallback()],
+  plugins: [react(), spaFallback(), webAnalytics()],
   resolve: { alias },
   build: { outDir: here("./dist"), emptyOutDir: true },
   server: { fs: { allow: [here(".")] } },
