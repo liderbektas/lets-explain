@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage, type BrokerLabels } from "../../iso/BrokerStage";
+import { MailroomStage, type BrokerLabels } from "../../iso/MailroomStage";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
 
@@ -33,6 +33,8 @@ export const labels = (t: (x: L) => string): BrokerLabels => ({
   noLimit: "∞",
   down: t(l("kapalı", "down")),
   lost: t(l("kayıp", "lost")),
+  returned: t(l("iade", "returned")),
+  consumers: t(l("consumer", "consumers")),
 });
 
 const names = (t: (x: L) => string) => ({ "worker-1": t(l("İşçi 1", "Worker 1")), "worker-2": t(l("İşçi 2", "Worker 2")) });
@@ -46,10 +48,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Bir uygulama, bir kuyruk ve onu dinleyen işçiler", "An app, a queue and the workers listening to it"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={b}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       layout={{
         producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: info.sandbox ? TASKS : QUEUE }],

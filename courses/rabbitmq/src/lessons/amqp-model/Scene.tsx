@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { Channels } from "./Channels";
@@ -53,10 +53,11 @@ export const scene = makeBrokerScene({
         }}
       />
     ) : (
-      <BrokerStage
+      <MailroomStage
         broker={mergeBindings(b)}
         last={info.last}
         prev={info.prev}
+        history={info.history}
         labels={labels(info.t)}
         kindOf={kindOf}
         layout={{

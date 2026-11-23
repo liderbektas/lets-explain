@@ -35,8 +35,8 @@ export const directExchange: Lesson = {
           "An app sends its log messages to a **direct** [[exchange]] called `logs`. Each message's [[routingKey]] is its severity: `info`, `warning`, `error` or `debug`.",
         ),
         l(
-          "İki kuyruk var. `errors` sadece `error` key'iyle bağlı: alarm sistemi için. `all-logs` üç key ile bağlı (`info`, `warning`, `error`): arşiv için. Bindings yolların üstündeki sarı etiketlerde.",
-          "There are two queues. `errors` is bound only with `error`, for the alert system. `all-logs` is bound with three keys (`info`, `warning`, `error`), for the archive. The bindings are the yellow labels on the roads.",
+          "İki kuyruk var. `errors` sadece `error` key'iyle bağlı: alarm sistemi için. `all-logs` üç key ile bağlı (`info`, `warning`, `error`): arşiv için. Bindings olukların üstündeki sarı tabelalarda.",
+          "There are two queues. `errors` is bound only with `error`, for the alert system. `all-logs` is bound with three keys (`info`, `warning`, `error`), for the archive. The bindings are the yellow signs on the chutes.",
         ),
       ],
       practice: {
@@ -103,8 +103,8 @@ export const directExchange: Lesson = {
       title: l("Eşleşme yoksa mesaj kaybolur", "No match, no message"),
       body: [
         l(
-          "`debug` mesajı hiçbir kuyruğa girmedi ve atıldı. Sağ üstte \"kayıp: 1\" yazıyor; producer ise hiçbir şey bilmiyor.",
-          "The `debug` message entered no queue and was dropped. The top right says \"lost: 1\"; the producer knows nothing.",
+          "`debug` mesajı hiçbir kuyruğa girmedi ve atıldı. Çöp kutusunun altında \"kayıp: 1\" yazıyor; producer ise hiçbir şey bilmiyor.",
+          "The `debug` message entered no queue and was dropped. Under the waste bin it says \"lost: 1\"; the producer knows nothing.",
         ),
         l(
           "Burada bu istediğimiz bir şey: debug log'larını saklamak istemiyoruz. Ama bir sipariş mesajı böyle kaybolursa bu bir hatadır. Bunu yakalamanın yolları headers ve alternate exchange dersinde.",

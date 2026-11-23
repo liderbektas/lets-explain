@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Binding, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -59,10 +59,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Bir topic exchange: kalıplara göre dağıtım", "A topic exchange routing by patterns"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={mergedForDrawing(b)}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={{

@@ -16,7 +16,7 @@ import { effectiveArgs, type Broker, type BrokerEvent, type Message } from "../e
  * - dead lettering: it leaves through the dead letter exchange to its next queue, or is
  *   dropped where it stood when there is nowhere to go.
  *
- * Moving parcels are "ghosts" drawn on top; the real parcel disappears the moment its ghost
+ * Moving letters are "ghosts" drawn on top; the real letter disappears the moment its ghost
  * leaves and appears the moment its ghost lands. Times are seconds from the start of the action.
  */
 
@@ -28,7 +28,7 @@ export interface Places {
   consumers: string[];
   /** The producer that publishes this message, or null when none is drawn. */
   producer: (exchange: string, routingKey: string) => Pt | null;
-  /** The point a parcel passes over an exchange, or null when it is not drawn. */
+  /** The point a letter passes over an exchange, or null when it is not drawn. */
   exchange: (name: string) => Pt | null;
   slot: (queue: string, index: number) => Pt | null;
   hand: (tag: string, index: number) => Pt | null;
@@ -43,7 +43,7 @@ export interface Ghost {
   pts: Pt[];
   /** Time each point is reached; ts[0] is when the ghost sets off. */
   ts: number[];
-  /** "land": hands over to the real parcel and vanishes; "drop": falls and fades where it ends. */
+  /** "land": hands over to the real letter and vanishes; "drop": falls and fades where it ends. */
   end: "land" | "drop";
 }
 
@@ -65,12 +65,12 @@ export interface Fate {
 export interface Plan {
   ghosts: Ghost[];
   tokens: Token[];
-  /** When a parcel that just got somewhere should appear, by place key. */
+  /** When a letter that just got somewhere should appear, by place key. */
   arrive: Map<string, number>;
-  /** How a parcel that is no longer drawn should go, by place key. */
+  /** How a letter that is no longer drawn should go, by place key. */
   fates: Map<string, Fate>;
   /**
-   * When the parcels already waiting in a queue slide to their new slots: as the head leaves,
+   * When the letters already waiting in a queue slide to their new slots: as the head leaves,
    * or just before a requeued message lands back at the head. A tail arrival moves nobody.
    */
   shift: Map<string, number>;
@@ -85,7 +85,7 @@ export const DIRECT = LEG * 1.6;
 /** When a published message lands in its queue, for panels drawn next to the stage. */
 export const landsAt = (e: { exchange: string }) => (e.exchange === "" ? DIRECT : 2 * LEG);
 
-/** Points along the same S-curve the stage draws its roads with, from a to b (ends excluded). */
+/** Points along the same S-curve the stage draws its chutes and paths with, from a to b (ends excluded). */
 export function bend(a: Pt, b: Pt): Pt[] {
   const mx = (a[0] + b[0]) / 2;
   return [0.25, 0.5, 0.75].map((t) => {
@@ -97,7 +97,7 @@ export function bend(a: Pt, b: Pt): Pt[] {
 /** Times for points along a path: the first at t0, the last at t1, evenly between. */
 const spread = (n: number, t0: number, t1: number) => Array.from({ length: n }, (_, i) => (n === 1 ? t1 : t0 + ((t1 - t0) * i) / (n - 1)));
 
-/** Place keys: a parcel waiting in a queue, or held by a consumer. */
+/** Place keys: a letter waiting in a queue, or held by a consumer. */
 export const qKey = (queue: string, id: string) => `q:${queue}:${id}`;
 export const hKey = (tag: string, id: string) => `h:${tag}:${id}`;
 const queueOf = (key: string) => (key.startsWith("q:") ? key.slice(2, key.lastIndexOf(":")) : null);

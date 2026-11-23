@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -54,10 +54,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Bir fanout exchange ve ona bağlı kuyruklar", "A fanout exchange and the queues bound to it"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={b}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       layout={{
         producers: info.sandbox

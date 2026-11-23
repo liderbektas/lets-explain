@@ -1,7 +1,7 @@
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, queueAvailable, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene, type ViewInfo } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -61,10 +61,11 @@ export const scene = makeBrokerScene({
     const queues = info.sandbox ? Object.keys(b.queues).sort() : ["cache", quorum];
     return (
       <g>
-        <BrokerStage
+        <MailroomStage
           broker={b}
           last={info.last}
           prev={info.prev}
+          history={info.history}
           labels={labels(info.t)}
           box={{ x: 0, y: 0, w: 860, h: 300 }}
           kindOf={(m) => (m.routingKey === "cache" ? "neutral" : "order")}

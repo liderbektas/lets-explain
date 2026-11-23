@@ -1,8 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
-import { Parcel } from "@lets-explain/core/iso/shapes";
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { LetterSwatch, MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { DeathPanel } from "./DeathPanel";
@@ -91,10 +90,11 @@ export const scene = makeBrokerScene({
     const consumers = Object.keys(b.consumers).filter((tag) => v.queues.includes(b.consumers[tag]!.queue));
     return (
       <g>
-        <BrokerStage
+        <MailroomStage
           broker={b}
           last={info.last}
           prev={info.prev}
+          history={info.history}
           labels={labels(info.t)}
           kindOf={kindOf}
           box={{ x: 0, y: 0, w: 620, h: 470 }}
@@ -120,8 +120,8 @@ export const scene = makeBrokerScene({
     return out;
   },
   legend: (t) => [
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="order" /></g>, label: t(l("normal mesaj", "normal message")) },
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="cancel" /></g>, label: t(l("dead letter olmuş (x-death taşıyor)", "dead-lettered (carries x-death)")) },
+    { swatch: <LetterSwatch kind="order" />, label: t(l("normal mesaj", "normal message")) },
+    { swatch: <LetterSwatch kind="cancel" />, label: t(l("dead letter olmuş (x-death taşıyor)", "dead-lettered (carries x-death)")) },
   ],
   // Free play is a work queue with a rejecting worker; each scenario brings its own project.
   sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },

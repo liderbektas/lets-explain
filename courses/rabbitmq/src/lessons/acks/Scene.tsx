@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -43,10 +43,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Bir kuyruk, onu dinleyen işçiler ve reddedilenlerin düştüğü dead letter kuyruğu", "A queue, the workers on it, and the dead letter queue for rejected messages"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={b}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       layout={{
         producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: QUEUE }],

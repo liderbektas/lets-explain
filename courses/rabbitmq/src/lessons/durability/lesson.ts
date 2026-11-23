@@ -55,8 +55,8 @@ export const durability: Lesson = {
       title: l("İki kuyruğa birer mesaj", "One message in each queue"),
       body: [
         l(
-          "Her iki kuyruğa da birer mesaj gönderdik, ikisi de **geçici** (transient): sahnede açık renk koli. Mesajlar şimdilik bellekte, kuyruklarında bekliyor.",
-          "We sent one message to each queue, both **transient**: the plain-coloured parcels. For now they wait in memory, in their queues.",
+          "Her iki kuyruğa da birer mesaj gönderdik, ikisi de **geçici** (transient): sahnede kâğıt not. Mesajlar şimdilik bellekte, kuyruklarında bekliyor.",
+          "We sent one message to each queue, both **transient**: the loose paper notes. For now they wait in memory, in their queues.",
         ),
         l(
           "Bir mesajın kalıcı olup olmayacağını kuyruk değil, **mesajı gönderen** seçer. Mesaj gönderirken hiçbir şey söylemezsen geçici olur.",
@@ -111,8 +111,8 @@ export const durability: Lesson = {
       title: l("Persistent mesajlar", "Persistent messages"),
       body: [
         l(
-          "`temp`'i yeniden tanımladık ve üç mesaj gönderdik: `orders`'a persistent `p1` ve geçici `t3`, `temp`'e persistent `p2`. Persistent mesajlar yeşil.",
-          "We declared `temp` again and sent three messages: persistent `p1` and transient `t3` to `orders`, persistent `p2` to `temp`. Persistent messages are mint.",
+          "`temp`'i yeniden tanımladık ve üç mesaj gönderdik: `orders`'a persistent `p1` ve geçici `t3`, `temp`'e persistent `p2`. Persistent mesajlar mühürlü yeşil zarf.",
+          "We declared `temp` again and sent three messages: persistent `p1` and transient `t3` to `orders`, persistent `p2` to `temp`. Persistent messages are sealed mint envelopes.",
         ),
         l(
           "Persistent işaretli mesajı broker diske de yazar (`delivery_mode=2`). Restart'ta kurtarılabilmesi için bu şart.",

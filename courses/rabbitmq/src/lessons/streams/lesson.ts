@@ -56,8 +56,8 @@ export const streams: Lesson = {
       title: l("Yazmak: sona ekle", "Writing: append to the end"),
       body: [
         l(
-          "Uygulama üç event gönderdi. Log'a 0, 1 ve 2 numaralı offset'lerle eklendiler. Kesikli kutu, bir sonraki event'in konacağı yer: offset 3.",
-          "The app sent three events. They were added to the log at offsets 0, 1 and 2. The dashed box is where the next event goes: offset 3.",
+          "Uygulama üç event gönderdi. Log'a 0, 1 ve 2 numaralı offset'lerle eklendiler. Kesikli çerçeve, bir sonraki event'in konacağı yer: offset 3.",
+          "The app sent three events. They were added to the log at offsets 0, 1 and 2. The dashed outline is where the next event goes: offset 3.",
         ),
         l(
           "Henüz okuyan yok, ama bu sorun değil: stream mesajları okuyan olsa da olmasa da saklar.",
@@ -88,8 +88,8 @@ export const streams: Lesson = {
           "Analytics connected at offset `first`, the very beginning, got all three events and acked them. Look at the log: all three are still there.",
         ),
         l(
-          "Analitik'in işareti artık offset 3'te: sıradaki okuyacağı yer. Bir kuyrukta mesaj alındığında giderdi; burada sadece okuyucunun yeri ilerledi.",
-          "Analytics' marker now sits at offset 3, the next one it will read. In a queue the messages would be gone once taken; here only the reader's place moved.",
+          "Analitik'in ayracı artık offset 3'te: sıradaki okuyacağı yer. Bir kuyrukta mesaj alındığında giderdi; burada sadece okuyucunun yeri ilerledi.",
+          "Analytics' bookmark now sits at offset 3, the next one it will read. In a queue the messages would be gone once taken; here only the reader's place moved.",
         ),
       ],
       callouts: [
@@ -147,8 +147,8 @@ export const streams: Lesson = {
       title: l("Sadece yenileri okumak", "Reading only new messages"),
       body: [
         l(
-          "Analitik işini bitirip ayrıldı. Denetim servisi `next` ile bağlandı. İlk başta hiçbir şey almadı; işareti log'un sonunda bekliyordu. Sonra `e4` geldi ve onu aldı.",
-          "Analytics finished and left. Audit connected with `next`. At first it got nothing: its marker waited at the end of the log. Then `e4` arrived and it got that.",
+          "Analitik işini bitirip ayrıldı. Denetim servisi `next` ile bağlandı. İlk başta hiçbir şey almadı; ayracı log'un sonunda bekliyordu. Sonra `e4` geldi ve onu aldı.",
+          "Analytics finished and left. Audit connected with `next`. At first it got nothing: its bookmark waited at the end of the log. Then `e4` arrived and it got that.",
         ),
         l(
           "Aynı `e4` Fatura'ya da gitti, çünkü Fatura hâlâ bağlı ve sıradaki offset'i 3'tü. Stream'e yazılan her mesaj, bağlı olan her okuyucuya ulaşır.",

@@ -1,7 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
-import { Parcel } from "@lets-explain/core/iso/shapes";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage, type ProducerSpec } from "../../iso/BrokerStage";
+import { LetterSwatch, MailroomStage, type ProducerSpec } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -53,12 +52,14 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Durable ve geçici kuyruklar, persistent ve geçici mesajlar, ve bir broker restart'ı", "Durable and transient queues, persistent and transient messages, and a broker restart"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={b}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       kindOf={kindOf}
+      persistence
       layout={{
         // In the try-it step every queue gets an app sending straight to it.
         producers: info.sandbox
@@ -83,8 +84,8 @@ export const scene = makeBrokerScene({
     ];
   },
   legend: (t) => [
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="order" /></g>, label: t(l("persistent mesaj", "persistent message")) },
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="neutral" /></g>, label: t(l("geçici mesaj", "transient message")) },
+    { swatch: <LetterSwatch kind="order" seal />, label: t(l("persistent mesaj", "persistent message")) },
+    { swatch: <LetterSwatch kind="neutral" note />, label: t(l("geçici mesaj", "transient message")) },
   ],
   // Free play is a small project with its files; each scenario brings its own.
   sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },

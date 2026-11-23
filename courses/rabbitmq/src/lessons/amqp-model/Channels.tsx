@@ -1,4 +1,6 @@
-import { IsoBox, Pill } from "@lets-explain/core/iso/shapes";
+import { Person, Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { Envelope, PostOffice } from "../../iso/MailroomStage";
+import { Laptop } from "../../iso/mailroom-parts";
 
 /**
  * One TCP connection from an app to the broker, with several channels running inside it.
@@ -26,11 +28,15 @@ export function Channels({ labels }: { labels: { app: string; broker: string; co
           </text>
         </g>
       ))}
-      <g transform={`translate(${x1} ${y + 30})`}>
-        <IsoBox s={26} at={[-1.2, -1.2, 0]} size={[2.4, 2.4, 2]} shades={["var(--sky)", "var(--sky-mid)", "var(--sky-deep)"]} className="ch-box" />
+      {/* The app: one person at a laptop; the broker: the post office. */}
+      <g transform={`translate(${x1 - 22} ${y + 62})`} className="mailroom">
+        <Person tint={TINTS.sky} scale={1.6} carrying={<Envelope kind="neutral" w={22} />} />
+        <g transform="scale(1.3)">
+          <Laptop />
+        </g>
       </g>
-      <g transform={`translate(${x2} ${y + 30})`}>
-        <IsoBox s={26} at={[-1.4, -1.4, 0]} size={[2.8, 2.8, 2.3]} shades={["var(--peach)", "var(--peach-mid)", "var(--peach-deep)"]} className="ch-box" />
+      <g transform={`translate(${x2 - 6} ${y - 18})`} className="mailroom">
+        <PostOffice s={26} roof="var(--peach)" />
       </g>
       <Pill x={x1} y={y + 104} text={labels.app} animate={false} />
       <Pill x={x2} y={y + 104} text={labels.broker} animate={false} />

@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
-import { IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes";
 import { nodeAlive, queueAvailable, type Broker, type BrokerEvent } from "../../engine/broker";
 import { HOP, landsAt } from "../../iso/choreography";
+import { Envelope, PostOffice } from "../../iso/MailroomStage";
 
 /**
- * The cluster's three nodes side by side, with a chip for every queue copy each node holds:
+ * The cluster's three nodes side by side, each a post office holding its copies of the
+ * queues' mailboxes, with a chip for every queue copy each node holds:
  * the quorum leader in tangerine, followers in sky, a classic queue (one copy only) in sun.
  * When a message reaches a quorum queue, the leader sends a copy to each follower that is up;
  * when the leader's node fails, the leader role moves to the newly elected node.
@@ -17,9 +18,6 @@ export interface NodesLabels {
   follower: string;
   only: string;
 }
-
-const UP: Shades = ["var(--sky)", "var(--sky-mid)", "var(--sky-deep)"];
-const DOWN: Shades = ["#e2dde6", "#cfc8d6", "#b9b2c2"];
 
 /**
  * Who leads a quorum queue right now. The model keeps the old leader's name while the
@@ -42,7 +40,7 @@ export function NodesPanel({ broker, queues, labels, box, last = [] }: { broker:
   const chipAt = (node: string, queue: string): [number, number] | null => {
     const i = broker.nodes.findIndex((x) => x.name === node);
     const k = queues.filter((name) => broker.queues[name]?.members.includes(node)).indexOf(queue);
-    return i >= 0 && k >= 0 ? [box.x + i * (w + gap) + 34, box.y + 68 + k * 26 + 10] : null;
+    return i >= 0 && k >= 0 ? [box.x + i * (w + gap) + 116, box.y + 48 + k * 26 + 10] : null;
   };
   const moves: { key: string; from: [number, number]; to: [number, number]; t0: number; leader: boolean }[] = [];
   last.forEach((e, idx) => {
@@ -67,7 +65,7 @@ export function NodesPanel({ broker, queues, labels, box, last = [] }: { broker:
     }
   });
   return (
-    <g className="nodes-panel">
+    <g className="nodes-panel mailroom">
       {broker.nodes.map((node, i) => {
         const x = box.x + i * (w + gap);
         const y = box.y;
@@ -83,16 +81,14 @@ export function NodesPanel({ broker, queues, labels, box, last = [] }: { broker:
           <g key={node.name} opacity={node.alive ? 1 : 0.6}>
             <rect x={x} y={y + 4} width={w} height={box.h} rx={16} style={{ fill: "var(--ink)" }} />
             <rect x={x} y={y} width={w} height={box.h} rx={16} style={{ fill: node.alive ? "var(--card)" : "var(--paper-2)", stroke: "var(--ink)", strokeWidth: 2 }} />
-            <g transform={`translate(${x + 30} ${y + 40})`}>
-              <g className="node-icon">
-                <IsoBox s={10} at={[-1, -1, 0]} size={[2, 2, 0.9]} shades={node.alive ? UP : DOWN} />
-                <IsoBox s={10} at={[-1, -1, 0.9]} size={[2, 2, 0.9]} shades={node.alive ? UP : DOWN} />
-              </g>
+            {/* The node: a post office, greyed while it is down. */}
+            <g transform={`translate(${x + 44} ${y + 70})`}>
+              <PostOffice s={11} roof="var(--peach)" down={!node.alive} />
             </g>
-            <text x={x + 56} y={y + 26} style={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 800 }}>
+            <text x={x + 16} y={y + 26} style={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 800 }}>
               {node.name}
             </text>
-            <g transform={`translate(${x + 56} ${y + 36})`}>
+            <g transform={`translate(${x + w - 14 - (node.alive ? 64 : 58)} ${y + 13})`}>
               <rect width={node.alive ? 64 : 58} height={18} rx={9} style={{ fill: node.alive ? "var(--mint)" : "var(--red-soft)", stroke: "var(--ink)", strokeWidth: 1.5 }} />
               <text x={(node.alive ? 64 : 58) / 2} y={13} textAnchor="middle" style={{ fill: "var(--ink)", fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 800 }}>
                 {node.alive ? labels.up : labels.down}
@@ -102,7 +98,7 @@ export function NodesPanel({ broker, queues, labels, box, last = [] }: { broker:
               const text = `${c.name} · ${c.role}`;
               const cw = Math.round(text.length * 6.6 + 18);
               return (
-                <g key={c.name} transform={`translate(${x + 14} ${y + 68 + k * 26})`}>
+                <g key={c.name} transform={`translate(${x + 96} ${y + 48 + k * 26})`}>
                   <rect width={cw} height={20} rx={10} style={{ fill: c.fill, stroke: "var(--ink)", strokeWidth: 1.5 }} />
                   <text x={cw / 2} y={14} textAnchor="middle" style={{ fill: "var(--ink)", fontFamily: "var(--font-display)", fontSize: 11.5, fontWeight: 800 }}>
                     {text}
@@ -111,7 +107,7 @@ export function NodesPanel({ broker, queues, labels, box, last = [] }: { broker:
               );
             })}
             {!node.alive && (
-              <g transform={`translate(${x + w - 22} ${y + 22})`}>
+              <g transform={`translate(${x + 48} ${y + 50})`}>
                 <circle r={11} style={{ fill: "var(--red)", stroke: "var(--ink)", strokeWidth: 2 }} />
                 <path d="M-4 -4l8 8m0 -8l-8 8" style={{ stroke: "var(--card)", strokeWidth: 2.5, strokeLinecap: "round" }} />
               </g>
@@ -147,7 +143,7 @@ function Move({ from, to, t0, leader, label }: { from: [number, number]; to: [nu
         </g>
       ) : (
         <g transform="translate(0 -4)">
-          <Parcel s={11} size={0.8} kind="order" />
+          <Envelope kind="order" w={18} />
         </g>
       )}
     </motion.g>

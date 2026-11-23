@@ -95,7 +95,7 @@ export const headersAndAlternate: Lesson = {
       },
       title: l("Kimseye uymayan mesaj sessizce kaybolur", "A message that matches nobody is silently lost"),
       body: [
-        l("Belge hiçbir kuyruğa uymadı ve atıldı; sağ üstte \"kayıp: 1\" var. Producer'a hiçbir hata gelmedi.", "The document matched no queue and was dropped; top right says \"lost: 1\". The producer got no error."),
+        l("Belge hiçbir kuyruğa uymadı ve atıldı; çöp kutusunun altında \"kayıp: 1\" var. Producer'a hiçbir hata gelmedi.", "The document matched no queue and was dropped; under the waste bin it says \"lost: 1\". The producer got no error."),
         l("Bu, yazım hatalı bir header, eksik bir binding ya da henüz açılmamış bir servis yüzünden her exchange türünde olabilir. Bunu yakalamanın iki yolu var.", "This can happen with any exchange type: a misspelled header, a missing binding, a service not started yet. There are two ways to catch it."),
       ],
       practice: { commands: [] },

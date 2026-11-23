@@ -131,8 +131,8 @@ export const fanoutExchange: Lesson = {
       body: [
         l("`analytics` kuyruğu bağlandı ve sadece `o3`'ü aldı. `o1` ve `o2` o kuyruğa hiç kopyalanmadı.", "`analytics` was bound and got only `o3`. `o1` and `o2` were never copied to it."),
         l(
-          "Exchange bir posta ayırma makinesi gibi: mesajı o anda bağlı kutulara atar, kendinde tutmaz. Geçmişi yeniden okumak istiyorsan RabbitMQ Stream'leri ya da Kafka gerekir.",
-          "An exchange is like a sorting machine: it drops the message into the boxes connected right now and keeps nothing. To replay the past you need RabbitMQ Streams or Kafka.",
+          "Exchange bir posta ayırma makinesi gibi: mesajı o anda bağlı posta kutularına atar, kendinde tutmaz. Geçmişi yeniden okumak istiyorsan RabbitMQ Stream'leri ya da Kafka gerekir.",
+          "An exchange is like a sorting machine: it drops the message into the mailboxes connected right now and keeps nothing. To replay the past you need RabbitMQ Streams or Kafka.",
         ),
       ],
       callouts: [

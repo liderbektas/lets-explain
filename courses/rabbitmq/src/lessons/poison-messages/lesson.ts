@@ -32,8 +32,8 @@ export const poisonMessages: Lesson = {
           "Some messages can never be processed: a missing field, broken JSON, a customer who no longer exists. Every attempt fails. These are called **poison messages**.",
         ),
         l(
-          "Sahnede klasik bir `orders-v1` kuyruğu ve onu dinleyen dikkatli bir işçi var (prefetch 1, manuel ack). Turuncu koli bozuk mesaj olacak.",
-          "On stage is a classic `orders-v1` queue and a careful worker on it (prefetch 1, manual ack). The orange parcel will be the bad message.",
+          "Sahnede klasik bir `orders-v1` kuyruğu ve onu dinleyen dikkatli bir işçi var (prefetch 1, manuel ack). Turuncu zarf bozuk mesaj olacak.",
+          "On stage is a classic `orders-v1` queue and a careful worker on it (prefetch 1, manual ack). The orange envelope will be the bad message.",
         ),
       ],
       practice: {
@@ -62,8 +62,8 @@ export const poisonMessages: Lesson = {
       title: l("Requeue'nun tuzağı: sonsuz döngü", "The requeue trap: an endless loop"),
       body: [
         l(
-          "Bozuk mesaj dört kez teslim edildi, dördünde de geri verildi. Üstünde \"2×\" işareti var ve sayaç \"En çok teslim edilen: 4\" diyor. Bu böyle sonsuza kadar gidebilir.",
-          "The bad message was delivered four times and handed back each time. It shows \"2×\" and the counter says \"Most deliveries: 4\". This could go on forever.",
+          "Bozuk mesaj dört kez teslim edildi, dördünde de geri verildi. Üstünde \"4×\" damgası var ve sayaç \"En çok teslim edilen: 4\" diyor. Bu böyle sonsuza kadar gidebilir.",
+          "The bad message was delivered four times and handed back each time. It carries a \"4×\" postmark and the counter says \"Most deliveries: 4\". This could go on forever.",
         ),
         l(
           "Daha kötüsü: prefetch 1 olan işçi bu mesajla uğraşırken arkasındaki sağlam mesajlara hiç sıra gelmez. Tek bir bozuk mesaj bütün kuyruğu kilitleyebilir.",

@@ -12,7 +12,7 @@ import { useGame } from "@lets-explain/core/lib/storage";
 import { project as makeProject, rabbitShell, replayProject, type Files, type Project, type ProjectAction } from "../../engine/cli";
 import { describeBroker } from "../../engine/describe";
 import { simulate, type BrokerAction, type BrokerEvent, type Broker } from "../../engine/broker";
-import { BROKER_STAGE } from "../../iso/BrokerStage";
+import { MAILROOM_STAGE } from "../../iso/MailroomStage";
 import { brokerChanges } from "./brokerChanges";
 
 /**
@@ -76,6 +76,8 @@ export interface ViewInfo {
   fresh: Set<string>;
   /** The state before the last action, so the stage can move each message from where it was. */
   prev: Broker;
+  /** Every event since the run began, up to this state (e.g. which exchange dropped a lost message). */
+  history: BrokerEvent[];
   t: (x: L) => string;
   lang: Lang;
 }
@@ -174,18 +176,22 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
     let state: Broker;
     let last: BrokerEvent[];
     let shown: BrokerEvent[];
+    let history: BrokerEvent[];
     if (typedRun) {
       state = typedRun.project.broker;
+      history = typedRun.events.flat();
       // The last broker action's events: file edits and worker bookkeeping have none.
       last = [...typedRun.events].reverse().find((e) => e.length > 0) ?? [];
       shown = typedRun.events.flat();
     } else if (sandRun) {
       state = sandRun.states[sandRun.states.length - 1]!;
+      history = [...run.events.flat(), ...sandRun.events.flat()];
       last = sandRun.events[sandRun.events.length - 1] ?? [];
       shown = sandRun.events.flat();
     } else {
       const s0 = stepStart(Math.min(step, sandboxStep));
       state = run.states[s0 + cursor]!;
+      history = run.events.slice(0, s0 + cursor).flat();
       last = cursor > 0 ? run.events[s0 + cursor - 1]! : [];
       shown = run.events.slice(s0, s0 + cursor).flat();
     }
@@ -198,7 +204,7 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
         ? (sandRun.states[sandRun.states.length - 2] ?? sandboxStart)
         : run.states[Math.max(0, stepStart(Math.min(step, sandboxStep)) + cursor - 1)]!;
     const fresh = new Set(last.flatMap((e) => ("id" in e ? [e.id] : [])));
-    const info: ViewInfo = { step, sandbox, last, fresh, prev, t, lang };
+    const info: ViewInfo = { step, sandbox, last, fresh, prev, history, t, lang };
 
     const mission = sandbox && missionIndex !== null ? missions[missionIndex] : undefined;
     const won = Boolean(mission && sandRun && mission.check({ start: sandboxStart, state, actions: moves, events: sandRun.events, states: sandRun.states }));
@@ -285,8 +291,8 @@ export function makeBrokerScene(config: BrokerSceneConfig): BrokerScene {
         controls={controls}
         legend={config.legend?.(t) ?? []}
         paused={paused}
-        width={BROKER_STAGE.width}
-        height={BROKER_STAGE.height}
+        width={MAILROOM_STAGE.width}
+        height={MAILROOM_STAGE.height}
         label={t(config.label)}
         footer={footer}
       >

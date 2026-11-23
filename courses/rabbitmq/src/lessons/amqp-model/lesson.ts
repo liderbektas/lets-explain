@@ -138,8 +138,8 @@ export const amqpModel: Lesson = {
       title: l("Uymayan mesaj sessizce atılır", "Unmatched messages are dropped silently"),
       body: [
         l(
-          "`order.cancelled` için binding olmadığından mesaj hiçbir kuyruğa girmedi. RabbitMQ onu attı ve producer hiçbir şey fark etmedi. Sağ üstte \"kayıp: 1\" yazıyor.",
-          "With no binding for `order.cancelled`, the message entered no queue. RabbitMQ dropped it, and the producer noticed nothing. The top right says \"lost: 1\".",
+          "`order.cancelled` için binding olmadığından mesaj hiçbir kuyruğa girmedi. RabbitMQ onu attı ve producer hiçbir şey fark etmedi. Çöp kutusunun altında \"kayıp: 1\" yazıyor.",
+          "With no binding for `order.cancelled`, the message entered no queue. RabbitMQ dropped it, and the producer noticed nothing. Under the waste bin it says \"lost: 1\".",
         ),
         l(
           "Gerçek projelerde en sık görülen hata budur: \"gönderiyorum ama gelmiyor\". İlk bakılacak yer binding'ler ve routing key'in harfi harfine aynı olup olmadığı.",

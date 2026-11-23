@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -47,40 +47,6 @@ export const steps: BrokerAction[][] = [
   [],
 ];
 
-/**
- * The stage prints a headers binding's whole rule on its road, which is too long for the
- * gap between exchange and queue. For drawing, the road keeps only "(all)" / "(any)" and
- * the full rule goes in a label to the right of the queue (this lesson has no consumers).
- */
-export function forDrawing(b: Broker): Broker {
-  return { ...b, bindings: b.bindings.map((x) => (x.headers ? { ...x, headers: {} } : x)) };
-}
-
-/** Same column maths as BrokerStage for a lesson with no consumers: rows spread from 70 to 400. */
-function RulePills({ broker, queues }: { broker: Broker; queues: string[] }) {
-  const shown = queues.filter((q) => broker.queues[q]);
-  const ys = shown.length === 1 ? [235] : shown.map((_, i) => 70 + (i * 330) / (shown.length - 1));
-  return (
-    <g>
-      {shown.map((q, i) => {
-        const rules = broker.bindings.filter((x) => x.queue === q && x.headers && Object.keys(x.headers).length);
-        if (!rules.length) return null;
-        const text = rules.map((r) => `${r.match ?? "all"}: ${Object.entries(r.headers!).map(([k, v]) => `${k}=${v}`).join(", ")}`).join("  ·  ");
-        const w = Math.round(text.length * 6.9 + 18);
-        return (
-          <g key={q} transform={`translate(600 ${ys[i]!})`}>
-            <rect y={-8} width={w} height={22} rx={11} className="pill-shadow" />
-            <rect y={-11} width={w} height={22} rx={11} className="ink" style={{ fill: "var(--sky-soft)" }} />
-            <text x={9} y={4} style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 700, fill: "var(--ink)" }}>
-              {text}
-            </text>
-          </g>
-        );
-      })}
-    </g>
-  );
-}
-
 export const kindOf = (m: Message) => (m.headers.format === "csv" ? "payment" : m.exchange === "orders" ? "cancel" : "order");
 
 /** The try-it step's headers exchange. */
@@ -95,11 +61,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Header'lara göre yönlendirme ve kaybolan mesajları yakalamak", "Routing by headers and catching messages that would be lost"),
   view: (b, info) => (
-    <g>
-    <BrokerStage
-      broker={forDrawing(b)}
+    <MailroomStage
+      broker={b}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={
@@ -122,8 +88,6 @@ export const scene = makeBrokerScene({
             }
       }
     />
-    <RulePills broker={b} queues={info.sandbox ? sandboxQueues(b) : ["pdf-eu", "pdf-or-eu", "unrouted", "billing"]} />
-    </g>
   ),
   metrics: (b, t, info) => {
     const qs = info.sandbox ? sandboxQueues(b) : ["pdf-eu", "pdf-or-eu", "unrouted"].filter((q) => b.queues[q]);

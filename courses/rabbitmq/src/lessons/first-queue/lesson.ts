@@ -34,8 +34,8 @@ export const firstQueue: Lesson = {
           "On the left is an app that will send messages; in the middle is an empty [[queue]] called `hello`. A queue is where messages wait until someone takes them. The [[broker]] holds it all: RabbitMQ here.",
         ),
         l(
-          "Henüz kuyruğu dinleyen kimse yok. Uygulama mesajını doğrudan kuyruğa göndermiyor: aradaki kesikli yol \"default exchange\". Bunu bu dersin sonunda açacağız.",
-          "Nobody is listening to the queue yet. The app does not send straight into the queue: the dashed road is the \"default exchange\". We open that up at the end of this lesson.",
+          "Henüz kuyruğu dinleyen kimse yok. Uygulama mesajını doğrudan kuyruğa göndermiyor: aradaki kesikli çizgi \"default exchange\". Bunu bu dersin sonunda açacağız.",
+          "Nobody is listening to the queue yet. The app does not send straight into the queue: the dashed line is the \"default exchange\". We open that up at the end of this lesson.",
         ),
       ],
       practice: {
@@ -169,8 +169,8 @@ export const firstQueue: Lesson = {
           "Worker 1 took two messages and crashed before acking. The broker saw the connection drop and put both back at the front of the queue.",
         ),
         l(
-          "Kolilerin üstünde \"2×\" işareti var: bu mesajlar artık `redelivered` işaretli. Hiçbir şey kaybolmadı, ama bir sonraki işçi aynı mesajı **ikinci kez** görebilir.",
-          "The parcels show \"2×\": these messages are now marked `redelivered`. Nothing is lost, but the next worker may see the same message **a second time**.",
+          "Zarfların üstünde \"2×\" damgası var: bu mesajlar artık `redelivered` işaretli. Hiçbir şey kaybolmadı, ama bir sonraki işçi aynı mesajı **ikinci kez** görebilir.",
+          "The envelopes carry a \"2×\" postmark: these messages are now marked `redelivered`. Nothing is lost, but the next worker may see the same message **a second time**.",
         ),
       ],
       callouts: [

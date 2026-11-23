@@ -1,8 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
-import { Parcel } from "@lets-explain/core/iso/shapes";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type BrokerEvent, type Message } from "../../engine/broker";
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { LetterSwatch, MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -64,10 +63,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Producer her mesaj için broker'dan ack ya da nack bekliyor", "The producer waits for an ack or a nack from the broker for every message"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={b}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       confirms
       labels={labels(info.t)}
       kindOf={kindOf}
@@ -91,9 +91,9 @@ export const scene = makeBrokerScene({
     return out;
   },
   legend: (t) => [
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="order" /></g>, label: t(l("sipariş", "order")) },
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="cancel" /></g>, label: t(l("iade (kuyruğu yok)", "refund (no queue)")) },
-    { swatch: <g transform="translate(0 3)"><Parcel s={9} kind="payment" /></g>, label: t(l("ödeme", "payment")) },
+    { swatch: <LetterSwatch kind="order" />, label: t(l("sipariş", "order")) },
+    { swatch: <LetterSwatch kind="cancel" />, label: t(l("iade (kuyruğu yok)", "refund (no queue)")) },
+    { swatch: <LetterSwatch kind="payment" />, label: t(l("ödeme", "payment")) },
   ],
   // Free play is the shop with its scripts; each scenario brings its own project.
   sandbox: { start: () => FREE.broker, files: FREE.files, scenarios },

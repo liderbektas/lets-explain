@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { useTicker } from "@lets-explain/core/lib/playback";
 import { simulate, type BrokerAction } from "./engine/broker";
-import { BROKER_STAGE, BrokerStage, type BrokerLayout } from "./iso/BrokerStage";
+import { MAILROOM_STAGE, MailroomStage, type BrokerLayout } from "./iso/MailroomStage";
 
 const setup: BrokerAction[] = [
   { type: "declareExchange", name: "orders", kind: "topic" },
@@ -35,13 +35,13 @@ export function RabbitHero() {
     consumerNames: { "billing-1": t(l("Fatura", "Billing")), "shipping-1": t(l("Kargo", "Shipping")) },
   };
   return (
-    <svg className="stage-svg" viewBox={`0 0 ${BROKER_STAGE.width} ${BROKER_STAGE.height}`} aria-hidden="true">
-      <BrokerStage
+    <svg className="stage-svg" viewBox={`0 0 ${MAILROOM_STAGE.width} ${MAILROOM_STAGE.height}`} aria-hidden="true">
+      <MailroomStage
         broker={run.states[at]!}
         layout={layout}
         last={run.events[at - 1] ?? []}
         prev={run.states[at - 1]}
-        labels={{ unacked: "unacked", ready: "ready", prefetch: "prefetch", noLimit: "∞", down: "down", lost: t(l("kayıp", "lost")) }}
+        labels={{ unacked: "unacked", ready: "ready", prefetch: "prefetch", noLimit: "∞", down: "down", lost: t(l("kayıp", "lost")), returned: t(l("iade", "returned")), consumers: "consumers" }}
         kindOf={(m) => (m.routingKey.endsWith("paid") ? "payment" : m.routingKey.endsWith("cancelled") ? "cancel" : "order")}
       />
     </svg>

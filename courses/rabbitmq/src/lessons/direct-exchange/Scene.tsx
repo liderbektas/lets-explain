@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { mergeBindings } from "./mergeBindings";
@@ -55,10 +55,11 @@ export const scene = makeBrokerScene({
   steps,
   label: l("Direct exchange: routing key birebir eşleşince yönlendirir", "A direct exchange routes on an exact routing key match"),
   view: (b, info) => (
-    <BrokerStage
+    <MailroomStage
       broker={mergeBindings(b)}
       last={info.last}
       prev={info.prev}
+      history={info.history}
       labels={labels(info.t)}
       kindOf={kindOf}
       layout={{

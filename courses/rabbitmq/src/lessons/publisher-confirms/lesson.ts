@@ -208,7 +208,7 @@ export const publisherConfirms: Lesson = {
       title: l("Çoğunluk yoksa güvence yok", "No majority, no promise"),
       body: [
         l(
-          "İki node kapandı ve `payments` için çoğunluk kalmadı. `p1` reddedildi. Kuyruğun üstünde \"kapalı\" yazıyor.",
+          "İki node kapandı ve `payments` için çoğunluk kalmadı. `p1` reddedildi. Kuyruğun etiketinde \"kapalı\" yazıyor.",
           "Two nodes went down and `payments` lost its majority. `p1` was refused. The queue is marked \"down\".",
         ),
         l(

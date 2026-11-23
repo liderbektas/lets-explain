@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -78,10 +78,11 @@ export const scene = makeBrokerScene({
     info.step === PATTERNS_STEP && !info.sandbox ? (
       <PatternsPanel t={info.t} />
     ) : (
-      <BrokerStage
+      <MailroomStage
         broker={b}
         last={info.last}
         prev={info.prev}
+        history={info.history}
         labels={labels(info.t)}
         kindOf={(m) => (m.routingKey === REPLY ? "payment" : "order")}
         layout={{

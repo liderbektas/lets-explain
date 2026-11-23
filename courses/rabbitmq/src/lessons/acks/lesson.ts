@@ -151,8 +151,8 @@ export const acks: Lesson = {
       title: l("nack + requeue: \"şimdi değil\"", "nack + requeue: \"not now\""),
       body: [
         l(
-          "İşçi en eski mesajını nack ile geri verdi. Mesaj kuyruğun başına döndü ve hemen aynı işçiye yeniden teslim edildi; üstünde \"2×\" işareti var.",
-          "The worker handed its oldest message back with nack. It returned to the front of the queue and was delivered to the same worker again right away; it shows \"2×\".",
+          "İşçi en eski mesajını nack ile geri verdi. Mesaj kuyruğun başına döndü ve hemen aynı işçiye yeniden teslim edildi; üstünde \"2×\" damgası var.",
+          "The worker handed its oldest message back with nack. It returned to the front of the queue and was delivered to the same worker again right away; it carries a \"2×\" postmark.",
         ),
         l(
           "Bu, geçici hatalar için doğru cevap: biraz sonra tekrar denendiğinde iş büyük ihtimalle başarılı olur. Ama hata kalıcıysa mesaj sonsuza kadar dönebilir. Bunu \"Zehirli mesajlar\" dersinde çözeceğiz.",

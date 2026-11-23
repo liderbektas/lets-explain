@@ -1,0 +1,349 @@
+/* The RabbitMQ course drawn as a post room (MailroomStage, mailroom-parts). */
+
+.mailroom .k,
+.mailroom .k polygon,
+.mailroom .k-line,
+.mailroom .k-thin {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.mailroom .k-line {
+  fill: none;
+}
+
+.mailroom .k-thin {
+  stroke-width: 1.3;
+  fill: none;
+}
+
+.mailroom .mr-window {
+  fill: #4a4753;
+}
+
+.mailroom .mr-env rect {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.mailroom .mr-flap {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-env-label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.mailroom .mr-plate {
+  font-family: var(--font-display);
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.mailroom .mr-chute-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.mailroom .mr-chute-bed {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 8.5;
+  stroke-linecap: round;
+}
+
+.mailroom .mr-throw {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+  stroke-linecap: round;
+}
+
+/* Shared labels and routes (from the old broker drawing). */
+
+.broker .road {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.broker .road.is-dashed {
+  stroke-dasharray: 5 6;
+  stroke-width: 2;
+}
+
+.broker .tag-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.broker .q-depth,
+.broker .c-meta {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.broker .q-chips {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-3);
+}
+
+.broker .q-more {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.broker .is-down {
+  opacity: 0.45;
+}
+
+/* Letters and their marks. */
+
+.mailroom .mr-note {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-rule {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+}
+
+.mailroom .mr-seal {
+  fill: var(--red);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.mailroom .mr-postmark circle {
+  fill: var(--card);
+  stroke: var(--red);
+  stroke-width: 1.8;
+}
+
+.mailroom .mr-postmark .mr-postmark-ring {
+  fill: none;
+  stroke-width: 0.9;
+  stroke-dasharray: 2 1.6;
+}
+
+.mailroom .mr-postmark text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  fill: var(--red);
+}
+
+.mailroom .mr-timer circle {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+.mailroom .mr-timer-hand {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.mailroom .mr-timer-pill {
+  fill: var(--sun);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.mailroom .mr-timer text {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.mailroom .mr-corr {
+  fill: var(--sun-soft);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.mailroom .mr-corr-text {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.mailroom .mr-ack circle {
+  fill: var(--mint);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.mailroom .mr-ack path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-receipt > path:first-child {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-receipt text {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.mailroom .mr-receipt .is-ok {
+  fill: var(--mint-deep);
+}
+
+.mailroom .mr-receipt .is-bad {
+  fill: var(--red);
+}
+
+.mailroom .mr-receipt-ok,
+.mailroom .mr-receipt-bad {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-receipt-ok {
+  stroke: var(--mint-deep);
+}
+
+.mailroom .mr-receipt-bad {
+  stroke: var(--red);
+}
+
+/* Mailboxes, cabinet, desk. */
+
+.mailroom .mr-tape {
+  stroke: #f4e6c8;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.mailroom .mr-boarded {
+  fill: #d9c9a0;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-plank {
+  stroke: #ab966a;
+  stroke-width: 1.4;
+}
+
+.mailroom .mr-place {
+  fill: none;
+  stroke: #cfc8d6;
+  stroke-width: 1.3;
+  stroke-dasharray: 3 2.5;
+}
+
+.mailroom .mr-return-glyph {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mailroom .mr-replica {
+  opacity: 0.92;
+}
+
+.mailroom .mr-hole {
+  fill: #4a4753;
+}
+
+.mailroom .mr-offset {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.mailroom .mr-offset.is-empty {
+  fill: var(--ink-3);
+}
+
+.mailroom .mr-tray {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 2.5;
+}
+
+/* Gauges. */
+
+.mailroom .mr-gauge-board {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.mailroom .mr-dial {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+.mailroom .mr-needle {
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.mailroom .mr-needle-hub {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.mailroom .mr-dial-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.mailroom .mr-dial-label {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+
+.mailroom .mr-tick {
+  stroke: var(--ink-3);
+  stroke-width: 1.4;
+}

@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -58,11 +58,13 @@ export const scene = makeBrokerScene({
     if (panel === "alarms") return <AlarmPanel t={info.t} />;
     if (panel === "checklist") return <ChecklistPanel t={info.t} />;
     return (
-      <BrokerStage
+      <MailroomStage
         broker={b}
         last={info.last}
         prev={info.prev}
+        history={info.history}
         labels={labels(info.t)}
+        gauges
         layout={{ producers: [{ id: "shop", label: info.t(l("Mağaza", "Shop")), exchange: "", queue: QUEUE }], consumerNames: names(info.t) }}
       />
     );

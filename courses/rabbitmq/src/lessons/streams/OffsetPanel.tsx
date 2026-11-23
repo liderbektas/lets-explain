@@ -2,10 +2,11 @@ import { motion } from "motion/react";
 import { TINTS, type Tint } from "@lets-explain/core/iso/shapes";
 import type { Broker, BrokerEvent } from "../../engine/broker";
 import { landsAt } from "../../iso/choreography";
+import { Envelope } from "../../iso/MailroomStage";
 
 /**
- * A stream's log as a row of numbered cells, with a marker under the offset each consumer
- * will read next. Consumers get the same colours as on the broker stage (by name order).
+ * A stream's log as a row of letters numbered by offset, with a bookmark under the offset each
+ * consumer will read next. Consumers get the same colours as on the broker stage (by name order).
  * A message appended in the last action shows up when it lands in the stream on the stage;
  * reading never removes a cell, it only moves the reader's marker on.
  */
@@ -46,7 +47,7 @@ export function OffsetPanel({
   const readAt = (tag: string) => Math.max(0, ...last.flatMap((e) => (e.type === "delivered" && e.tag === tag ? [arrived.get(e.id) ?? 0] : [])));
 
   return (
-    <g className="offset-panel">
+    <g className="offset-panel mailroom">
       <rect x={box.x} y={box.y + 4} width={box.w} height={box.h} rx={16} style={{ fill: "var(--ink)" }} />
       <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={16} style={{ fill: "var(--card)", stroke: "var(--ink)", strokeWidth: 2 }} />
       <text x={box.x + 16} y={box.y + 20} style={{ fill: "var(--ink)", fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800 }}>
@@ -56,10 +57,9 @@ export function OffsetPanel({
         const offset = from + i;
         return (
           <motion.g key={m.id} initial={{ opacity: 0, x: cellX(offset), y }} animate={{ opacity: 1, x: cellX(offset), y }} transition={{ opacity: arrived.has(m.id) ? { duration: 0.01, delay: arrived.get(m.id) } : { duration: 0.25 }, x: spring }}>
-            <rect width={CELL} height={30} rx={9} style={{ fill: "var(--mint-soft)", stroke: "var(--ink)", strokeWidth: 2 }} />
-            <text x={CELL / 2} y={20} textAnchor="middle" style={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 800 }}>
-              {m.body}
-            </text>
+            <g transform={`translate(${CELL / 2} 15)`}>
+              <Envelope kind="order" label={m.body} w={42} />
+            </g>
             <text x={CELL / 2} y={44} textAnchor="middle" style={{ fill: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700 }}>
               {offset}
             </text>
@@ -68,7 +68,7 @@ export function OffsetPanel({
       })}
       {/* Where the next message will land. */}
       <g transform={`translate(${cellX(q.log.length)} ${y})`}>
-        <rect width={CELL} height={30} rx={9} style={{ fill: "none", stroke: "var(--ink-3)", strokeWidth: 2, strokeDasharray: "4 4" }} />
+        <rect x={(CELL - 42) / 2} y={0} width={42} height={29.4} rx={3} style={{ fill: "none", stroke: "var(--ink-3)", strokeWidth: 2, strokeDasharray: "4 4" }} />
         <text x={CELL / 2} y={44} textAnchor="middle" style={{ fill: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700 }}>
           {q.log.length}
         </text>
@@ -83,7 +83,8 @@ export function OffsetPanel({
         const w = Math.round(label.length * 6.6 + 18);
         return (
           <motion.g key={t} initial={false} animate={{ x: cellX(at) + CELL / 2, y: y + 54 }} transition={{ ...spring, delay: readAt(t) }}>
-            {idx === 0 && <path d="M0 -6 L-6 4 L6 4 Z" style={{ fill: tint.body, stroke: "var(--ink)", strokeWidth: 1.5 }} />}
+            {/* A bookmark at the reader's next offset. */}
+            {idx === 0 && <path d="M-5 -7 H5 V5 L0 1.5 L-5 5 Z" style={{ fill: tint.body, stroke: "var(--ink)", strokeWidth: 1.5, strokeLinejoin: "round" }} />}
             <g transform={`translate(0 ${8 + idx * 19})`}>
               <rect x={-w / 2} y={0} width={w} height={17} rx={8.5} style={{ fill: tint.soft, stroke: "var(--ink)", strokeWidth: 1.5 }} />
               <text y={12.5} textAnchor="middle" style={{ fill: "var(--ink)", fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 800 }}>

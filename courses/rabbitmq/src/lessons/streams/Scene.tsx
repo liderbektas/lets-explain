@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, simulate, type Broker, type BrokerAction } from "../../engine/broker";
-import { BrokerStage } from "../../iso/BrokerStage";
+import { MailroomStage } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -52,10 +52,11 @@ export const scene = makeBrokerScene({
   label: l("Bir stream: mesajlar okununca silinmeyen bir log ve onu kendi offset'inden okuyanlar", "A stream: a log that keeps messages after reading, and readers each at their own offset"),
   view: (b, info) => (
     <g>
-      <BrokerStage
+      <MailroomStage
         broker={b}
         last={info.last}
         prev={info.prev}
+        history={info.history}
         labels={labels(info.t)}
         box={{ x: 0, y: 0, w: 860, h: 290 }}
         layout={{ producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: STREAM }], consumerNames: names(info.t, info.sandbox) }}

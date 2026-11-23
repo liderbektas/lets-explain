@@ -1,6 +1,6 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createBroker, depth, simulate, type Broker, type BrokerAction, type Message } from "../../engine/broker";
-import { BrokerStage, type ProducerSpec } from "../../iso/BrokerStage";
+import { MailroomStage, type ProducerSpec } from "../../iso/MailroomStage";
 import { labels } from "../first-queue/Scene";
 import { makeBrokerScene } from "../shared/BrokerScene";
 import { FREE, scenarios } from "./scenarios";
@@ -60,10 +60,11 @@ export const scene = makeBrokerScene({
             ]
           : [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: QQ }];
     return (
-      <BrokerStage
+      <MailroomStage
         broker={b}
         last={info.last}
         prev={info.prev}
+        history={info.history}
         labels={labels(info.t)}
         kindOf={kindOf}
         layout={{
