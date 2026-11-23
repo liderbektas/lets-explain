@@ -135,7 +135,16 @@ export interface Host {
   cache: Record<string, Layer>;
   registry: Registry;
   /** The most recent build, step by step, for drawing. */
-  lastBuild: { tag: string; steps: BuildStep[]; seconds: number; size: number; cached: number } | null;
+  lastBuild: { tag: string; steps: BuildStep[]; seconds: number; size: number; cached: number; context: BuildContext } | null;
+}
+
+/** What `docker build` sent to the builder: the folder minus what .dockerignore left out. */
+export interface BuildContext {
+  files: number;
+  /** In MB, unrounded: a folder of a few small files is well under 1 MB. */
+  size: number;
+  /** The top-level names .dockerignore kept out, e.g. "node_modules". */
+  ignored: string[];
 }
 
 /* ------------------------------------------------------------- hashing */
@@ -332,6 +341,14 @@ function pick(context: Files, src: string[], ignore: string[]): Files {
     if (src.some((s) => copySourceMatches(s, path))) out[path] = content;
   }
   return out;
+}
+
+function contextOf(context: Files, ignore: string[]): BuildContext {
+  const paths = Object.keys(context);
+  const sent = paths.filter((p) => !ignoredBy(ignore, p));
+  const size = sent.reduce((n, p) => n + (context[p]!.startsWith("size:") ? Number(context[p]!.slice(5)) : context[p]!.length / 100000), 0);
+  const ignored = [...new Set(paths.filter((p) => ignoredBy(ignore, p)).map((p) => p.split("/")[0]!))];
+  return { files: sent.length, size, ignored };
 }
 
 const sizeOf = (f: Files) => Math.max(0, Math.round(Object.values(f).reduce((n, c) => n + (c.startsWith("size:") ? Number(c.slice(5)) : c.length / 100000), 0)));
@@ -986,7 +1003,7 @@ function build(h: Host, a: Extract<DockerAction, { type: "build" }>, events: Doc
   const img: Image = { id, layers: final.layers, config: final.config };
   h.images[id] = img;
   h.tags[normalize(a.tag)] = id;
-  h.lastBuild = { tag: normalize(a.tag), steps, seconds: totalSeconds, size: imageSize(img), cached: cachedCount };
+  h.lastBuild = { tag: normalize(a.tag), steps, seconds: totalSeconds, size: imageSize(img), cached: cachedCount, context: contextOf(a.context, ignore) };
   events.push({ type: "built", tag: normalize(a.tag), id, size: imageSize(img), seconds: totalSeconds, cached: cachedCount, total: index });
   return img;
 }

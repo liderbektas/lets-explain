@@ -4,7 +4,7 @@ import { typeInto } from "../shared/missionHelpers";
 import { scenarioSuite } from "../shared/scenarioSuite";
 import { scenarios } from "./scenarios";
 import { EXPECTED_ERRORS, scene, steps } from "./Scene";
-import { targetOf } from "../../iso/HostStage";
+import { targetOf } from "../../iso/stageKit";
 import { buildTimeline } from "../../iso/BuildStage";
 
 const execOf = (events: DockerEvent[]) => events.filter((e): e is Extract<DockerEvent, { type: "execOutput" }> => e.type === "execOutput");

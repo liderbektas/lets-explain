@@ -1,10 +1,4 @@
-/* The Docker course's drawings: the host and the build. */
-
-.host .host-edge {
-  fill: var(--paper-2);
-  stroke: var(--ink);
-  stroke-width: 2;
-}
+/* The Docker course's drawings: shared text and lamp styles for the dock, and the build's Dockerfile panel. */
 
 .host-title {
   font-family: var(--font-display);
@@ -18,19 +12,6 @@
   font-size: 13px;
   font-weight: 700;
   fill: var(--ink-3);
-}
-
-.host .layer-slab polygon,
-.build .layer-slab polygon,
-.host .ctr-box polygon {
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-
-.host .ctr-rib {
-  stroke: rgba(43, 42, 51, 0.35);
-  stroke-width: 1.5;
 }
 
 .host .ctr.is-lit {
@@ -87,21 +68,6 @@
   stroke-linecap: round;
 }
 
-.host .barrel path,
-.host .barrel ellipse {
-  stroke: var(--ink);
-  stroke-width: 2;
-  fill: var(--lilac);
-}
-
-.host .barrel ellipse {
-  fill: #d7ccfa;
-}
-
-.host .barrel .barrel-band {
-  fill: none;
-}
-
 .build .df-title {
   font-family: var(--font-display);
   font-size: 16px;
@@ -122,8 +88,17 @@
 }
 
 .build .layer-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
   fill: var(--ink-2);
+}
+
+/* The tall layout is drawn smaller: its code is set a size up. */
+.build.is-tall .df-num,
+.build.is-tall .df-line {
+  font-size: 13.5px;
+}
+.build.is-tall .df-title {
+  font-size: 17px;
 }

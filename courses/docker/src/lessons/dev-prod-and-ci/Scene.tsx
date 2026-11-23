@@ -1,7 +1,7 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { apply, imageFor, imageSize, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { BuildStage, type BuildLabels } from "../../iso/BuildStage";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { contextOf, freshHost, IGNORE, PROJECT, versionOf } from "../dockerize-your-app/project";
 import { labels } from "../run-flags/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
@@ -87,7 +87,7 @@ export const scene = makeDockerScene({
     const t = info.t;
     if (info.last.some((e) => e.type === "buildStep") && h.lastBuild && !(!info.sandbox && info.step >= 6)) {
       const b = h.lastBuild;
-      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} play />;
+      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} t={t} context={b.context} play />;
     }
     if (!info.sandbox && (info.step === 6 || info.step === 7)) {
       return (
@@ -104,7 +104,7 @@ export const scene = makeDockerScene({
         />
       );
     }
-    return <HostStage host={h} labels={labels(t)} highlight={info.fresh} last={info.last} />;
+    return <DockStage host={h} labels={labels(t)} t={t} highlight={info.fresh} last={info.last} />;
   },
   metrics: (h, t) => {
     const dev = imageFor(h, "shop:dev");

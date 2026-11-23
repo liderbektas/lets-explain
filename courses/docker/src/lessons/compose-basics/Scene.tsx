@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
 import { CHECKOUT, scenarios } from "./scenarios";
@@ -69,7 +69,7 @@ export const scene = makeDockerScene({
   start: START,
   steps,
   label: l("Bir compose projesi: servisler, proje ağı ve volume", "A Compose project: services, its network and a volume"),
-  view: (h, info) => <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages />,
+  view: (h, info) => <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} hideImages />,
   metrics: (h, t) => {
     const mine = Object.values(h.containers).filter((c) => c.project === PROJECT);
     return [

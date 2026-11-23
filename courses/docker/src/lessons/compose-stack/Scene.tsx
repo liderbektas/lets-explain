@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, findContainer, type ComposeFile, type DockerAction, type Host, type Instruction } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
 import { PATIENT, scenarios } from "./scenarios";
@@ -89,7 +89,7 @@ export const scene = makeDockerScene({
   start: START,
   steps,
   label: l("Bir uygulama, Postgres ve Redis: healthcheck ile sıralı açılış", "An app, Postgres and Redis: an orderly start with healthchecks"),
-  view: (h, info) => <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages />,
+  view: (h, info) => <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} hideImages />,
   metrics: (h, t) => {
     const mine = Object.values(h.containers).filter((c) => c.project === PROJECT);
     const app = findContainer(h, "shop-app-1");

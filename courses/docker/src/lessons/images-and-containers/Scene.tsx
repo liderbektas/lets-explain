@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, type DockerAction, type Host, type Instruction } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { labels } from "../run-flags/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
 import { scenarios, WITH_NGINX } from "./scenarios";
@@ -47,7 +47,7 @@ export const scene = makeDockerScene({
   start: START,
   steps,
   label: l("Image'lar rafta, container'lar onlardan başlatılmış kopyalar", "Images on the shelf, containers as running copies of them"),
-  view: (h, info) => <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} />,
+  view: (h, info) => <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} />,
   metrics: (h, t) => {
     const all = Object.values(h.containers);
     return [

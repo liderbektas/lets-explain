@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { useTicker } from "@lets-explain/core/lib/playback";
 import { simulate, type DockerAction } from "./engine/docker";
-import { HOST_STAGE, HostStage } from "./iso/HostStage";
+import { DockStage } from "./iso/DockStage";
+import { HOST_STAGE } from "./iso/stageKit";
 
 const story: DockerAction[] = [
   { type: "pull", ref: "nginx:1.27" },
@@ -22,8 +23,9 @@ export function DockerHero() {
   const host = states[Math.min(tick, states.length - 1)]!;
   return (
     <svg className="stage-svg" viewBox={`0 0 ${HOST_STAGE.width} ${HOST_STAGE.height}`} aria-hidden="true">
-      <HostStage
+      <DockStage
         host={host}
+        t={t}
         labels={{
           images: t(l("Image'lar", "Images")),
           volumes: t(l("Volume'lar", "Volumes")),

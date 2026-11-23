@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, simulate, type Container, type DockerAction, type Host, type Program } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { labels } from "../run-flags/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
 import { scenarios, IMAGES } from "./scenarios";
@@ -66,7 +66,7 @@ export const scene = makeDockerScene({
     const shown = recent(h);
     return (
       <g>
-        <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages containers={shown.map((c) => c.name)} />
+        <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} hideImages containers={shown.map((c) => c.name)} panel />
         <StatsPanel host={h} containers={shown} noLimit={info.t(l("sınırsız", "no limit"))} />
       </g>
     );

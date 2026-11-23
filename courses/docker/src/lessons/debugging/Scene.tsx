@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, findContainer, simulate, type Container, type DockerAction, type DockerEvent, type Host, type Instruction } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { API_BUILD, labels } from "../run-flags/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
 import { scenarios, MACHINE } from "./scenarios";
@@ -110,7 +110,7 @@ export const scene = makeDockerScene({
     const names = recent(h);
     return (
       <g>
-        <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages containers={names} />
+        <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} hideImages containers={names} panel />
         <TerminalPanel
           title={info.t(l("Terminal", "Terminal"))}
           lines={lines}

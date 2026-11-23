@@ -13,7 +13,7 @@ import { dockerShell } from "../../engine/cli";
 import { describeDocker } from "../../engine/describe";
 import { simulate, type DockerAction, type DockerEvent, type Host } from "../../engine/docker";
 import { buildTimeline } from "../../iso/BuildStage";
-import { HOST_STAGE } from "../../iso/HostStage";
+import { HOST_STAGE } from "../../iso/stageKit";
 import { hostChanges } from "./hostChanges";
 
 /**

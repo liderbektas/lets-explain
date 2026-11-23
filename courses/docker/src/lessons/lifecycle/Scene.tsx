@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, findContainer, simulate, type DockerAction, type Host } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
 import { LifecycleStrip, phaseOf } from "./LifecycleStrip";
@@ -52,7 +52,7 @@ export const scene = makeDockerScene({
     const gone = info.last.some((e) => e.type === "removed" && e.name === name);
     return (
       <g>
-        <HostStage host={h} labels={labels(info.t)} hideImages highlight={info.fresh} last={info.last} />
+        <DockStage host={h} labels={labels(info.t)} t={info.t} hideImages highlight={info.fresh} last={info.last} panel />
         <LifecycleStrip
           phase={phaseOf(c, gone)}
           names={{

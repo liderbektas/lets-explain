@@ -1,13 +1,14 @@
 import { motion } from "motion/react";
 import { l, type L } from "@lets-explain/core/i18n";
 import type { DockerEvent, Host } from "../../engine/docker";
-import { stampOf } from "../../iso/HostStage";
+import { stampOf } from "../../iso/stageKit";
 import "./arch.css";
 
 /**
- * Docker's moving parts: the CLI in a terminal sends requests over the Docker socket to the
- * daemon, which holds the images and containers and pulls from a registry when it needs to.
- * The arrows light up for what the last command used.
+ * Docker's moving parts, as a harbour: the CLI in a terminal sends requests over the Docker
+ * socket to the daemon, the harbour office on its quay, which keeps the images (crates) and runs
+ * the containers; when it needs an image it does not have, it fetches it from the registry, a
+ * cargo ship at sea. The arrows light up for what the last command used.
  */
 
 const text = {
@@ -96,9 +97,28 @@ export function ArchPanel({ host, last, command, t }: Props) {
         API
       </text>
 
-      {/* Daemon */}
-      <rect x={322} y={36} width={300} height={404} rx={20} style={{ fill: "var(--ink)" }} />
-      <rect x={322} y={32} width={300} height={404} rx={20} className={`arch-box ${restarted ? "is-flash" : ""}`} style={{ fill: "var(--sky-soft)" }} />
+      {/* Daemon: the harbour office on its quay. */}
+      <rect x={0} y={414} width={860} height={56} className="arch-water" />
+      {[90, 340, 560, 700, 820].map((x, i) => (
+        <path key={i} d={`M${x - 14} ${446 + (i % 2) * 10} q7 -6 14 0 t14 0`} className="arch-wave" />
+      ))}
+      <rect x={322} y={36} width={300} height={404} rx={6} style={{ fill: "var(--ink)" }} />
+      <rect x={322} y={32} width={300} height={404} rx={6} className={`arch-box arch-quay ${restarted ? "is-flash" : ""}`} />
+      <rect x={322} y={412} width={300} height={24} className="arch-quay-wall" />
+      <rect x={336} y={44} width={272} height={360} rx={4} className="arch-safety" />
+      {[336, 608].map((x) => (
+        <g key={x} transform={`translate(${x} 412)`} className="arch-bollard">
+          <path d="M-5 0 v-8 a5 2.5 0 0 0 10 0 v8 a5 2.5 0 0 1 -10 0z" />
+          <ellipse cx={0} cy={-8} rx={6.5} ry={3.2} />
+        </g>
+      ))}
+      <g transform="translate(596 40)">
+        {/* The office itself: the daemon is the one who does the work. */}
+        <path d="M-18 14 l18 -12 l18 12 v18 h-36z" className="arch-office" />
+        <rect x={-6} y={20} width={12} height={12} className="arch-office-door" />
+        <rect x={-15} y={17} width={7} height={6} className="arch-office-door" />
+        <rect x={8} y={17} width={7} height={6} className="arch-office-door" />
+      </g>
       <text x={342} y={62} className="arch-title">
         {t(text.daemon)}
       </text>
@@ -117,7 +137,9 @@ export function ArchPanel({ host, last, command, t }: Props) {
       )}
       {images.slice(0, 5).map((ref, i) => (
         <g key={ref} transform={`translate(342 ${104 + i * 26})`}>
-          <rect width={260} height={22} rx={11} className="arch-box" style={{ fill: "var(--card)" }} />
+          <rect width={260} height={22} rx={3} className="arch-box arch-crate" />
+          <line x1={196} y1={0} x2={196} y2={22} className="arch-plank" />
+          <line x1={2} y1={11} x2={194} y2={11} className="arch-plank" />
           <text x={12} y={15} className="arch-mono-small">
             {clip(ref, 34)}
           </text>
@@ -141,7 +163,10 @@ export function ArchPanel({ host, last, command, t }: Props) {
           animate={{ x: 342, y: 268 + i * 26, opacity: 1 }}
           transition={{ type: "spring", stiffness: 170, damping: 22, delay: pulled ? 0.75 : 0.35 }}
         >
-          <rect width={260} height={22} rx={11} className="arch-box" style={{ fill: c.state === "running" ? "var(--mint)" : c.exitCode ? "var(--red-soft)" : "#e9e5ec" }} />
+          <rect width={260} height={22} rx={2} className="arch-box" style={{ fill: c.state === "running" ? "var(--mint)" : c.exitCode ? "var(--red-soft)" : "#e9e5ec" }} />
+          {[234, 240, 246, 252].map((x) => (
+            <line key={x} x1={x} y1={4} x2={x} y2={18} className="arch-plank" />
+          ))}
           <text x={12} y={15} className="arch-mono-small">
             {clip(`${c.name} · ${c.ref.replace(/:latest$/, "")} · ${c.state === "running" ? "Up" : `Exited (${c.exitCode})`}`, 36)}
           </text>
@@ -158,20 +183,32 @@ export function ArchPanel({ host, last, command, t }: Props) {
         {t(text.pull)}
       </text>
 
-      {/* Registry */}
-      <rect x={680} y={64} width={160} height={290} rx={18} style={{ fill: "var(--ink)" }} />
-      <rect x={680} y={60} width={160} height={290} rx={18} className={`arch-box ${pulled ? "is-flash" : ""}`} style={{ fill: "var(--sun-soft)" }} />
-      <text x={760} y={88} textAnchor="middle" className="arch-title">
+      {/* Registry: a cargo ship at sea, one container per image it holds. */}
+      <g className="arch-ship">
+        <path d="M670 318 H852 L840 372 H684 Z" className="arch-hull" />
+        <path d="M676 344 H848 L845 356 H680 Z" className="arch-waterline" />
+        <rect x={826} y={238} width={22} height={80} className={`arch-bridge ${pulled ? "is-flash" : ""}`} />
+        <rect x={831} y={246} width={12} height={8} className="arch-window" />
+        <rect x={680} y={312} width={142} height={6} className="arch-deck" />
+      </g>
+      <text x={746} y={88} textAnchor="middle" className="arch-title">
         {t(text.registry)}
       </text>
-      <text x={760} y={106} textAnchor="middle" className="arch-small">
+      <text x={746} y={106} textAnchor="middle" className="arch-small">
         {t(text.hub)}
       </text>
       {repos.map((ref, i) => (
-        <text key={ref} x={696} y={134 + i * 26} className="arch-mono-small">
-          {clip(ref.replace(/:latest$/, ""), 19)}
-        </text>
+        <g key={ref} transform={`translate(684 ${118 + i * 26})`}>
+          <rect width={136} height={22} rx={2} className="arch-box arch-cargo" />
+          <text x={8} y={15} className="arch-mono-small">
+            {clip(ref.replace(/:latest$/, ""), 17)}
+          </text>
+        </g>
       ))}
+      {/* Everything else the registry holds, below the names shown. */}
+      {Array.from({ length: Math.max(0, 7 - repos.length) }, (_, k) =>
+        [0, 1].map((j) => <rect key={`${k}-${j}`} x={684 + j * 70} y={118 + (repos.length + k) * 26} width={66} height={22} rx={2} className="arch-box arch-filler" />),
+      )}
 
       {/* The request travels from the CLI to the daemon; a pull goes on to the registry and the image comes back. */}
       {talked && (

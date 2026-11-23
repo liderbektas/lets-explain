@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, type DockerAction, type Host } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { labels } from "../run-flags/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
 import { scenarios, MACHINE } from "./scenarios";
@@ -40,7 +40,7 @@ export const scene = makeDockerScene({
   label: l("Container'lar neden var: sanal makinelerle karşılaştırma ve bir makinede birkaç container", "Why containers exist: compared with virtual machines, and a few containers on one machine"),
   view: (h, info) => {
     const mode = info.sandbox ? undefined : MODES[info.step];
-    return mode ? <WhyPanel mode={mode} t={info.t} /> : <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} />;
+    return mode ? <WhyPanel mode={mode} t={info.t} /> : <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} />;
   },
   metrics: (h, t) => {
     const all = Object.values(h.containers);

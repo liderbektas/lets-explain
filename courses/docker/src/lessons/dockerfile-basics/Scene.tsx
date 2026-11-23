@@ -118,18 +118,17 @@ export const scene = makeDockerScene({
     const pending = info.sandbox ? linesOf(h) : undefined;
     const fresh = info.sandbox && unbuilt(h);
     return (
-      // BuildStage's layer labels run past the right edge at full size, so draw it a little smaller.
-      <g transform="translate(25 20) scale(0.9)">
       <BuildStage
         steps={fresh || !b ? [] : b.steps}
         seconds={b?.seconds ?? 0}
         size={b?.size ?? 0}
         tag={b?.tag ?? TAG}
         labels={buildLabels(info.t)}
+        t={info.t}
+        context={fresh ? undefined : b?.context}
         pending={pending}
         play={info.last.some((e) => e.type === "buildStep")}
       />
-      </g>
     );
   },
   metrics,

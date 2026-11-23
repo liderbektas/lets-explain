@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createHost, type DockerAction, type Host } from "../../engine/docker";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { makeDockerScene } from "../shared/DockerScene";
 import { labels } from "../run-flags/Scene";
 import { scenarios, MACHINE } from "./scenarios";
@@ -39,7 +39,7 @@ export const scene = makeDockerScene({
   start: START,
   steps,
   label: l("Container'lar, volume'lar (variller) ve host'taki klasörler", "Containers, volumes (barrels) and folders on the host"),
-  view: (h, info) => <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} hideImages />,
+  view: (h, info) => <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} hideImages />,
   metrics: (h, t) => {
     const vols = Object.values(h.volumes);
     return [

@@ -66,11 +66,17 @@ export const scene = makeDockerScene({
   label: l("Build cache: hangi satır cache'ten geldi, hangisi yeniden çalıştı", "The build cache: which lines came from cache and which ran again"),
   view: (h, info) => {
     const last = h.lastBuild;
-    // BuildStage's layer labels run past the right edge at full size, so draw it a little smaller.
     return (
-      <g transform="translate(25 20) scale(0.9)">
-        <BuildStage steps={last?.steps ?? []} seconds={last?.seconds ?? 0} size={last?.size ?? 0} tag={last?.tag ?? "shop"} labels={buildLabels(info.t)} play={info.last.some((e) => e.type === "buildStep")} />
-      </g>
+      <BuildStage
+        steps={last?.steps ?? []}
+        seconds={last?.seconds ?? 0}
+        size={last?.size ?? 0}
+        tag={last?.tag ?? "shop"}
+        labels={buildLabels(info.t)}
+        t={info.t}
+        context={last?.context}
+        play={info.last.some((e) => e.type === "buildStep")}
+      />
     );
   },
   metrics,

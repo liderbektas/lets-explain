@@ -1,0 +1,118 @@
+/* registry-and-tags: this machine as a quay, the registry as a cargo ship. */
+
+.registry .reg-water {
+  fill: #cfe2ff;
+}
+.registry .reg-wave {
+  fill: none;
+  stroke: #fffdf8;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.registry .reg-wall {
+  fill: #d9cdb6;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.registry .reg-top {
+  fill: #efe8da;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.registry .reg-stripe {
+  stroke: var(--sun);
+  stroke-width: 4;
+  stroke-dasharray: 18 10;
+}
+.registry .reg-bollard path,
+.registry .reg-bollard ellipse {
+  fill: #57535f;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+.registry .reg-post {
+  fill: #7d8fb3;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.registry .reg-beam {
+  fill: var(--tangerine);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.registry .reg-shed {
+  fill: var(--sky);
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.registry .reg-shed-door {
+  fill: #fffdf8;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.registry .reg-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+.registry .reg-hull {
+  fill: #3f5fa8;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.registry .reg-waterline {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.registry .reg-bridge {
+  fill: #fffdf8;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.registry .reg-window {
+  fill: var(--sky);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.registry .reg-funnel {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.registry .reg-deck {
+  fill: #c2bbc9;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.registry .reg-lash {
+  stroke: #9fb0d0;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+.registry .reg-hull-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  fill: #fffdf8;
+}
+.registry .reg-plank,
+.registry .reg-rib {
+  stroke: rgba(43, 42, 51, 0.28);
+  stroke-width: 1.3;
+}
+.registry .reg-ref {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.registry .reg-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink);
+}

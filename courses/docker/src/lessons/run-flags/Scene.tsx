@@ -1,7 +1,8 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { createHost, simulate, type DockerAction, type Host } from "../../engine/docker";
 import { API_BUILD } from "./model";
-import { HostStage, type HostLabels } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
+import type { HostLabels } from "../../iso/stageKit";
 import { makeDockerScene } from "../shared/DockerScene";
 import { LAPTOP, scenarios } from "./scenarios";
 
@@ -46,7 +47,7 @@ export const scene = makeDockerScene({
   start: START,
   steps,
   label: l("Bir makinede Docker: image'lar, container'lar, portlar ve volume'lar", "Docker on one machine: images, containers, ports and volumes"),
-  view: (h, info) => <HostStage host={h} labels={labels(info.t)} highlight={info.fresh} last={info.last} />,
+  view: (h, info) => <DockStage host={h} labels={labels(info.t)} t={info.t} highlight={info.fresh} last={info.last} />,
   metrics: (h, t) => {
     const all = Object.values(h.containers);
     return [

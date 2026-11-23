@@ -2,13 +2,18 @@ import type { Metric } from "@lets-explain/core/components/SceneFrame";
 import { l, type L } from "@lets-explain/core/i18n";
 import { createHost, imageFor, imageSize, instructionText, type DockerAction, type Files, type Host, type Instruction } from "../../engine/docker";
 import { parseDockerfile } from "../../engine/files";
-import { BuildStage } from "../../iso/BuildStage";
+import { BuildStage, TALL_SIZE } from "../../iso/BuildStage";
+import { HOST_STAGE } from "../../iso/stageKit";
 import { buildLabels } from "../dockerfile-basics/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
 import { project, SINGLE, scenarios } from "./scenarios";
 import { SizeBars } from "./SizeBars";
 
 export const SLUG = "multi-stage";
+
+/** The build fills the stage's height; the size bars start right of it. */
+const BUILD_SCALE = HOST_STAGE.height / TALL_SIZE.height;
+const BARS_X = Math.ceil(TALL_SIZE.width * BUILD_SCALE) + 10;
 
 /** A TypeScript service: dev tools are needed to build it, only dist/ is needed to run it. */
 export const PROJECT: Files = {
@@ -105,13 +110,17 @@ export const scene = makeDockerScene({
     const stale = info.sandbox && (!last || last.steps.map((x) => x.text).join("|") !== pending.join("|"));
     return (
       <g>
-        <g transform="scale(0.68)">
+        {/* The build in its tall layout, scaled to the stage's height; the size bars stay on the right. */}
+        <g transform={`scale(${BUILD_SCALE})`}>
           <BuildStage
+            layout="tall"
             steps={stale ? [] : (last?.steps ?? [])}
             seconds={last?.seconds ?? 0}
             size={last?.size ?? 0}
             tag={last?.tag ?? "shop"}
             labels={buildLabels(info.t)}
+            t={info.t}
+            context={stale ? undefined : last?.context}
             pending={info.sandbox ? pending : undefined}
             play={info.last.some((e) => e.type === "buildStep")}
           />
@@ -119,7 +128,7 @@ export const scene = makeDockerScene({
         {info.sandbox ? (
           <SandboxShape host={h} t={info.t} last={info.last} />
         ) : (
-          <SizeBars host={h} title={info.t(l("Image boyutları", "Image sizes"))} last={info.last} />
+          <SizeBars host={h} title={info.t(l("Image boyutları", "Image sizes"))} last={info.last} x={BARS_X} />
         )}
       </g>
     );
@@ -133,7 +142,7 @@ function SandboxShape({ host, t, last }: { host: Host; t: (x: L) => string; last
   const bases = writtenDockerfile(host).bases.map((b) => SHORT[b] ?? b);
   return (
     <g>
-      <g transform="translate(640 30)">
+      <g transform={`translate(${BARS_X} 30)`}>
         <text x={0} y={0} style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, fill: "var(--ink)" }}>
           Dockerfile
         </text>
@@ -141,7 +150,7 @@ function SandboxShape({ host, t, last }: { host: Host; t: (x: L) => string; last
           {bases.length > 1 ? `${bases[0]} → ${bases[bases.length - 1]}` : `${t(l("tek stage", "one stage"))}: ${bases[0] ?? "—"}`}
         </text>
       </g>
-      <SizeBars host={host} title={t(l("Image boyutu", "Image size"))} last={last} y={90} />
+      <SizeBars host={host} title={t(l("Image boyutu", "Image size"))} last={last} x={BARS_X} y={90} />
     </g>
   );
 }

@@ -1,0 +1,496 @@
+/* The dock stage: a quay with shipping containers, steel drums and a filing cabinet. */
+
+.dock polygon,
+.dock path,
+.dock ellipse,
+.dock rect {
+  stroke-linejoin: round;
+}
+
+/* Labels that sit on the floor or over a hose get a halo in the floor's colour. */
+.dock .halo {
+  paint-order: stroke;
+  stroke: #efe8da;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.dock .dock-file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+
+.dock .dock-file.is-muted {
+  fill: var(--ink-3);
+}
+
+.dock .dock-anon {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 800;
+  fill: #9a6b12;
+}
+
+/* Quay */
+.dock .quay-top {
+  fill: #efe8da;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .quay-side-l {
+  fill: #d9cdb6;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .quay-side-r {
+  fill: #c8bba2;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .quay-seam {
+  stroke: #ddd2bd;
+  stroke-width: 1.5;
+}
+.dock .quay-edge {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 18 10;
+}
+.dock .bollard path,
+.dock .bollard ellipse {
+  fill: #57535f;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+.dock .bollard ellipse {
+  fill: #6d6976;
+}
+
+/* Shipping container */
+.dock .ship polygon {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .ship .ship-shadow {
+  stroke: none;
+  fill: rgba(43, 42, 51, 0.1);
+}
+.dock .ship .ship-rail,
+.dock .ship .ship-post {
+  fill: rgba(43, 42, 51, 0.16);
+  stroke-width: 1.4;
+}
+.dock .ship-rib {
+  stroke: rgba(43, 42, 51, 0.42);
+  stroke-width: 1.4;
+}
+.dock .ship .ship-door {
+  fill: rgba(255, 255, 255, 0.12);
+  stroke-width: 1.4;
+}
+.dock .ship-seam {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.dock .ship-bar {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.dock .ship-hatch {
+  fill: #8b8694;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.dock .ship-note {
+  fill: var(--sun-soft);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.dock .ship-note-fold {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+/* Drum on a pallet */
+.dock .pallet polygon {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.dock .pallet-t {
+  fill: #e2c697;
+}
+.dock .pallet-l {
+  fill: #cfae79;
+}
+.dock .pallet-r {
+  fill: #b99662;
+}
+.dock .pallet-gap {
+  stroke: rgba(43, 42, 51, 0.35);
+  stroke-width: 1.2;
+}
+.dock .drum-side,
+.dock .drum-rim {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .drum.is-named .drum-side {
+  fill: var(--lilac);
+}
+.dock .drum.is-named .drum-rim {
+  fill: #d7ccfa;
+}
+.dock .drum.is-named .drum-lid {
+  fill: #c6b8f6;
+}
+.dock .drum.is-anon .drum-side {
+  fill: #cbc6d1;
+}
+.dock .drum.is-anon .drum-rim {
+  fill: #e6e2ea;
+}
+.dock .drum.is-anon .drum-lid {
+  fill: #d6d1dc;
+}
+.dock .drum-lid {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.dock .drum-shine {
+  fill: rgba(255, 255, 255, 0.35);
+}
+.dock .drum-shade {
+  fill: rgba(43, 42, 51, 0.13);
+}
+.dock .drum-band {
+  fill: #fffdf8;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .drum-hoop {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+.dock .drum-bung {
+  fill: #8b8694;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.dock .drum-tap {
+  fill: #57535f;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .drum-sticker {
+  fill: var(--sun);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.dock .drum-q {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+/* Filing cabinet */
+.dock .cabinet polygon {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .cab-t {
+  fill: var(--sky-soft);
+}
+.dock .cab-l {
+  fill: var(--sky);
+}
+.dock .cab-r {
+  fill: var(--sky-mid);
+}
+.dock .cabinet .cab-drawer {
+  fill: rgba(255, 255, 255, 0.16);
+  stroke-width: 1.5;
+}
+.dock .cabinet .cab-card {
+  fill: #fffdf8;
+  stroke-width: 1.2;
+}
+.dock .cab-handle {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.dock .cabinet .cab-folder {
+  fill: var(--sun);
+  stroke-width: 1.6;
+}
+
+/* Hoses: a mount, from a container's roof to what it opens. */
+.dock .hose path {
+  fill: none;
+  stroke-linecap: round;
+}
+.dock .hose-out {
+  stroke: var(--ink);
+  stroke-width: 7;
+}
+.dock .hose-in {
+  stroke-width: 3.6;
+}
+.dock .hose.is-named .hose-in {
+  stroke: var(--lilac);
+}
+.dock .hose.is-anon .hose-in {
+  stroke: #cbc6d1;
+}
+.dock .hose.is-bind .hose-in {
+  stroke: var(--sky);
+}
+
+.dock .dock-obj.is-lit {
+  filter: drop-shadow(0 0 7px rgba(255, 148, 102, 0.9));
+}
+
+.dock .quay-sea {
+  fill: #cfe2ff;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dock .quay-wave {
+  fill: none;
+  stroke: #fffdf8;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.dock .volume-bay {
+  fill: rgba(191, 174, 245, 0.16);
+  stroke: var(--lilac-deep);
+  stroke-width: 2;
+  stroke-dasharray: 9 6;
+  stroke-linejoin: round;
+}
+
+/* Image rack: steel uprights, an orange beam, crates for layers. */
+.dock .rack polygon {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .rack-post-l {
+  fill: #7d8fb3;
+}
+.dock .rack-post-r {
+  fill: #5f7196;
+}
+.dock .rack-beam-l {
+  fill: var(--tangerine);
+}
+.dock .rack-beam-r {
+  fill: var(--tangerine-deep);
+}
+.dock .rack-beam-t {
+  fill: #ffc49e;
+}
+.dock .rack-beam-back {
+  stroke: var(--tangerine-deep);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.dock .rack-brace {
+  stroke: #7d8fb3;
+  stroke-width: 2;
+}
+.dock .rack-deck-t {
+  fill: #d9cdb6;
+}
+.dock .rack-deck-l {
+  fill: #c8bba2;
+}
+.dock .rack-deck-r {
+  fill: #b5a78c;
+}
+.dock .crate polygon {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.dock .crate-t {
+  fill: #f3dcb2;
+}
+.dock .crate-l {
+  fill: #e2c697;
+}
+.dock .crate-r {
+  fill: #c9a874;
+}
+.dock .crate.is-top .crate-t {
+  fill: var(--sky-soft);
+}
+.dock .crate.is-top .crate-l {
+  fill: var(--sky);
+}
+.dock .crate.is-top .crate-r {
+  fill: var(--sky-mid);
+}
+.dock .crate-plank {
+  stroke: rgba(43, 42, 51, 0.3);
+  stroke-width: 1.1;
+}
+
+/* A Compose project's painted bay. */
+.dock .zone-paint {
+  fill: rgba(255, 214, 107, 0.14);
+  stroke: #e2b33c;
+  stroke-width: 2.4;
+  stroke-dasharray: 12 7;
+  stroke-linejoin: round;
+}
+.dock .zone-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  fill: #d9a826;
+  opacity: 0.85;
+  letter-spacing: 0.06em;
+}
+
+/* Painted lane under the dashed name link. */
+.dock .dns-lane {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+  opacity: 0.22;
+}
+
+.dock .ctr-meta.is-tight {
+  font-size: 10.5px;
+}
+
+/* Build yard: a tower crane, the build context's cartons, stamped crates. */
+.dock .crane polygon {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .crane-t {
+  fill: #ffe39a;
+}
+.dock .crane-l {
+  fill: var(--sun);
+}
+.dock .crane-r {
+  fill: #e9b93f;
+}
+.dock .crane-lattice {
+  fill: none;
+  stroke: rgba(43, 42, 51, 0.55);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+.dock .crane-foot-t {
+  fill: #e6dccb;
+}
+.dock .crane-foot-l {
+  fill: #cfc3ad;
+}
+.dock .crane-foot-r {
+  fill: #b9ac94;
+}
+.dock .crane-weight-t {
+  fill: #a7a2ae;
+}
+.dock .crane-weight-l {
+  fill: #8b8694;
+}
+.dock .crane-weight-r {
+  fill: #6f6a78;
+}
+.dock .crane-cab-l {
+  fill: #fffdf8;
+}
+.dock .crane-cab-r {
+  fill: #efe5d2;
+}
+.dock .crane .crane-window {
+  fill: var(--sky);
+  stroke-width: 1.1;
+}
+.dock .crane-tie {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.dock .crane-trolley-l {
+  fill: #6f6a78;
+}
+.dock .crane-trolley-r {
+  fill: #57535f;
+}
+.dock .crane-cable {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .crane-hook rect {
+  fill: var(--tangerine);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .crane-hook path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.dock .cargo polygon {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.dock .carton-t {
+  fill: #ecd2a4;
+}
+.dock .carton-l {
+  fill: #d9b47a;
+}
+.dock .carton-r {
+  fill: #c39a5e;
+}
+.dock .carton-tape {
+  stroke: #a77f45;
+  stroke-width: 2;
+}
+
+.dock .plate {
+  stroke: var(--ink);
+  stroke-width: 1.1;
+}
+.dock .plate.is-cached {
+  fill: var(--mint);
+}
+.dock .plate.is-fresh {
+  fill: var(--peach);
+}
+.dock .plate-text {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.dock .yard-note {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--ink-2);
+}
+.dock .yard-note.is-out {
+  fill: var(--ink-3);
+}
+.dock .left-behind {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  fill: var(--ink-3);
+}

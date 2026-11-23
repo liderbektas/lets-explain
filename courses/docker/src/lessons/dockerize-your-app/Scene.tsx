@@ -1,7 +1,7 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { apply, imageFor, imageSize, instructionText, type DockerAction, type Host, type Instruction } from "../../engine/docker";
 import { BuildStage, type BuildLabels } from "../../iso/BuildStage";
-import { HostStage } from "../../iso/HostStage";
+import { DockStage } from "../../iso/DockStage";
 import { labels } from "../run-flags/Scene";
 import { makeDockerScene } from "../shared/DockerScene";
 import { scenarios, SHIPPED } from "./scenarios";
@@ -67,7 +67,7 @@ export const scene = makeDockerScene({
     const t = info.t;
     if (info.last.some((e) => e.type === "buildStep") && h.lastBuild) {
       const b = h.lastBuild;
-      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} play />;
+      return <BuildStage steps={b.steps} seconds={b.seconds} size={b.size} tag={b.tag} labels={buildLabels(t)} t={t} context={b.context} play />;
     }
     if (!info.sandbox && info.step === 0) {
       return <ProjectPanel files={contextOf(h)} ignore={[]} title={t(l("Proje klasörün", "Your project folder"))} ignoredLabel={t(l("dışarıda", "left out"))} sentLabel={t(l("build'e gider", "sent to build"))} />;
@@ -77,9 +77,9 @@ export const scene = makeDockerScene({
     }
     const pending = !info.sandbox ? PENDING[info.step] : undefined;
     if (pending && !info.last.some((e) => e.type === "built")) {
-      return <BuildStage steps={[]} seconds={0} size={0} tag="shop" labels={buildLabels(t)} pending={pending.map(instructionText)} />;
+      return <BuildStage steps={[]} seconds={0} size={0} tag="shop" labels={buildLabels(t)} t={t} pending={pending.map(instructionText)} />;
     }
-    return <HostStage host={h} labels={labels(t)} highlight={info.fresh} last={info.last} />;
+    return <DockStage host={h} labels={labels(t)} t={t} highlight={info.fresh} last={info.last} />;
   },
   metrics: (h, t) => {
     const img = imageFor(h, "shop");
