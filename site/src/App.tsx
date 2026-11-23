@@ -8,7 +8,7 @@ import type { Course } from "@lets-explain/core/course/types";
 import { l, useLang } from "@lets-explain/core/i18n";
 import { ui } from "@lets-explain/core/i18n/ui";
 import { canonicalHref, hubHref, replaceRoute, useRoute, type Route } from "@lets-explain/core/lib/router";
-import { courses } from "./catalog";
+import { courses, unreleased } from "./catalog";
 import { Hub } from "./Hub";
 
 export function App() {
@@ -37,11 +37,13 @@ export function App() {
     );
   }
   if (!course) {
+    // A written but unreleased course says so, instead of "this page does not exist".
+    const soon = route.name === "course" || route.name === "lesson" ? unreleased.find((c) => c.id === route.course) : undefined;
     return (
       <div className="app">
         <TopBar />
         <main className="main">
-          <NotFound />
+          <NotFound soon={soon?.name} />
         </main>
       </div>
     );
@@ -84,11 +86,11 @@ function CourseShell({ course, route }: { course: Course; route: Route }) {
   );
 }
 
-function NotFound() {
+function NotFound({ soon }: { soon?: string }) {
   const { t } = useLang();
   return (
     <div className="not-found">
-      <p>{t(ui.notFound)}</p>
+      <p>{soon ? t(l(`${soon} kursu yakında açılıyor.`, `The ${soon} course is coming soon.`)) : t(ui.notFound)}</p>
       <a href={hubHref}>{t(l("Bütün kurslar", "All courses"))}</a>
     </div>
   );
