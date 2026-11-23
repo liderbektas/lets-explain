@@ -13,20 +13,26 @@ const swap = (from: string, to: string): Edit => (t) => {
   if (!t.includes(from)) throw new Error(`the file has no ${from}`);
   return t.replace(from, to);
 };
-const addLine = (after: string, line: string): Edit => (t) => t.replace(after, `${after}\n${line}`);
-const PERSISTENT = "properties=pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent)";
-const QUORUM = 'ch.queue_declare(queue="payments", durable=True, arguments={"x-queue-type": "quorum"})';
+const addLine = (after: string, line: string): Edit => (t) => {
+  if (!t.includes(after)) throw new Error(`the file has no ${after}`);
+  return t.replace(after, `${after}\n${line}`);
+};
+const QUORUM = 'await ch.assertQueue("payments", { arguments: { "x-queue-type": "quorum" } });';
+const ORDERS = 'await ch.assertQueue("orders");';
 const POLICY = `rabbitmqctl set_policy max-orders "^orders$" '{"max-length":2}' --apply-to queues`;
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
   "queue-vanished": {
-    typed: ["nano setup.py", "rabbitmqctl delete_queue orders", "python setup.py", "python order.py", "docker restart rabbitmq"],
-    edits: [swap('queue_declare(queue="orders")', 'queue_declare(queue="orders", durable=True)')],
+    typed: ["nano setup.js", "rabbitmqctl delete_queue orders", "node setup.js", "node order.js", "docker restart rabbitmq"],
+    edits: [swap("{ durable: false }", "{ durable: true }")],
   },
-  "empty-after-restart": { typed: ["nano order.py", "python order.py", "docker restart rabbitmq"], edits: [swap('body=b"order-1002")', `body=b"order-1002", ${PERSISTENT})`)] },
-  "quorum-payments": { typed: ["nano setup.py", "python setup.py", "python pay.py", "docker restart rabbitmq"], edits: [addLine('durable=True)', QUORUM)] },
-  "cap-by-policy": { typed: [POLICY, "python burst.py"] },
+  "empty-after-restart": {
+    typed: ["nano order.js", "node order.js", "docker restart rabbitmq"],
+    edits: [swap('Buffer.from("order-1002"));', 'Buffer.from("order-1002"), { persistent: true });')],
+  },
+  "quorum-payments": { typed: ["nano setup.js", "node setup.js", "node pay.js", "docker restart rabbitmq"], edits: [addLine(ORDERS, QUORUM)] },
+  "cap-by-policy": { typed: [POLICY, "node burst.js"] },
 };
 
 /** Other ways people really do it, which must count too. */
@@ -34,29 +40,36 @@ const alternatives: Record<string, Play[]> = {
   // A restart deletes the transient queue too, which also clears the way.
   "queue-vanished": [
     {
-      typed: ["rabbitmqctl list_queues name durable", "docker restart rabbitmq", "nano setup.py", "python setup.py", "python order.py", "docker restart rabbitmq"],
-      edits: [swap('queue_declare(queue="orders")', 'queue_declare(queue="orders", durable=True)')],
+      typed: ["rabbitmqctl list_queues name durable", "docker restart rabbitmq", "nano setup.js", "node setup.js", "node order.js", "docker restart rabbitmq"],
+      edits: [swap("{ durable: false }", "{ durable: true }")],
+    },
+    // Dropping the option works too: amqplib declares queues durable by default.
+    { typed: ["nano setup.js", "rabbitmqctl delete_queue orders", "node setup.js", "node order.js", "docker restart rabbitmq"], edits: [swap(", { durable: false }", "")] },
+  ],
+  "empty-after-restart": [
+    {
+      typed: ["nano order.js", "node order.js", "docker exec rabbitmq rabbitmqctl list_queues name messages", "docker restart rabbitmq"],
+      edits: [swap('Buffer.from("order-1002"));', 'Buffer.from("order-1002"), { deliveryMode: 2 });')],
     },
   ],
-  "empty-after-restart": [{ typed: ["nano order.py", "python order.py", "docker exec rabbitmq rabbitmqctl list_queues name messages", "docker restart rabbitmq"], edits: [swap('body=b"order-1002")', 'body=b"order-1002", properties=pika.BasicProperties(delivery_mode=2))')] }],
-  "cap-by-policy": [{ typed: [`docker exec rabbitmq rabbitmqctl set_policy --apply-to queues --priority 1 cap "^orders" '{"max-length":2,"overflow":"drop-head"}'`, "python burst.py"] }],
+  "cap-by-policy": [{ typed: [`docker exec rabbitmq rabbitmqctl set_policy --apply-to queues --priority 1 cap "^orders" '{"max-length":2,"overflow":"drop-head"}'`, "node burst.js"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Changing durable in the code and running it again: RabbitMQ refuses the redeclare (406).
   "queue-vanished": {
-    typed: ["nano setup.py", "python setup.py", "python order.py", "docker restart rabbitmq"],
-    edits: [swap('queue_declare(queue="orders")', 'queue_declare(queue="orders", durable=True)')],
+    typed: ["nano setup.js", "node setup.js", "node order.js", "docker restart rabbitmq"],
+    edits: [swap("{ durable: false }", "{ durable: true }")],
   },
   // A durable queue alone does not keep a transient message.
-  "empty-after-restart": { typed: ["python order.py", "docker restart rabbitmq"] },
-  // A classic durable queue loses pay.py's transient message.
-  "quorum-payments": { typed: ["nano setup.py", "python setup.py", "python pay.py", "docker restart rabbitmq"], edits: [addLine('durable=True)', 'ch.queue_declare(queue="payments", durable=True)')] },
+  "empty-after-restart": { typed: ["node order.js", "docker restart rabbitmq"] },
+  // A classic durable queue loses pay.js's transient message.
+  "quorum-payments": { typed: ["nano setup.js", "node setup.js", "node pay.js", "docker restart rabbitmq"], edits: [addLine(ORDERS, 'await ch.assertQueue("payments");')] },
   // Setting the cap in the code fails: the live queue was declared without it (406).
   "cap-by-policy": {
-    typed: ["nano setup.py", "python setup.py", "python burst.py"],
-    edits: [swap('queue_declare(queue="orders", durable=True)', 'queue_declare(queue="orders", durable=True, arguments={"x-max-length": 2})')],
+    typed: ["nano setup.js", "node setup.js", "node burst.js"],
+    edits: [swap(ORDERS, 'await ch.assertQueue("orders", { maxLength: 2 });')],
   },
 };
 
@@ -104,7 +117,9 @@ describe("durability", () => {
 
   it("redeclaring with another durable setting fails like RabbitMQ", () => {
     const s = scenarios.find((x) => x.id === "queue-vanished")!;
-    const r = typeInto(s.start, ["nano setup.py", "python setup.py"], [swap('queue_declare(queue="orders")', 'queue_declare(queue="orders", durable=True)')]);
-    expect(r.output.at(-1)).toContain("PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'orders'");
+    const r = typeInto(s.start, ["nano setup.js", "node setup.js"], [swap("{ durable: false }", "{ durable: true }")]);
+    expect(r.output).toContain(
+      `Error: Operation failed: QueueDeclare; 406 (PRECONDITION-FAILED) with message "PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'orders' in vhost '/': received 'true' but current is 'false'"`,
+    );
   });
 });

@@ -3,8 +3,6 @@ import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
-const DECLARE = 'ch.queue_declare(\n    queue="orders",\n    durable=True,\n    arguments={"x-queue-type": "quorum"},\n)';
-
 export const quorumQueues: Lesson = {
   slug: "quorum-queues",
   title: l("Quorum queue'lar", "Quorum queues"),
@@ -77,8 +75,8 @@ export const quorumQueues: Lesson = {
         commands: [],
         snippets: [
           {
-            label: "Python · quorum kuyruğu",
-            code: DECLARE,
+            label: "Node.js · quorum kuyruğu",
+            code: 'await ch.assertQueue("orders", {\n  durable: true,\n  arguments: { "x-queue-type": "quorum" },\n});',
             note: l("Kuyruk türü tanımlanırken seçilir ve sonradan değiştirilemez. Quorum kuyrukları her zaman durable'dır.", "The type is chosen when the queue is declared and cannot change later. Quorum queues are always durable."),
           },
         ],
@@ -191,16 +189,6 @@ export const quorumQueues: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · nack'i yakala",
-            code: 'import pika.exceptions\n\nch.confirm_delivery()\ntry:\n    ch.basic_publish(exchange="", routing_key="orders", body=b"o4")\nexcept pika.exceptions.NackError:\n    retry_later(b"o4")',
-            note: l("`confirm_delivery()` açıksa, broker'ın reddettiği mesaj `basic_publish`'te hata olarak döner. Confirms olmadan bunu hiç fark etmezdin.", "With `confirm_delivery()` on, a message the broker refuses comes back as an error from `basic_publish`. Without confirms you would never notice."),
-          },
-        ],
-      },
     },
     {
       short: l("Geri dönüş", "Recovery"),
@@ -232,15 +220,6 @@ export const quorumQueues: Lesson = {
           "One difference: quorum queues count how often a message came back. Since RabbitMQ 4 the **default delivery limit is 20**. A message requeued 20 times gets dead-lettered or dropped. The poison messages lesson covers this in detail.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · teslim sınırı ve DLX",
-            code: 'ch.queue_declare(\n    queue="orders",\n    durable=True,\n    arguments={\n        "x-queue-type": "quorum",\n        "x-delivery-limit": 5,\n        "x-dead-letter-exchange": "dlx",\n    },\n)',
-          },
-        ],
-      },
     },
     {
       short: l("Hangisi?", "Which one?"),

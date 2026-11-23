@@ -23,37 +23,37 @@ void addLine;
 const LIMITS = `rabbitmqctl set_policy limits "^orders$" '{"delivery-limit":3,"dead-letter-exchange":"dlx"}' --apply-to queues`;
 const TO_RETRY = `rabbitmqctl set_policy to-retry "^orders$" '{"dead-letter-exchange":"retry-x"}' --apply-to queues`;
 const BACK = `rabbitmqctl set_policy back "^retry$" '{"message-ttl":2000,"dead-letter-exchange":"","dead-letter-routing-key":"orders"}' --apply-to queues`;
-const NACK = "ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)";
-const REJECT = "ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)";
+const NACK = "ch.nack(msg, false, true);";
+const REJECT = "ch.reject(msg, false);";
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "endless-retries": { typed: [LIMITS, "python send_bad.py"] },
-  "no-retry": { typed: ["nano worker.py", "pkill -f worker.py", "python worker.py", "python send_bad.py", "python send.py"], edits: [swap(NACK, REJECT)] },
-  "retry-later": { typed: [TO_RETRY, BACK, "python send_late.py", "sleep 2"] },
+  "endless-retries": { typed: [LIMITS, "node send_bad.js"] },
+  "no-retry": { typed: ["nano worker.js", "pkill -f worker.js", "node worker.js", "node send_bad.js", "node send.js"], edits: [swap(NACK, REJECT)] },
+  "retry-later": { typed: [TO_RETRY, BACK, "node send_late.js", "sleep 2"] },
   "classic-ignores": {
-    typed: ["nano setup.py", "rabbitmqctl delete_queue jobs", "python setup.py", "python worker.py", "python send_bad.py"],
-    edits: [swap('queue_declare(queue="jobs", durable=True)', 'queue_declare(queue="jobs", durable=True, arguments={"x-queue-type": "quorum"})')],
+    typed: ["nano setup.js", "rabbitmqctl delete_queue jobs", "node setup.js", "node worker.js", "node send_bad.js"],
+    edits: [swap('await ch.assertQueue("jobs");', 'await ch.assertQueue("jobs", { arguments: { "x-queue-type": "quorum" } });')],
   },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "endless-retries": [{ typed: ["rabbitmqctl list_queues name type messages", `docker exec rabbitmq rabbitmqctl set_policy --apply-to queues poison "^orders" '{"dead-letter-exchange":"dlx","delivery-limit":2}'`, "python send_bad.py"] }],
-  "no-retry": [{ typed: ["nano worker.py", "kill -9 %1", "python worker.py", "python send.py", "python send_bad.py"], edits: [swap(NACK, "ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)")] }],
-  "retry-later": [{ typed: [BACK, TO_RETRY, "python send_late.py", "sleep 5"] }],
+  "endless-retries": [{ typed: ["rabbitmqctl list_queues name type messages", `docker exec rabbitmq rabbitmqctl set_policy --apply-to queues poison "^orders" '{"dead-letter-exchange":"dlx","delivery-limit":2}'`, "node send_bad.js"] }],
+  "no-retry": [{ typed: ["nano worker.js", "kill -9 %1", "node worker.js", "node send.js", "node send_bad.js"], edits: [swap(NACK, "ch.nack(msg, false, false);")] }],
+  "retry-later": [{ typed: [BACK, TO_RETRY, "node send_late.js", "sleep 5"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Without a DLX the limit still deletes the message after 20 tries.
-  "endless-retries": { typed: ["python send_bad.py"] },
+  "endless-retries": { typed: ["node send_bad.js"] },
   // Editing the file is not enough: the running worker still runs the old code.
-  "no-retry": { typed: ["nano worker.py", "python send_bad.py", "python send.py"], edits: [swap(NACK, REJECT)] },
+  "no-retry": { typed: ["nano worker.js", "node send_bad.js", "node send.js"], edits: [swap(NACK, REJECT)] },
   // Only one half of the loop: the message waits in retry forever.
-  "retry-later": { typed: [TO_RETRY, "python send_late.py", "sleep 5"] },
+  "retry-later": { typed: [TO_RETRY, "node send_late.js", "sleep 5"] },
   // A stronger policy on the classic queue changes nothing.
-  "classic-ignores": { typed: [`rabbitmqctl set_policy limits "^jobs$" '{"delivery-limit":1,"dead-letter-exchange":"dlx"}' --apply-to queues`, "python send_bad.py"] },
+  "classic-ignores": { typed: [`rabbitmqctl set_policy limits "^jobs$" '{"delivery-limit":1,"dead-letter-exchange":"dlx"}' --apply-to queues`, "node send_bad.js"] },
 };
 
 describe("poison-messages", () => {

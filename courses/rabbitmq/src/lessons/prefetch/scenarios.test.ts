@@ -10,33 +10,36 @@ interface Play {
   edits?: Edit[];
 }
 
-const QOS = "ch.basic_qos(prefetch_count=1)";
-const CONSUME = 'ch.basic_consume(queue="jobs"';
-const addQos: Edit = (t) => t.replace(CONSUME, `${QOS}\n${CONSUME}`);
+const QOS = "await ch.prefetch(1);";
+const CONSUME = 'await ch.consume("jobs"';
+const addQos: Edit = (t) => {
+  if (!t.includes(CONSUME)) throw new Error("no consume line");
+  return t.replace(CONSUME, `${QOS}\n${CONSUME}`);
+};
 const moveQos: Edit = (t) => {
   if (!t.includes(`\n${QOS}`)) throw new Error("no qos line");
   return addQos(t.replace(`\n${QOS}`, ""));
 };
-const RESTART = ["pkill -f slow_worker.py", "python slow_worker.py", "python send.py"];
+const RESTART = ["pkill -f slow_worker.js", "node slow_worker.js", "node send.js"];
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  hoarding: { typed: ["nano slow_worker.py", ...RESTART], edits: [addQos] },
-  "qos-too-late": { typed: ["nano slow_worker.py", ...RESTART], edits: [moveQos] },
-  rescue: { typed: ["pkill -f slow_worker.py"] },
-  backlog: { typed: ["python fast_worker.py"] },
+  hoarding: { typed: ["nano slow_worker.js", ...RESTART], edits: [addQos] },
+  "qos-too-late": { typed: ["nano slow_worker.js", ...RESTART], edits: [moveQos] },
+  rescue: { typed: ["pkill -f slow_worker.js"] },
+  backlog: { typed: ["node fast_worker.js"] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  hoarding: [{ typed: ["pkill -f slow_worker.py", "nano slow_worker.py", "python slow_worker.py", "python send.py"], edits: [addQos] }],
-  rescue: [{ typed: ["rabbitmqctl list_queues name messages_unacknowledged", "kill -9 slow_worker.py"] }],
+  hoarding: [{ typed: ["pkill -f slow_worker.js", "nano slow_worker.js", "node slow_worker.js", "node send.js"], edits: [addQos] }],
+  rescue: [{ typed: ["rabbitmqctl list_queues name messages_unacknowledged", "kill -9 slow_worker.js"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Sending the batch before fixing it: the slow worker grabs its half again.
-  hoarding: { typed: ["python send.py", "nano slow_worker.py", ...RESTART], edits: [addQos] },
+  hoarding: { typed: ["node send.js", "nano slow_worker.js", ...RESTART], edits: [addQos] },
   // A restart without moving the line changes nothing.
   "qos-too-late": { typed: RESTART },
   // Waiting for the slow worker: time passes, and it still holds the others.
@@ -73,7 +76,7 @@ describe("prefetch", () => {
 
   it("without a limit, the slow worker takes half the batch", () => {
     const s = scenarios.find((x) => x.id === "hoarding")!;
-    const out = typeInto(s.start, ["python send.py", "rabbitmqctl list_queues name messages_ready messages_unacknowledged"]).output;
+    const out = typeInto(s.start, ["node send.js", "rabbitmqctl list_queues name messages_ready messages_unacknowledged"]).output;
     expect(out.at(-1)).toBe("jobs\t0\t3");
   });
 

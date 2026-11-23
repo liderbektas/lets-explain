@@ -7,8 +7,8 @@ export const prefetch: Lesson = {
   slug: "prefetch",
   title: l("Prefetch ve iş kuyrukları", "Prefetch and work queues"),
   summary: l(
-    "Bir işçi aynı anda kaç mesaj tutmalı? Sınır yokken yavaş işçinin işleri nasıl istiflediğini, `prefetch_count=1` ile adil dağıtımı ve hız ile adalet arasındaki dengeyi gör.",
-    "How many messages should a worker hold at once? See a slow worker hoard jobs with no limit, fair dispatch with `prefetch_count=1`, and the trade-off between speed and fairness.",
+    "Bir işçi aynı anda kaç mesaj tutmalı? Sınır yokken yavaş işçinin işleri nasıl istiflediğini, `prefetch(1)` ile adil dağıtımı ve hız ile adalet arasındaki dengeyi gör.",
+    "How many messages should a worker hold at once? See a slow worker hoard jobs with no limit, fair dispatch with `prefetch(1)`, and the trade-off between speed and fairness.",
   ),
   minutes: 12,
   level: l("Orta", "Intermediate"),
@@ -18,7 +18,7 @@ export const prefetch: Lesson = {
   objectives: [
     { text: l("Sınırsız prefetch'te işlerin işçi hızına bakılmadan dağıldığını görmek", "See jobs handed out regardless of speed with unlimited prefetch"), step: 1 },
     { text: l("Yavaş işçinin işleri istiflerken hızlının boşta kaldığını görmek", "See the fast worker idle while the slow one hoards"), step: 2 },
-    { text: l("`prefetch_count=1` ile adil dağıtımı kurmak", "Set up fair dispatch with `prefetch_count=1`"), step: 5 },
+    { text: l("`prefetch(1)` ile adil dağıtımı kurmak", "Set up fair dispatch with `prefetch(1)`"), step: 5 },
     { text: l("Büyük prefetch'in hız kazandırdığını görmek", "See a bigger prefetch buy throughput"), step: 6 },
   ],
   steps: [
@@ -101,8 +101,8 @@ export const prefetch: Lesson = {
       title: l("Çözüm: aynı anda en fazla bir iş", "The fix: at most one job at a time"),
       body: [
         l(
-          "İki işçi ayrılıp `prefetch_count=1` ile yeniden bağlandı. Yavaş işçi ayrılınca elindeki 4 iş kuyruğa geri döndü.",
-          "Both workers disconnected and reconnected with `prefetch_count=1`. When the slow one left, its 4 jobs went back to the queue.",
+          "İki işçi ayrılıp `prefetch(1)` ile yeniden bağlandı. Yavaş işçi ayrılınca elindeki 4 iş kuyruğa geri döndü.",
+          "Both workers disconnected and reconnected with `prefetch(1)`. When the slow one left, its 4 jobs went back to the queue.",
         ),
         l(
           "Artık broker her işçiye **onaylanmamış en fazla bir** iş verir. İkisi birer iş aldı; geri kalanlar kuyrukta bekliyor.",
@@ -112,9 +112,9 @@ export const prefetch: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · prefetch",
-            code: 'ch.basic_qos(prefetch_count=1)\nch.basic_consume(queue="jobs", on_message_callback=handle)',
-            note: l("`basic_qos`, `basic_consume`'dan **önce** çağrılmalı.", "Call `basic_qos` **before** `basic_consume`."),
+            label: "Node.js · prefetch",
+            code: 'await ch.prefetch(1); // before consume\nawait ch.consume("jobs", work, { noAck: false });',
+            note: l("`prefetch`, `consume`'dan **önce** çağrılmalı.", "Call `prefetch` **before** `consume`."),
           },
         ],
         commands: [],
@@ -182,10 +182,6 @@ export const prefetch: Lesson = {
           "On a real network every delivery takes time; having a few messages ready keeps the worker busy. But the same limit lets a slow worker hoard a few too. The right value depends on how long the work takes and how many workers there are.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · daha yüksek prefetch", code: "ch.basic_qos(prefetch_count=50)" }],
-        commands: [],
-      },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -227,20 +223,20 @@ export const prefetch: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Bir rapor servisi var: `send.py` `jobs` kuyruğuna rapor gönderir; `fast_worker.py` her raporu hemen bitirir, eski makinedeki `slow_worker.py` her birine 10 saniye harcar. Aşağıda gerçek işten **4 senaryo** var.",
-          "Your turn. There's a report service: `send.py` sends reports to the `jobs` queue; `fast_worker.py` finishes each at once, while `slow_worker.py`, on an old machine, spends 10 seconds on each. Below are **4 scenarios** from real work.",
+          "Sıra sende. Bir rapor servisi var: `send.js` `jobs` kuyruğuna rapor gönderir; `fast_worker.js` her raporu hemen bitirir, eski makinedeki `slow_worker.js` her birine 10 saniye harcar. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a report service: `send.js` sends reports to the `jobs` queue; `fast_worker.js` finishes each at once, while `slow_worker.js`, on an old machine, spends 10 seconds on each. Below are **4 scenarios** from real work.",
         ),
         l(
-          "`nano slow_worker.py` ile prefetch'i ayarla, işçiyi `pkill -f slow_worker.py` ve `python slow_worker.py` ile yeniden başlat. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` kimin ne tuttuğunu gösterir.",
-          "Set the prefetch with `nano slow_worker.py`, restart the worker with `pkill -f slow_worker.py` and `python slow_worker.py`. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows who holds what.",
+          "`nano slow_worker.js` ile prefetch'i ayarla, işçiyi `pkill -f slow_worker.js` ve `node slow_worker.js` ile yeniden başlat. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` kimin ne tuttuğunu gösterir.",
+          "Set the prefetch with `nano slow_worker.js`, restart the worker with `pkill -f slow_worker.js` and `node slow_worker.js`. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows who holds what.",
         ),
       ],
     },
   ],
   recap: [
-    l("Prefetch, bir işçinin aynı anda tutabileceği onaylanmamış mesaj sayısıdır (`basic_qos`).", "Prefetch is how many unacked messages a worker may hold at once (`basic_qos`)."),
+    l("Prefetch, bir işçinin aynı anda tutabileceği onaylanmamış mesaj sayısıdır (`ch.prefetch(n)`).", "Prefetch is how many unacked messages a worker may hold at once (`ch.prefetch(n)`)."),
     l("Sınır yoksa broker işleri hıza bakmadan sırayla iter; yavaş işçi işleri istifler, hızlı olan boşta kalır.", "With no limit the broker pushes jobs in turn, blind to speed; the slow worker hoards and the fast one idles."),
-    l("`prefetch_count=1` adil dağıtım verir: işler kuyrukta bekler ve ilk boşalan işçi alır.", "`prefetch_count=1` gives fair dispatch: jobs wait in the queue and the first free worker takes them."),
+    l("`prefetch(1)` adil dağıtım verir: işler kuyrukta bekler ve ilk boşalan işçi alır.", "`prefetch(1)` gives fair dispatch: jobs wait in the queue and the first free worker takes them."),
     l("Büyük prefetch verimi artırır ama adaleti azaltır; doğru değeri iş süresine göre ölçerek seç.", "A bigger prefetch raises throughput but lowers fairness; measure to pick the right value."),
     l("Prefetch auto-ack'te hiçbir şeyi sınırlamaz.", "Prefetch limits nothing with auto-ack."),
   ],
@@ -263,7 +259,7 @@ export const prefetch: Lesson = {
       reviewStep: 5,
     },
     {
-      question: l("auto-ack ile bağlanan bir consumer'da `prefetch_count=1` ne yapar?", "What does `prefetch_count=1` do for a consumer using auto-ack?"),
+      question: l("auto-ack ile bağlanan bir consumer'da `prefetch(1)` ne yapar?", "What does `prefetch(1)` do for a consumer using auto-ack?"),
       options: [
         l("Aynı anda tek mesaj alır", "It gets one message at a time"),
         l("Hiçbir şey: onaylanmamış mesaj olmadığı için sınır işlemez", "Nothing: with no unacked messages, the limit does not apply"),

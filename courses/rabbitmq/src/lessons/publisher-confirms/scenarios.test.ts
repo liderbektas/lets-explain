@@ -20,34 +20,41 @@ const addLine = (after: string, line: string): Edit => (t) => {
 };
 void swap;
 void addLine;
-const PERSISTENT = "properties=pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent)";
+const REFUND = 'Buffer.from("refund-17"));';
+const ORDER = 'Buffer.from("order-55"));';
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "refund-nowhere": { typed: ["nano refund.py", "python refund.py"], edits: [swap('body=b"refund-17")', 'body=b"refund-17", mandatory=True)')] },
-  "burst-nacked": { typed: ["python worker.py", "python burst.py"] },
-  "no-majority": { typed: ["docker start rabbit2", "python pay.py"] },
-  "acked-then-lost": { typed: ["nano order.py", "python order.py", "docker restart rabbitmq"], edits: [swap('body=b"order-55")', `body=b"order-55", ${PERSISTENT})`)] },
+  "refund-nowhere": { typed: ["nano refund.js", "node refund.js"], edits: [swap(REFUND, 'Buffer.from("refund-17"), { mandatory: true });')] },
+  "burst-nacked": { typed: ["node worker.js", "node burst.js"] },
+  "no-majority": { typed: ["docker start rabbit2", "node pay.js"] },
+  "acked-then-lost": { typed: ["nano order.js", "node order.js", "docker restart rabbitmq"], edits: [swap(ORDER, 'Buffer.from("order-55"), { persistent: true });')] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "refund-nowhere": [{ typed: ["rabbitmqctl list_bindings source_name routing_key destination_name", "nano refund.py", "python refund.py"], edits: [swap('routing_key="refund", body=b"refund-17"', 'routing_key="refund", body=b"refund-17", mandatory=True')] }],
-  "burst-nacked": [{ typed: ["rabbitmqctl list_queues name messages consumers", "python worker.py", "python burst.py"] }],
-  "no-majority": [{ typed: ["docker ps -a", "docker start rabbit3", "docker exec rabbit1 rabbitmq-queues quorum_status payments", "python pay.py"] }],
-  "acked-then-lost": [{ typed: ["nano order.py", "python order.py", "docker stop rabbitmq", "docker start rabbitmq"], edits: [swap('body=b"order-55")', 'body=b"order-55", properties=pika.BasicProperties(delivery_mode=2))')] }],
+  "refund-nowhere": [
+    // With a per-message confirm callback as well.
+    {
+      typed: ["rabbitmqctl list_bindings source_name routing_key destination_name", "nano refund.js", "node refund.js"],
+      edits: [swap(REFUND, 'Buffer.from("refund-17"), { mandatory: true }, (err) => console.log(err ? "nacked" : "confirmed"));')],
+    },
+  ],
+  "burst-nacked": [{ typed: ["rabbitmqctl list_queues name messages consumers", "node worker.js", "node burst.js"] }],
+  "no-majority": [{ typed: ["docker ps -a", "docker start rabbit3", "docker exec rabbit1 rabbitmq-queues quorum_status payments", "node pay.js"] }],
+  "acked-then-lost": [{ typed: ["nano order.js", "node order.js", "docker stop rabbitmq", "docker start rabbitmq"], edits: [swap(ORDER, 'Buffer.from("order-55"), { deliveryMode: 2 });')] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Running it again: still acked and dropped.
-  "refund-nowhere": { typed: ["python refund.py"] },
+  "refund-nowhere": { typed: ["node refund.js"] },
   // Sending first: the third order is nacked before the worker starts.
-  "burst-nacked": { typed: ["python burst.py", "python worker.py", "python burst.py"] },
+  "burst-nacked": { typed: ["node burst.js", "node worker.js", "node burst.js"] },
   // Sending again changes nothing while two nodes are down.
-  "no-majority": { typed: ["python pay.py", "python pay.py"] },
+  "no-majority": { typed: ["node pay.js", "node pay.js"] },
   // Confirms alone do not keep a transient message.
-  "acked-then-lost": { typed: ["python order.py", "docker restart rabbitmq"] },
+  "acked-then-lost": { typed: ["node order.js", "docker restart rabbitmq"] },
 };
 
 describe("publisher-confirms", () => {
@@ -71,6 +78,22 @@ describe("publisher-confirms", () => {
     const end = scene.run.states[scene.stepEnd(6)]!;
     expect(end.queues.billing!.ready.filter((m) => m.body === "o2")).toHaveLength(2);
     expect(depth(end, "payments").ready).toBe(1);
+  });
+
+  it("the scripts tell what the broker answered: a nack crashes waitForConfirms, a returned refund is printed before \"sent\"", () => {
+    const burst = scenarios.find((x) => x.id === "burst-nacked")!;
+    const crashed = typeInto(burst.start, ["node burst.js"]).output;
+    expect(crashed).toContain("Error: message nacked");
+    expect(crashed).not.toContain("sent");
+    const drained = typeInto(burst.start, ["node worker.js", "node burst.js"]).output;
+    expect(drained).toContain("sent");
+    expect(drained).not.toContain("Error: message nacked");
+    const refund = scenarios.find((x) => x.id === "refund-nowhere")!;
+    expect(typeInto(refund.start, ["node refund.js"]).output).toEqual(["sent"]);
+    const p = solutions["refund-nowhere"]!;
+    expect(typeInto(refund.start, p.typed, [...(p.edits ?? [])]).output).toEqual(["returned: refund-17", "sent"]);
+    const alt = alternatives["refund-nowhere"]![0]!;
+    expect(typeInto(refund.start, alt.typed, [...(alt.edits ?? [])]).output.slice(-3)).toEqual(["returned: refund-17", "confirmed", "sent"]);
   });
 
   for (const s of scenarios) {

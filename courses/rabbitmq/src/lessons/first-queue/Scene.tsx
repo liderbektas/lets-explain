@@ -56,7 +56,7 @@ export const scene = makeBrokerScene({
       labels={labels(info.t)}
       layout={{
         producers: [{ id: "app", label: info.t(l("Uygulama", "App")), exchange: "", queue: info.sandbox ? TASKS : QUEUE }],
-        // Typed: worker.py run once is "worker", run again "worker-2".
+        // Typed: worker.js run once is "worker", run again "worker-2".
         consumerNames: info.sandbox
           ? { worker: info.t(l("İşçi 1", "Worker 1")), "worker-2": info.t(l("İşçi 2", "Worker 2")), slow_worker: info.t(l("Yavaş işçi", "Slow worker")) }
           : names(info.t),

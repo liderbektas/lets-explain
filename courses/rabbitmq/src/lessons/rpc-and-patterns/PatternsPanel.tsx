@@ -22,7 +22,7 @@ const cards: { title: string; shape: L; when: L; tint: string }[] = [
   },
   {
     title: "RPC",
-    shape: l("istek + reply_to + correlation_id", "request + reply_to + correlation_id"),
+    shape: l("istek + replyTo + correlationId", "request + replyTo + correlationId"),
     when: l("Cevap gerekiyor ama beklemek sorun değil", "An answer is needed, waiting is fine"),
     tint: "var(--sky-soft)",
   },

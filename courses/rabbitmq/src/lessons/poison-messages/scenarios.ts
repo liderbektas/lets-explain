@@ -1,52 +1,48 @@
 import { l } from "@lets-explain/core/i18n";
 import type { DeathReason } from "../../engine/broker";
 import type { RabbitCtx, RabbitScenario } from "../shared/BrokerScene";
-import { eventsOf, projectAfter, script } from "../shared/missionHelpers";
+import { CONNECT, eventsOf, projectAfter, script } from "../shared/missionHelpers";
 
 /* ------------------------------------------------------------ the projects */
 
 /** The parking lot: a fanout `dlx` with a `parking` queue, plus whatever queue `rest` declares. */
 const setup = (rest: string) =>
   script(`
-ch.exchange_declare(exchange="dlx", exchange_type="fanout", durable=True)
-ch.queue_declare(queue="parking", durable=True)
-ch.queue_bind(queue="parking", exchange="dlx")
+await ch.assertExchange("dlx", "fanout");
+await ch.assertQueue("parking");
+await ch.bindQueue("parking", "dlx", "");
 ${rest.trim()}
 `);
 
-const QUORUM = `ch.queue_declare(queue="orders", durable=True, arguments={"x-queue-type": "quorum"})`;
+const QUORUM = `await ch.assertQueue("orders", { arguments: { "x-queue-type": "quorum" } });`;
 
 /** A worker that fails on one body: puts it back (requeue) or turns it away (reject), and acks the rest. */
-const worker = (queue: string, bad: string, onFail: string) => `import pika
+const worker = (queue: string, bad: string, onFail: string) => `${CONNECT}
+await ch.prefetch(1);
+await ch.consume("${queue}", (msg) => {
+  if (msg.content.toString() === "${bad}") {
+    console.log(\` [!] cannot handle \${msg.content}\`);
+    ${onFail}
+  } else {
+    ch.ack(msg);
+  }
+});
+console.log(" [*] Waiting for messages. To exit press CTRL+C");`;
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
+const REQUEUE = "ch.nack(msg, false, true);";
+const REJECT = "ch.reject(msg, false);";
 
-def handle(ch, method, properties, body):
-    if body == b"${bad}":
-        print(f" [!] cannot handle {body.decode()}")
-        ${onFail}
-    else:
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-
-ch.basic_qos(prefetch_count=1)
-ch.basic_consume(queue="${queue}", on_message_callback=handle)
-ch.start_consuming()`;
-
-const REQUEUE = "ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)";
-const REJECT = "ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)";
-
-const send = (queue: string, body: string) => script(`ch.basic_publish(exchange="", routing_key="${queue}", body=b"${body}")`);
+const send = (queue: string, body: string) => script(`ch.sendToQueue("${queue}", Buffer.from("${body}"));`);
 
 /** Free play: a quorum `orders` limited to 3 deliveries, parked in `parking`, with a requeueing worker. */
 export const FREE = projectAfter(
   {
-    "setup.py": setup(`ch.queue_declare(queue="orders", durable=True, arguments={"x-queue-type": "quorum", "x-delivery-limit": 3, "x-dead-letter-exchange": "dlx"})`),
-    "worker.py": worker("orders", "bad", REQUEUE),
-    "send_bad.py": send("orders", "bad"),
-    "send.py": send("orders", "ok"),
+    "setup.js": setup(`await ch.assertQueue("orders", { deadLetterExchange: "dlx", arguments: { "x-queue-type": "quorum", "x-delivery-limit": 3 } });`),
+    "worker.js": worker("orders", "bad", REQUEUE),
+    "send_bad.js": send("orders", "bad"),
+    "send.js": send("orders", "ok"),
   },
-  ["python setup.py", "python worker.py"],
+  ["node setup.js", "node worker.js"],
 );
 
 /* ----------------------------------------------------------------- checks */
@@ -68,11 +64,11 @@ export const scenarios: RabbitScenario[] = [
     id: "endless-retries",
     title: l("Bitmeyen deneme", "Endless retries"),
     story: l(
-      "Bozuk bir sipariş geldiğinde işçi onu `requeue=True` ile geri koyuyor; geçici hatalar için doğru, ama bozuk mesaj için değil. `orders` bir quorum kuyruğu: RabbitMQ 20 denemeden sonra mesajı bırakıyor, ama DLX olmadığı için iz bırakmadan siliyor. Ekip bunun yerine 3 denemeden sonra `parking`'e park edilmesini istiyor.",
-      "When a broken order arrives, the worker puts it back with `requeue=True`: right for a passing error, wrong for a broken message. `orders` is a quorum queue: RabbitMQ gives up after 20 deliveries, but with no DLX it deletes the message without a trace. The team wants it parked in `parking` after 3 tries instead.",
+      "Bozuk bir sipariş geldiğinde işçi onu `ch.nack(msg, false, true)` ile geri koyuyor; geçici hatalar için doğru, ama bozuk mesaj için değil. `orders` bir quorum kuyruğu: RabbitMQ 20 denemeden sonra mesajı bırakıyor, ama DLX olmadığı için iz bırakmadan siliyor. Ekip bunun yerine 3 denemeden sonra `parking`'e park edilmesini istiyor.",
+      "When a broken order arrives, the worker puts it back with `ch.nack(msg, false, true)`: right for a passing error, wrong for a broken message. `orders` is a quorum queue: RabbitMQ gives up after 20 deliveries, but with no DLX it deletes the message without a trace. The team wants it parked in `parking` after 3 tries instead.",
     ),
-    goal: l("`send_bad.py`'nin bozuk mesajı en fazla 4 teslimden sonra `parking`'e düşsün.", "The broken message from `send_bad.py` lands in `parking` after at most 4 deliveries."),
-    start: projectAfter({ "setup.py": setup(QUORUM), "worker.py": worker("orders", "bad", REQUEUE), "send_bad.py": send("orders", "bad") }, ["python setup.py", "python worker.py"]),
+    goal: l("`send_bad.js`'nin bozuk mesajı en fazla 4 teslimden sonra `parking`'e düşsün.", "The broken message from `send_bad.js` lands in `parking` after at most 4 deliveries."),
+    start: projectAfter({ "setup.js": setup(QUORUM), "worker.js": worker("orders", "bad", REQUEUE), "send_bad.js": send("orders", "bad") }, ["node setup.js", "node worker.js"]),
     hints: [
       l("Quorum kuyrukları her mesajın kaç kez geri döndüğünü sayar: `delivery-limit`. Sınırı aşan mesaj dead letter olur.", "Quorum queues count how often each message came back: `delivery-limit`. A message past the limit is dead-lettered."),
       l(
@@ -80,8 +76,8 @@ export const scenarios: RabbitScenario[] = [
         "Give the live queue two settings with a policy: `delivery-limit` and `dead-letter-exchange`.",
       ),
       l(
-        "`rabbitmqctl set_policy limits \"^orders$\" '{\"delivery-limit\":3,\"dead-letter-exchange\":\"dlx\"}' --apply-to queues`, `python send_bad.py`",
-        "`rabbitmqctl set_policy limits \"^orders$\" '{\"delivery-limit\":3,\"dead-letter-exchange\":\"dlx\"}' --apply-to queues`, `python send_bad.py`",
+        "`rabbitmqctl set_policy limits \"^orders$\" '{\"delivery-limit\":3,\"dead-letter-exchange\":\"dlx\"}' --apply-to queues`, `node send_bad.js`",
+        "`rabbitmqctl set_policy limits \"^orders$\" '{\"delivery-limit\":3,\"dead-letter-exchange\":\"dlx\"}' --apply-to queues`, `node send_bad.js`",
       ),
     ],
     par: 2,
@@ -95,27 +91,30 @@ export const scenarios: RabbitScenario[] = [
       "Broken JSON will never get better, yet the worker still tries it 3 times, writing 3 errors to the logs, before it's parked. A message that can't be read should be parked on the first failure; good messages keep being acked.",
     ),
     goal: l(
-      "Bozuk mesaj **tek teslimde** `parking`'e gitsin ve bir sağlam mesaj onaylansın (`send.py`).",
-      "The broken message goes to `parking` after **a single delivery**, and a good message is acked (`send.py`).",
+      "Bozuk mesaj **tek teslimde** `parking`'e gitsin ve bir sağlam mesaj onaylansın (`send.js`).",
+      "The broken message goes to `parking` after **a single delivery**, and a good message is acked (`send.js`).",
     ),
     start: projectAfter(
       {
-        "setup.py": setup(`ch.queue_declare(queue="orders", durable=True, arguments={"x-queue-type": "quorum", "x-delivery-limit": 3, "x-dead-letter-exchange": "dlx"})`),
-        "worker.py": worker("orders", "bad", REQUEUE),
-        "send_bad.py": send("orders", "bad"),
-        "send.py": send("orders", "ok"),
+        "setup.js": setup(`await ch.assertQueue("orders", { deadLetterExchange: "dlx", arguments: { "x-queue-type": "quorum", "x-delivery-limit": 3 } });`),
+        "worker.js": worker("orders", "bad", REQUEUE),
+        "send_bad.js": send("orders", "bad"),
+        "send.js": send("orders", "ok"),
       },
-      ["python setup.py", "python worker.py"],
+      ["node setup.js", "node worker.js"],
     ),
     hints: [
-      l("Kalıcı bir hata için geri koymak (`requeue=True`) sadece zaman kaybı. Geri koymadan reddetmek mesajı doğrudan DLX'e gönderir.", "Putting back (`requeue=True`) on a permanent failure only wastes time. Rejecting without requeue sends it straight to the DLX."),
       l(
-        "`worker.py`'de `basic_nack(..., requeue=True)` yerine `basic_reject(..., requeue=False)`. Çalışan işçi eski kodu çalıştırıyor: durdurup yeniden başlat.",
-        "In `worker.py`, use `basic_reject(..., requeue=False)` instead of `basic_nack(..., requeue=True)`. The running worker runs the old code: stop it and start it again.",
+        "Kalıcı bir hata için geri koymak (requeue `true`) sadece zaman kaybı. Geri koymadan reddetmek mesajı doğrudan DLX'e gönderir.",
+        "Putting back (requeue `true`) on a permanent failure only wastes time. Rejecting without requeue sends it straight to the DLX.",
       ),
       l(
-        "`nano worker.py`, `pkill -f worker.py`, `python worker.py`, `python send_bad.py`, `python send.py`",
-        "`nano worker.py`, `pkill -f worker.py`, `python worker.py`, `python send_bad.py`, `python send.py`",
+        "`worker.js`'de `ch.nack(msg, false, true)` yerine `ch.reject(msg, false)`. Çalışan işçi eski kodu çalıştırıyor: durdurup yeniden başlat.",
+        "In `worker.js`, use `ch.reject(msg, false)` instead of `ch.nack(msg, false, true)`. The running worker runs the old code: stop it and start it again.",
+      ),
+      l(
+        "`nano worker.js`, `pkill -f worker.js`, `node worker.js`, `node send_bad.js`, `node send.js`",
+        "`nano worker.js`, `pkill -f worker.js`, `node worker.js`, `node send_bad.js`, `node send.js`",
       ),
     ],
     par: 5,
@@ -128,8 +127,8 @@ export const scenarios: RabbitScenario[] = [
     id: "retry-later",
     title: l("Biraz sonra tekrar", "Try again later"),
     story: l(
-      "Ödeme sağlayıcısı arada bir birkaç saniyeliğine düşüyor. İşçi o anda gelen mesajı `requeue=False` ile reddediyor ve mesaj kayboluyor. Hemen geri koymak da işe yaramaz: sağlayıcı hâlâ kapalıyken saniyede yüzlerce deneme olur. `retry-x` exchange'i ve `retry` kuyruğu hazır.",
-      "The payment provider drops out for a few seconds now and then. The worker rejects whatever arrives at that moment with `requeue=False`, and the message is lost. Putting it straight back won't help either: hundreds of retries a second while the provider is still down. The `retry-x` exchange and the `retry` queue are ready.",
+      "Ödeme sağlayıcısı arada bir birkaç saniyeliğine düşüyor. İşçi o anda gelen mesajı `ch.reject(msg, false)` ile, geri koymadan reddediyor ve mesaj kayboluyor. Hemen geri koymak da işe yaramaz: sağlayıcı hâlâ kapalıyken saniyede yüzlerce deneme olur. `retry-x` exchange'i ve `retry` kuyruğu hazır.",
+      "The payment provider drops out for a few seconds now and then. The worker rejects whatever arrives at that moment with `ch.reject(msg, false)`, without requeueing, and the message is lost. Putting it straight back won't help either: hundreds of retries a second while the provider is still down. The `retry-x` exchange and the `retry` queue are ready.",
     ),
     goal: l(
       "Reddedilen `late` mesajı `retry`'da 2 saniye beklesin, sonra `orders`'a dönüp işçiye **yeniden** teslim edilsin.",
@@ -137,16 +136,16 @@ export const scenarios: RabbitScenario[] = [
     ),
     start: projectAfter(
       {
-        "setup.py": script(`
-ch.exchange_declare(exchange="retry-x", exchange_type="fanout", durable=True)
-ch.queue_declare(queue="retry", durable=True)
-ch.queue_bind(queue="retry", exchange="retry-x")
+        "setup.js": script(`
+await ch.assertExchange("retry-x", "fanout");
+await ch.assertQueue("retry");
+await ch.bindQueue("retry", "retry-x", "");
 ${QUORUM}
 `),
-        "worker.py": worker("orders", "late", REJECT),
-        "send_late.py": send("orders", "late"),
+        "worker.js": worker("orders", "late", REJECT),
+        "send_late.js": send("orders", "late"),
       },
-      ["python setup.py", "python worker.py"],
+      ["node setup.js", "node worker.js"],
     ),
     hints: [
       l(
@@ -158,8 +157,8 @@ ${QUORUM}
         "Two policies: for `orders`, `dead-letter-exchange: retry-x`; for `retry`, `message-ttl: 2000`, `dead-letter-exchange: \"\"` (the default exchange) and `dead-letter-routing-key: orders`. Then send and `sleep`.",
       ),
       l(
-        "`rabbitmqctl set_policy to-retry \"^orders$\" '{\"dead-letter-exchange\":\"retry-x\"}' --apply-to queues`, `rabbitmqctl set_policy back \"^retry$\" '{\"message-ttl\":2000,\"dead-letter-exchange\":\"\",\"dead-letter-routing-key\":\"orders\"}' --apply-to queues`, `python send_late.py`, `sleep 2`",
-        "`rabbitmqctl set_policy to-retry \"^orders$\" '{\"dead-letter-exchange\":\"retry-x\"}' --apply-to queues`, `rabbitmqctl set_policy back \"^retry$\" '{\"message-ttl\":2000,\"dead-letter-exchange\":\"\",\"dead-letter-routing-key\":\"orders\"}' --apply-to queues`, `python send_late.py`, `sleep 2`",
+        "`rabbitmqctl set_policy to-retry \"^orders$\" '{\"dead-letter-exchange\":\"retry-x\"}' --apply-to queues`, `rabbitmqctl set_policy back \"^retry$\" '{\"message-ttl\":2000,\"dead-letter-exchange\":\"\",\"dead-letter-routing-key\":\"orders\"}' --apply-to queues`, `node send_late.js`, `sleep 2`",
+        "`rabbitmqctl set_policy to-retry \"^orders$\" '{\"dead-letter-exchange\":\"retry-x\"}' --apply-to queues`, `rabbitmqctl set_policy back \"^retry$\" '{\"message-ttl\":2000,\"dead-letter-exchange\":\"\",\"dead-letter-routing-key\":\"orders\"}' --apply-to queues`, `node send_late.js`, `sleep 2`",
       ),
     ],
     par: 4,
@@ -174,18 +173,18 @@ ${QUORUM}
     ),
     goal: l("`jobs`'a gelen bozuk mesaj tekrar denemelerden sonra `parking`'e düşsün.", "A broken message sent to `jobs` ends up in `parking` after its retries."),
     start: projectAfter(
-      { "setup.py": setup(`ch.queue_declare(queue="jobs", durable=True)`), "worker.py": worker("jobs", "bad", REQUEUE), "send_bad.py": send("jobs", "bad") },
-      ["python setup.py", `rabbitmqctl set_policy limits "^jobs$" '{"delivery-limit":2,"dead-letter-exchange":"dlx"}' --apply-to queues`, "python worker.py"],
+      { "setup.js": setup(`await ch.assertQueue("jobs");`), "worker.js": worker("jobs", "bad", REQUEUE), "send_bad.js": send("jobs", "bad") },
+      ["node setup.js", `rabbitmqctl set_policy limits "^jobs$" '{"delivery-limit":2,"dead-letter-exchange":"dlx"}' --apply-to queues`, "node worker.js"],
     ),
     hints: [
       l("Teslim sayısını tutan ve `delivery-limit`'i uygulayan, quorum kuyruğudur. Kuyruğun türü sonradan değişmez.", "It's the quorum queue that counts deliveries and applies `delivery-limit`. A queue's type can't change later."),
       l(
-        "Kuyruk boş: `setup.py`'de quorum yap, eski kuyruğu sil, yeniden kur. Silinen kuyruğun tüketicisi de gider: işçiyi yeniden başlat.",
-        "The queue is empty: make it quorum in `setup.py`, delete the old one, set it up again. Deleting a queue drops its consumer too: start the worker again.",
+        "Kuyruk boş: `setup.js`'de quorum yap, eski kuyruğu sil, yeniden kur. Silinen kuyruğun tüketicisi de gider: işçiyi yeniden başlat.",
+        "The queue is empty: make it quorum in `setup.js`, delete the old one, set it up again. Deleting a queue drops its consumer too: start the worker again.",
       ),
       l(
-        "`nano setup.py` (`arguments={\"x-queue-type\": \"quorum\"}`), `rabbitmqctl delete_queue jobs`, `python setup.py`, `python worker.py`, `python send_bad.py`",
-        "`nano setup.py` (`arguments={\"x-queue-type\": \"quorum\"}`), `rabbitmqctl delete_queue jobs`, `python setup.py`, `python worker.py`, `python send_bad.py`",
+        "`nano setup.js` (`{ arguments: { \"x-queue-type\": \"quorum\" } }`), `rabbitmqctl delete_queue jobs`, `node setup.js`, `node worker.js`, `node send_bad.js`",
+        "`nano setup.js` (`{ arguments: { \"x-queue-type\": \"quorum\" } }`), `rabbitmqctl delete_queue jobs`, `node setup.js`, `node worker.js`, `node send_bad.js`",
       ),
     ],
     par: 5,

@@ -14,36 +14,42 @@ const swap = (from: string, to: string): Edit => (t) => {
   if (!t.includes(from)) throw new Error(`the file has no ${from}`);
   return t.replace(from, to);
 };
-const toManual: Edit = (t) =>
-  swap(", auto_ack=True", "")(t).replace("    time.sleep(1)\n", "    time.sleep(1)\n    ch.basic_ack(delivery_tag=method.delivery_tag)\n");
+const toManual: Edit = (t) => swap("  await sleep(1000);\n", "  await sleep(1000);\n  ch.ack(msg);\n")(swap(", { noAck: true }", "")(t));
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "reproduce-loss": { typed: ["python worker.py", "python send.py", "kill -9 worker.py"] },
-  "manual-ack": { typed: ["nano worker.py", "python worker.py", "sleep 3"], edits: [toManual] },
-  "poison-order": { typed: ["nano worker.py", "python worker.py"], edits: [swap("requeue=True", "requeue=False")] },
-  "safe-deploy": { typed: ["pkill -f worker.py", "python worker.py", "sleep 3"] },
+  "reproduce-loss": { typed: ["node worker.js", "node send.js", "kill -9 worker.js"] },
+  "manual-ack": { typed: ["nano worker.js", "node worker.js", "sleep 3"], edits: [toManual] },
+  "poison-order": { typed: ["nano worker.js", "node worker.js"], edits: [swap("ch.nack(msg, false, true)", "ch.nack(msg, false, false)")] },
+  "safe-deploy": { typed: ["pkill -f worker.js", "node worker.js", "sleep 3"] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "reproduce-loss": [{ typed: ["python send.py", "python worker.py", "sleep 1", "kill -9 worker.py"] }],
-  "manual-ack": [{ typed: ["cat worker.py", "nano worker.py", "python worker.py && sleep 5"], edits: [toManual] }],
+  "reproduce-loss": [{ typed: ["node send.js", "node worker.js", "sleep 1", "kill -9 worker.js"] }],
+  "manual-ack": [
+    { typed: ["cat worker.js", "nano worker.js", "node worker.js && sleep 5"], edits: [toManual] },
+    // Keeping the option but turning it off, and acking with the tutorial's setTimeout.
+    {
+      typed: ["nano worker.js", "node worker.js", "sleep 3"],
+      edits: [(t) => swap("{ noAck: true }", "{ noAck: false }")(swap("  await sleep(1000);\n", "  setTimeout(() => ch.ack(msg), 1000);\n")(t))],
+    },
+  ],
   "poison-order": [
-    { typed: ["nano worker.py", "python worker.py"], edits: [swap("ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)", "ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)")] },
+    { typed: ["nano worker.js", "node worker.js"], edits: [swap("ch.nack(msg, false, true)", "ch.reject(msg, false)")] },
   ],
   // A crash is fine too with manual acks: what it held comes back.
-  "safe-deploy": [{ typed: ["kill -9 worker.py", "python worker.py", "sleep 3"] }],
+  "safe-deploy": [{ typed: ["kill -9 worker.js", "node worker.js", "sleep 3"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // A clean stop gives the worker time to finish what it took: nothing is lost.
-  "reproduce-loss": { typed: ["python worker.py", "python send.py", "pkill -f worker.py"] },
+  "reproduce-loss": { typed: ["node worker.js", "node send.js", "pkill -f worker.js"] },
   // Running it as it is: the orders get processed, but the broker never hears an ack.
-  "manual-ack": { typed: ["python worker.py", "sleep 3"] },
+  "manual-ack": { typed: ["node worker.js", "sleep 3"] },
   // Running it as it is: the broken order bounces forever.
-  "poison-order": { typed: ["python worker.py"] },
+  "poison-order": { typed: ["node worker.js"] },
   // Waiting does it, but nothing was restarted.
   "safe-deploy": { typed: ["sleep 3"] },
 };
@@ -76,7 +82,7 @@ describe("acks", () => {
 
   it("the requeue loop shows in the terminal", () => {
     const s = scenarios.find((x) => x.id === "poison-order")!;
-    expect(typeInto(s.start, ["python worker.py"]).output.at(-1)).toMatch(/keep coming back/);
+    expect(typeInto(s.start, ["node worker.js"]).output.at(-1)).toMatch(/keep coming back/);
   });
 
   for (const s of scenarios) {

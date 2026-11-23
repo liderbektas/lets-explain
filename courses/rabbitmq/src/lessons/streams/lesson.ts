@@ -3,9 +3,6 @@ import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
-const CONSUME = (offset: string) =>
-  `ch.basic_qos(prefetch_count=100)\nch.basic_consume(\n    queue="events",\n    on_message_callback=handle,\n    arguments={"x-stream-offset": ${offset}},\n)`;
-
 export const streams: Lesson = {
   slug: "streams",
   title: l("Stream'ler", "Streams"),
@@ -39,16 +36,6 @@ export const streams: Lesson = {
           "The panel at the bottom is the log itself. Every message has a position number, called its **offset**. Streams arrived in RabbitMQ 3.9, and in RabbitMQ 4 they are still declared as a queue type.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · stream tanımla",
-            code: 'ch.queue_declare(\n    queue="events",\n    durable=True,\n    arguments={"x-queue-type": "stream"},\n)',
-            note: l("Stream'ler her zaman durable'dır ve quorum kuyrukları gibi cluster'da kopyalanır.", "Streams are always durable and, like quorum queues, replicated across the cluster."),
-          },
-        ],
-      },
     },
     {
       short: l("Yaz", "Write"),
@@ -64,10 +51,6 @@ export const streams: Lesson = {
           "Nobody is reading yet, and that is fine: a stream keeps messages whether anyone reads them or not.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · gönder", code: 'ch.basic_publish(exchange="", routing_key="events", body=b"e1")', note: l("Göndermek bir kuyruğa göndermekle aynı.", "Sending is the same as sending to a queue.") }],
-      },
     },
     {
       short: l("Oku", "Read"),
@@ -96,12 +79,12 @@ export const streams: Lesson = {
         {
           kind: "reality",
           text: l(
-            "Stream okuyucuları manual ack ve bir prefetch (`basic_qos`) kullanmak zorunda. Prefetch, okuyucuya bir seferde kaç mesaj gönderileceğini sınırlar; ack de yeni mesajlar için yer açar.",
-            "Stream readers must use manual acks and a prefetch (`basic_qos`). The prefetch caps how many messages are sent at a time, and acks make room for more.",
+            "Stream okuyucuları manual ack ve bir prefetch (`ch.prefetch(n)`) kullanmak zorunda. Prefetch, okuyucuya bir seferde kaç mesaj gönderileceğini sınırlar; ack de yeni mesajlar için yer açar.",
+            "Stream readers must use manual acks and a prefetch (`ch.prefetch(n)`). The prefetch caps how many messages are sent at a time, and acks make room for more.",
           ),
         },
       ],
-      practice: { commands: [], snippets: [{ label: "Python · baştan oku", code: CONSUME('"first"') }] },
+      practice: { commands: [], snippets: [{ label: "Node.js · stream tanımla ve baştan oku", code: 'await ch.assertQueue("events", {\n  arguments: { "x-queue-type": "stream" },\n});\nawait ch.prefetch(100); // streams need one\nawait ch.consume("events", handle, {\n  noAck: false,\n  arguments: { "x-stream-offset": "first" },\n});', note: l("Okumak bir kuyruktan okumak gibi; tek fark, nereden başlayacağını `x-stream-offset` ile seçmen: `\"first\"`, `\"next\"` ya da bir offset numarası.", "Reading works like reading a queue; the only difference is that you pick where to start with `x-stream-offset`: `\"first\"`, `\"next\"` or an offset number.") }] },
     },
     {
       short: l("İkinci okuyucu", "Second reader"),
@@ -130,7 +113,6 @@ export const streams: Lesson = {
           "With a queue this is impossible: readers of one queue **share** messages, each going to one of them. Giving the same message to many services needed one queue each. With a stream, one log is enough.",
         ),
       ],
-      practice: { commands: [], snippets: [{ label: "Python · ikinci okuyucu", code: CONSUME('"first"'), note: l("Aynı kodu başka bir serviste çalıştırmak yeterli.", "Running the same code in another service is enough.") }] },
     },
     {
       short: l("next", "next"),
@@ -155,7 +137,6 @@ export const streams: Lesson = {
           "The same `e4` went to Billing as well: Billing is still connected and its next offset was 3. Every message written to a stream reaches every connected reader.",
         ),
       ],
-      practice: { commands: [], snippets: [{ label: "Python · sadece yeniler", code: CONSUME('"next"') }] },
     },
     {
       short: l("Geri sar", "Rewind"),
@@ -177,7 +158,6 @@ export const streams: Lesson = {
           "An offset can be a number, `first`, `last`, `next`, a timestamp, or an interval such as `\"1h\"`: \"start from the last hour\".",
         ),
       ],
-      practice: { commands: [], snippets: [{ label: "Python · offset'ten oku", code: CONSUME("1") }] },
     },
     {
       short: l("Retention", "Retention"),
@@ -202,16 +182,6 @@ export const streams: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · retention ile",
-            code: 'ch.queue_declare(\n    queue="events",\n    durable=True,\n    arguments={\n        "x-queue-type": "stream",\n        "x-max-age": "7D",\n        "x-max-length-bytes": 20_000_000_000,\n    },\n)',
-            note: l("`x-max-age` birimleri: `Y`, `M`, `D`, `h`, `m`, `s`.", "`x-max-age` units: `Y`, `M`, `D`, `h`, `m`, `s`."),
-          },
-        ],
-      },
     },
     {
       short: l("Kafka'ya benzer", "Like Kafka"),
@@ -239,7 +209,7 @@ export const streams: Lesson = {
       practice: {
         commands: [
           { cmd: "docker exec rabbitmq rabbitmq-plugins enable rabbitmq_stream", note: l("Stream protokolünü açar. Container'ı `-p 5552:5552` ile başlatman gerekir.", "Turns on the stream protocol. Start the container with `-p 5552:5552`.") },
-          { cmd: "pip install rstream", note: l("Stream protokolü için Python istemcisi.", "A Python client for the stream protocol.") },
+          { cmd: "npm install rabbitmq-stream-js-client", note: l("Stream protokolü için Node.js istemcisi.", "A Node.js client for the stream protocol.") },
           { cmd: "docker exec rabbitmq rabbitmq-streams add_super_stream invoices --partitions 3", note: l("Üç parçalı bir super stream oluşturur.", "Creates a super stream with three partitions.") },
         ],
       },
@@ -254,8 +224,8 @@ export const streams: Lesson = {
           "Your turn. Below is an `events` stream with three events in it and **4 scenarios** from real work: a service that doesn't read the past, a classic reader pointed at a stream, redoing a buggy computation, and starting to read from a given point.",
         ),
         l(
-          "Okuyucular Python dosyaları: `nano` ile düzelt, `python` ile başlat (arka planda çalışırlar), `pkill -f` ile durdur. Alttaki panel her okuyucunun stream'de nerede olduğunu gösterir.",
-          "Readers are Python files: fix them with `nano`, start them with `python` (they keep running in the background), stop them with `pkill -f`. The panel below shows where each reader is in the stream.",
+          "Okuyucular Node.js dosyaları: `nano` ile düzelt, `node` ile başlat (arka planda çalışırlar), `pkill -f` ile durdur. Alttaki panel her okuyucunun stream'de nerede olduğunu gösterir.",
+          "Readers are Node.js files: fix them with `nano`, start them with `node` (they keep running in the background), stop them with `pkill -f`. The panel below shows where each reader is in the stream.",
         ),
       ],
     },

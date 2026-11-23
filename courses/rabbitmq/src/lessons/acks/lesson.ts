@@ -20,7 +20,7 @@ export const acks: Lesson = {
   objectives: [
     { text: l("auto-ack'in çökmede mesaj kaybettirdiğini görmek", "See auto-ack lose messages on a crash"), step: 2 },
     { text: l("nack + requeue ile mesajı geri vermek", "Hand a message back with nack + requeue"), step: 4 },
-    { text: l("requeue=False ile reddedilenin DLX'e gittiğini görmek", "See a message rejected with requeue=False go to the DLX"), step: 5 },
+    { text: l("`requeue: false` ile reddedilenin DLX'e gittiğini görmek", "See a message rejected with `requeue: false` go to the DLX"), step: 5 },
     { text: l("Tek ack ile birden çok mesajı onaylamak", "Ack several messages with one ack"), step: 6 },
   ],
   steps: [
@@ -52,24 +52,14 @@ export const acks: Lesson = {
       title: l("auto-ack: teslim ettiğin an unut", "auto-ack: forget it on delivery"),
       body: [
         l(
-          "Bir işçi `auto_ack=True` ile bağlandı. Bu modda işçi hiç ack göndermez: broker mesajı teslim ettiği **anda** bitmiş sayar ve siler.",
-          "A worker connected with `auto_ack=True`. In this mode the worker never acks: the broker counts a message as done **the moment** it delivers it, and deletes it.",
+          "Bir işçi `noAck: true` ile bağlandı. Bu modda işçi hiç ack göndermez: broker mesajı teslim ettiği **anda** bitmiş sayar ve siler.",
+          "A worker connected with `noAck: true`. In this mode the worker never acks: the broker counts a message as done **the moment** it delivers it, and deletes it.",
         ),
         l(
           "Üç mesaj geldi ve broker üçünü birden işçiye itti. Kuyrukta ne hazır ne de onay bekleyen mesaj var. İşçi bir tur içinde birini işledi; ikisi hâlâ sadece **işçinin belleğinde** duruyor.",
           "Three messages arrived and the broker pushed all three to the worker at once. The queue has nothing ready and nothing unacked. The worker processed one in a tick; two exist **only in the worker's memory** now.",
         ),
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · auto-ack",
-            code: 'ch.basic_consume(queue="orders", on_message_callback=handle, auto_ack=True)',
-            note: l("Kolay görünür ama tehlikelidir: bir sonraki adıma bak.", "Looks easy, but it is risky: see the next step."),
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Çökme", "Crash"),
@@ -122,8 +112,9 @@ export const acks: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · manuel ack",
-            code: 'def handle(ch, method, props, body):\n    process(body)                       # do the work first\n    ch.basic_ack(delivery_tag=method.delivery_tag)\n\nch.basic_consume(queue="orders", on_message_callback=handle)',
+            label: "Node.js · manuel ack",
+            code: 'await ch.consume("orders", async (msg) => {\n  await handle(msg.content); // work first\n  ch.ack(msg);\n}, { noAck: false });',
+            note: l("`noAck: true` auto-ack olurdu: broker mesajı teslim ettiği an siler.", "`noAck: true` would be auto-ack: the broker deletes the message the moment it delivers it."),
           },
         ],
         commands: [],
@@ -134,8 +125,8 @@ export const acks: Lesson = {
       tag: "how",
       predict: {
         question: l(
-          "İşçi bir mesajı şimdi işleyemiyor (örneğin veritabanı bir anlığına yanıt vermiyor) ve `nack(requeue=True)` gönderecek. Mesaj nereye gider?",
-          "The worker cannot process a message right now (say the database is briefly down) and will send `nack(requeue=True)`. Where does the message go?",
+          "İşçi bir mesajı şimdi işleyemiyor (örneğin veritabanı bir anlığına yanıt vermiyor) ve `nack` (`requeue: true`) gönderecek. Mesaj nereye gider?",
+          "The worker cannot process a message right now (say the database is briefly down) and will send `nack` (`requeue: true`). Where does the message go?",
         ),
         options: [
           l("Silinir", "It is deleted"),
@@ -159,18 +150,14 @@ export const acks: Lesson = {
           "That is the right answer for a temporary failure: a retry a little later will probably work. But if the failure is permanent, the message can loop forever. The \"Poison messages\" lesson fixes that.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · nack", code: "ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)" }],
-        commands: [],
-      },
     },
     {
       short: l("reject", "reject"),
       tag: "how",
       predict: {
         question: l(
-          "İşçi bir mesajı **hiç işlenemez** buldu ve `requeue=False` ile reddedecek. Kuyruğun bir DLX'i var. Mesaj nereye gider?",
-          "The worker finds a message that can **never** be processed and will reject it with `requeue=False`. The queue has a DLX. Where does it go?",
+          "İşçi bir mesajı **hiç işlenemez** buldu ve `requeue: false` ile reddedecek. Kuyruğun bir DLX'i var. Mesaj nereye gider?",
+          "The worker finds a message that can **never** be processed and will reject it with `requeue: false`. The queue has a DLX. Where does it go?",
         ),
         options: [
           l("Kuyruğun başına", "To the front of the queue"),
@@ -179,8 +166,8 @@ export const acks: Lesson = {
         ],
         answer: 1,
         why: l(
-          "requeue=False olan mesaj kuyruktan çıkar. Kuyruğun bir dead letter exchange'i varsa oraya gönderilir; yoksa silinir.",
-          "A message turned down with requeue=False leaves the queue. If the queue has a dead letter exchange, it goes there; otherwise it is deleted.",
+          "`requeue: false` olan mesaj kuyruktan çıkar. Kuyruğun bir dead letter exchange'i varsa oraya gönderilir; yoksa silinir.",
+          "A message turned down with `requeue: false` leaves the queue. If the queue has a dead letter exchange, it goes there; otherwise it is deleted.",
         ),
       },
       title: l("reject: kenara ayır", "reject: set it aside"),
@@ -198,17 +185,16 @@ export const acks: Lesson = {
         {
           kind: "warning",
           text: l(
-            "Kuyruğun DLX'i yoksa `requeue=False` mesajı **siler**. Bir mesajı reddetmeden önce gidecek bir yeri olduğundan emin ol.",
-            "Without a DLX, `requeue=False` **deletes** the message. Before rejecting, make sure it has somewhere to go.",
+            "Kuyruğun DLX'i yoksa `requeue: false` mesajı **siler**. Bir mesajı reddetmeden önce gidecek bir yeri olduğundan emin ol.",
+            "Without a DLX, `requeue: false` **deletes** the message. Before rejecting, make sure it has somewhere to go.",
           ),
         },
       ],
       practice: {
         snippets: [
-          { label: "Python · reject", code: "ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)" },
           {
-            label: "Python · DLX'li kuyruk",
-            code: 'ch.exchange_declare(exchange="dlx", exchange_type="fanout")\nch.queue_declare(queue="dead", durable=True)\nch.queue_bind(queue="dead", exchange="dlx")\nch.queue_declare(queue="orders", durable=True,\n                 arguments={"x-dead-letter-exchange": "dlx"})',
+            label: "Node.js · nack ve reject",
+            code: '// temporary failure: back into the queue\nch.nack(msg, false, true);\n// permanent failure: to the DLX, or dropped\nch.reject(msg, false);',
           },
         ],
         commands: [],
@@ -220,18 +206,14 @@ export const acks: Lesson = {
       title: l("Tek ack ile hepsi", "One ack for all of them"),
       body: [
         l(
-          "İki yeni mesaj geldi; işçinin elinde üç mesaj var. İşçi `multiple=True` ile tek bir ack gönderdi ve broker üçünü birden sildi.",
-          "Two new messages arrived; the worker holds three. It sent one ack with `multiple=True`, and the broker deleted all three.",
+          "İki yeni mesaj geldi; işçinin elinde üç mesaj var. İşçi tek bir `ack(msg, true)` gönderdi ve broker üçünü birden sildi.",
+          "Two new messages arrived; the worker holds three. It sent a single `ack(msg, true)`, and the broker deleted all three.",
         ),
         l(
           "`multiple` \"bu delivery tag'e kadar olanların hepsi bitti\" demek. Çok sayıda küçük mesaj işleyen consumer'larda ağ trafiğini azaltır. Ama işçi aralardan birini bitirmediyse onu da bitmiş saydırır, dikkatli kullan.",
           "`multiple` means \"everything up to this delivery tag is done\". It cuts network traffic for consumers handling many small messages. But it also marks as done anything in between you did not finish, so use it carefully.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · multiple", code: "ch.basic_ack(delivery_tag=method.delivery_tag, multiple=True)" }],
-        commands: [],
-      },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -266,10 +248,6 @@ export const acks: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · tekrara dayanıklı işçi",
-            code: 'def handle(ch, method, props, body):\n    if already_done(props.message_id):\n        ch.basic_ack(delivery_tag=method.delivery_tag)\n        return\n    process(body)\n    mark_done(props.message_id)\n    ch.basic_ack(delivery_tag=method.delivery_tag)',
-          },
-          {
             label: "rabbitmq.conf",
             code: "consumer_timeout = 3600000",
             note: l("Ack bekleme süresini 1 saate çıkarır (milisaniye). Broker yeniden başlayınca geçerli olur.", "Raises the ack timeout to 1 hour (milliseconds). Takes effect after a broker restart."),
@@ -284,12 +262,12 @@ export const acks: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Bir `orders` kuyruğu ve arkasında, geri çevrilenlerin düştüğü `dead` kuyruğu var; `send.py` sipariş gönderir, `worker.py` işler. Aşağıda gerçek işten **4 senaryo** var: kaybolan siparişler, bozuk bir sipariş, bir deploy.",
-          "Your turn. There's an `orders` queue with a `dead` queue behind it for turned-back messages; `send.py` sends orders and `worker.py` processes them. Below are **4 scenarios** from real work: lost orders, a broken order, a deploy.",
+          "Sıra sende. Bir `orders` kuyruğu ve arkasında, geri çevrilenlerin düştüğü `dead` kuyruğu var; `send.js` sipariş gönderir, `worker.js` işler. Aşağıda gerçek işten **4 senaryo** var: kaybolan siparişler, bozuk bir sipariş, bir deploy.",
+          "Your turn. There's an `orders` queue with a `dead` queue behind it for turned-back messages; `send.js` sends orders and `worker.js` processes them. Below are **4 scenarios** from real work: lost orders, a broken order, a deploy.",
         ),
         l(
-          "İşçinin ack'lerini `nano worker.py` ile düzelt. İşçi arka planda çalışır: `pkill -f worker.py` temiz durdurur, `kill -9 worker.py` çöker gibi öldürür; `sleep` zamanı ilerletir. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` ne olduğunu gösterir.",
-          "Fix the worker's acks with `nano worker.py`. The worker runs in the background: `pkill -f worker.py` stops it cleanly, `kill -9 worker.py` kills it like a crash; `sleep` moves time forward. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows what happened.",
+          "İşçinin ack'lerini `nano worker.js` ile düzelt. İşçi arka planda çalışır: `pkill -f worker.js` temiz durdurur, `kill -9 worker.js` çöker gibi öldürür; `sleep` zamanı ilerletir. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` ne olduğunu gösterir.",
+          "Fix the worker's acks with `nano worker.js`. The worker runs in the background: `pkill -f worker.js` stops it cleanly, `kill -9 worker.js` kills it like a crash; `sleep` moves time forward. `rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows what happened.",
         ),
       ],
     },
@@ -298,7 +276,7 @@ export const acks: Lesson = {
     l("auto-ack'te broker mesajı teslim ettiği an siler; işçi çökerse işlenmemiş mesajlar sessizce kaybolur.", "With auto-ack the broker deletes a message on delivery; if the worker crashes, unprocessed messages vanish silently."),
     l("Manuel ack'te mesaj, işçi ack gönderene kadar broker'da \"onay bekleyen\" olarak durur.", "With manual acks a message stays \"unacked\" with the broker until the worker acks it."),
     l("nack + requeue mesajı kuyruğun başına geri koyar; geçici hatalar içindir.", "nack + requeue puts the message back at the front; it is for temporary failures."),
-    l("requeue=False ile reddedilen mesaj DLX'e gider; DLX yoksa silinir.", "A message rejected with requeue=False goes to the DLX, or is deleted if there is none."),
+    l("`requeue: false` ile reddedilen mesaj DLX'e gider; DLX yoksa silinir.", "A message rejected with `requeue: false` goes to the DLX, or is deleted if there is none."),
     l("Manuel ack at-least-once teslim verir: işleyen kod aynı mesajı iki kez görebileceğini bilmeli.", "Manual acks give at-least-once delivery: handlers must expect to see a message twice."),
   ],
   quiz: [
@@ -317,15 +295,15 @@ export const acks: Lesson = {
         "Veritabanı birkaç saniyeliğine yanıt vermiyor. İşçi o anki mesaj için ne göndermeli?",
         "The database is unreachable for a few seconds. What should the worker send for the current message?",
       ),
-      options: [l("ack", "ack"), l("nack, requeue=True", "nack, requeue=True"), l("reject, requeue=False", "reject, requeue=False"), l("Hiçbir şey", "Nothing")],
+      options: [l("ack", "ack"), l("nack, requeue: true", "nack, requeue: true"), l("reject, requeue: false", "reject, requeue: false"), l("Hiçbir şey", "Nothing")],
       answer: 1,
       explain: l("Hata geçici: mesajı geri ver ki biraz sonra yeniden denensin.", "The failure is temporary: hand the message back so it is tried again shortly."),
       reviewStep: 4,
     },
     {
       question: l(
-        "DLX'i **olmayan** bir kuyrukta `basic_reject(requeue=False)` çağrılırsa mesaja ne olur?",
-        "What happens to a message rejected with `requeue=False` on a queue **without** a DLX?",
+        "DLX'i **olmayan** bir kuyrukta `reject(msg, false)` çağrılırsa mesaja ne olur?",
+        "What happens to a message rejected with `requeue: false` on a queue **without** a DLX?",
       ),
       options: [l("Kuyruğun başına döner", "It goes back to the front"), l("Silinir", "It is deleted"), l("Producer'a döner", "It returns to the producer"), l("Başka bir işçiye gider", "It goes to another worker")],
       answer: 1,

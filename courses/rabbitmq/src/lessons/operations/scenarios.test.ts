@@ -20,21 +20,22 @@ const addLine = (after: string, line: string): Edit => (t) => {
 };
 void swap;
 void addLine;
-const ACK = "\n    ch.basic_ack(delivery_tag=method.delivery_tag)";
+const PRINT = "  console.log(` [x] shipping ${msg.content}`);";
+const ADD_ACK = swap(PRINT, `${PRINT}\n  ch.ack(msg);`);
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "zero-consumers": { typed: ["python worker.py"] },
-  "stuck-worker": { typed: ["nano worker.py", "pkill -f worker.py", "python worker.py"], edits: [swap('print(f" [x] shipping {body.decode()}")', `print(f" [x] shipping {body.decode()}")${ACK}`)] },
-  "scale-out": { typed: ["python worker.py", "python worker.py", "sleep 4"] },
+  "zero-consumers": { typed: ["node worker.js"] },
+  "stuck-worker": { typed: ["nano worker.js", "pkill -f worker.js", "node worker.js"], edits: [ADD_ACK] },
+  "scale-out": { typed: ["node worker.js", "node worker.js", "sleep 4"] },
   "purge-test": { typed: ["rabbitmqctl purge_queue orders-test"] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "zero-consumers": [{ typed: ["docker exec rabbitmq rabbitmqctl list_queues name messages consumers", "python worker.py", "docker exec rabbitmq rabbitmqctl list_queues name messages consumers"] }],
+  "zero-consumers": [{ typed: ["docker exec rabbitmq rabbitmqctl list_queues name messages consumers", "node worker.js", "docker exec rabbitmq rabbitmqctl list_queues name messages consumers"] }],
   // Killing the stuck process hard also hands its unacked orders back.
-  "stuck-worker": [{ typed: ["rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers", "nano worker.py", "kill -9 %1", "python worker.py"], edits: [swap('print(f" [x] shipping {body.decode()}")', `print(f" [x] shipping {body.decode()}")${ACK}`)] }],
+  "stuck-worker": [{ typed: ["rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers", "nano worker.js", "kill -9 %1", "node worker.js"], edits: [ADD_ACK] }],
   "purge-test": [{ typed: ["docker exec rabbitmq rabbitmqctl purge_queue orders-test", "rabbitmqctl list_queues name messages"] }],
 };
 
@@ -43,7 +44,7 @@ const wrong: Record<string, Play> = {
   // Purging empties the queue but ships nothing.
   "zero-consumers": { typed: ["rabbitmqctl purge_queue orders"] },
   // A fixed second worker next to the stuck one: the stuck one still holds two orders.
-  "stuck-worker": { typed: ["nano worker.py", "python worker.py"], edits: [swap('print(f" [x] shipping {body.decode()}")', `print(f" [x] shipping {body.decode()}")${ACK}`)] },
+  "stuck-worker": { typed: ["nano worker.js", "node worker.js"], edits: [ADD_ACK] },
   // Waiting with one worker takes 12 seconds.
   "scale-out": { typed: ["sleep 12"] },
   // Deleting the test queue takes it away entirely.

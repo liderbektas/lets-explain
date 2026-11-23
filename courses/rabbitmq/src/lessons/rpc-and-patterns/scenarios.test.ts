@@ -29,27 +29,42 @@ void RPC;
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "no-server": { typed: ["python server.py"] },
-  "wrong-reply-queue": { typed: ["nano server.py", "python server.py"], edits: [swap('routing_key="replies"', "routing_key=props.reply_to")] },
-  "lost-correlation": { typed: ["nano server.py", "python server.py"], edits: [swap('routing_key=props.reply_to, body=b"42.90")', 'routing_key=props.reply_to, properties=pika.BasicProperties(correlation_id=props.correlation_id), body=b"42.90")')] },
-  "stale-requests": { typed: ["nano client.py", "python client.py", "sleep 5"], edits: [swap('correlation_id="c9")', 'correlation_id="c9", expiration="5000")')] },
+  "no-server": { typed: ["node server.js"] },
+  "wrong-reply-queue": { typed: ["nano server.js", "node server.js"], edits: [swap('ch.sendToQueue("replies",', "ch.sendToQueue(msg.properties.replyTo,")] },
+  "lost-correlation": {
+    typed: ["nano server.js", "node server.js"],
+    edits: [swap('Buffer.from("42.90"));', 'Buffer.from("42.90"), { correlationId: msg.properties.correlationId });')],
+  },
+  "stale-requests": { typed: ["nano client.js", "node client.js", "sleep 5"], edits: [swap('correlationId: "c9" });', 'correlationId: "c9", expiration: "5000" });')] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "no-server": [{ typed: ["rabbitmqctl list_queues name messages consumers", "python server.py", "rabbitmqctl list_queues name messages"] }],
+  "no-server": [{ typed: ["rabbitmqctl list_queues name messages consumers", "node server.js", "rabbitmqctl list_queues name messages"] }],
+  // Destructuring the properties, and publishing through the default exchange.
+  "wrong-reply-queue": [
+    {
+      typed: ["nano server.js", "node server.js"],
+      edits: [
+        swap(
+          'ch.sendToQueue("replies", Buffer.from("42.90"), { correlationId: msg.properties.correlationId });',
+          'const { replyTo, correlationId } = msg.properties;\n  ch.publish("", replyTo, Buffer.from("42.90"), { correlationId });',
+        ),
+      ],
+    },
+  ],
   // A queue-wide TTL by policy does the same for every request.
-  "stale-requests": [{ typed: [`rabbitmqctl set_policy rpc-ttl "^rpc$" '{"message-ttl":5000}' --apply-to queues`, "python client.py", "sleep 6"] }],
+  "stale-requests": [{ typed: [`rabbitmqctl set_policy rpc-ttl "^rpc$" '{"message-ttl":5000}' --apply-to queues`, "node client.js", "sleep 6"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Sending another request does not help: nobody is there to answer.
-  "no-server": { typed: ["python client.py"] },
+  "no-server": { typed: ["node client.js"] },
   // The unchanged server answers into the web client's queue.
-  "wrong-reply-queue": { typed: ["python server.py"] },
+  "wrong-reply-queue": { typed: ["node server.js"] },
   // Answers arrive, but without correlation ids.
-  "lost-correlation": { typed: ["python server.py"] },
+  "lost-correlation": { typed: ["node server.js"] },
   // Purging is a one-off: the next night they pile up again, and this request was never sent.
   "stale-requests": { typed: ["rabbitmqctl purge_queue rpc"] },
 };

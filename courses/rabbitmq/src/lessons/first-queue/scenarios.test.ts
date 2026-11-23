@@ -10,25 +10,28 @@ interface Play {
   edits?: Edit[];
 }
 
-const ACK = "    ch.basic_ack(delivery_tag=method.delivery_tag)";
-const addAck: Edit = (t) => t.replace('print(f" [x] Resizing {body.decode()}")', `print(f" [x] Resizing {body.decode()}")\n${ACK}`);
+const PRINT = "  console.log(` [x] Resizing ${msg.content}`);";
+const addAck: Edit = (t) => {
+  if (!t.includes(PRINT)) throw new Error(`the file has no ${PRINT}`);
+  return t.replace(PRINT, `${PRINT}\n  ch.ack(msg);`);
+};
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "morning-queue": { typed: ["python worker.py"] },
-  "forgot-ack": { typed: ["nano worker.py", "pkill -f worker.py", "python worker.py"], edits: [addAck] },
-  "lunch-rush": { typed: ["python worker.py", "python send.py"] },
-  "stuck-worker": { typed: ["pkill -f slow_worker.py"] },
+  "morning-queue": { typed: ["node worker.js"] },
+  "forgot-ack": { typed: ["nano worker.js", "pkill -f worker.js", "node worker.js"], edits: [addAck] },
+  "lunch-rush": { typed: ["node worker.js", "node send.js"] },
+  "stuck-worker": { typed: ["pkill -f slow_worker.js"] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "morning-queue": [{ typed: ["rabbitmqctl list_queues name messages", "python worker.py"] }],
+  "morning-queue": [{ typed: ["rabbitmqctl list_queues name messages", "node worker.js"] }],
   "forgot-ack": [
-    { typed: ["pkill -f worker.py", "nano worker.py", "python worker.py"], edits: [addAck] },
-    { typed: ["cat worker.py", "kill -9 worker.py", "nano worker.py", "python worker.py"], edits: [addAck] },
+    { typed: ["pkill -f worker.js", "nano worker.js", "node worker.js"], edits: [addAck] },
+    { typed: ["cat worker.js", "kill -9 worker.js", "nano worker.js", "node worker.js"], edits: [addAck] },
   ],
-  "stuck-worker": [{ typed: ["jobs", "kill -9 slow_worker.py"] }],
+  "stuck-worker": [{ typed: ["jobs", "kill -9 slow_worker.js"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
@@ -36,9 +39,9 @@ const wrong: Record<string, Play> = {
   // Emptying the queue makes it look done, but nobody processed anything.
   "morning-queue": { typed: ["rabbitmqctl purge_queue tasks"] },
   // A restart without the fix: the new worker never acks either.
-  "forgot-ack": { typed: ["pkill -f worker.py", "python worker.py"] },
+  "forgot-ack": { typed: ["pkill -f worker.js", "node worker.js"] },
   // One worker does it all.
-  "lunch-rush": { typed: ["python send.py"] },
+  "lunch-rush": { typed: ["node send.js"] },
   // Waiting a little: the slow worker is still stuck.
   "stuck-worker": { typed: ["sleep 5"] },
 };

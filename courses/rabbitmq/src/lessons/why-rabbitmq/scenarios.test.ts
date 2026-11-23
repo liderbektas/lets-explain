@@ -6,18 +6,18 @@ import { QUEUE, scene, steps } from "./Scene";
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, string[]> = {
-  "after-outage": ["python mailer.py", "sleep 3"],
-  "new-server": ["python setup.py", "python mailer.py", "python order.py", "sleep 1"],
-  "black-friday": ["python mailer.py", "sleep 3"],
-  maintenance: ["pkill -f mailer.py", "python mailer.py", "sleep 3"],
+  "after-outage": ["node mailer.js", "sleep 3"],
+  "new-server": ["node setup.js", "node mailer.js", "node order.js", "sleep 1"],
+  "black-friday": ["node mailer.js", "sleep 3"],
+  maintenance: ["pkill -f mailer.js", "node mailer.js", "sleep 3"],
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, string[][]> = {
-  "after-outage": [["rabbitmqctl list_queues name messages", "python mailer.py && sleep 5"], ["python mailer.py", "python mailer.py", "sleep 2"]],
-  "new-server": [["python setup.py", "python order.py", "python mailer.py", "sleep 1"]],
-  "black-friday": [["python mailer.py", "python mailer.py", "sleep 2"]],
-  maintenance: [["kill mailer.py", "python mailer.py", "sleep 3"], ["kill -9 mailer.py", "python mailer.py", "sleep 4"]],
+  "after-outage": [["rabbitmqctl list_queues name messages", "node mailer.js && sleep 5"], ["node mailer.js", "node mailer.js", "sleep 2"]],
+  "new-server": [["node setup.js", "node order.js", "node mailer.js", "sleep 1"]],
+  "black-friday": [["node mailer.js", "node mailer.js", "sleep 2"]],
+  maintenance: [["kill mailer.js", "node mailer.js", "sleep 3"], ["kill -9 mailer.js", "node mailer.js", "sleep 4"]],
 };
 
 /** Tempting wrong moves that must not pass. */
@@ -25,11 +25,11 @@ const wrong: Record<string, string[]> = {
   // Emptying the queue makes the number go to zero, but nobody got an email.
   "after-outage": ["rabbitmqctl purge_queue emails"],
   // Sending before the queue exists: that first order is gone.
-  "new-server": ["python order.py", "python setup.py", "python mailer.py", "python order.py", "sleep 1"],
+  "new-server": ["node order.js", "node setup.js", "node mailer.js", "node order.js", "sleep 1"],
   // Waiting long enough clears it too, but not within 3 seconds.
   "black-friday": ["sleep 6"],
   // Stopping without starting again: the emails just wait.
-  maintenance: ["pkill -f mailer.py", "sleep 3"],
+  maintenance: ["pkill -f mailer.js", "sleep 3"],
 };
 
 describe("why-rabbitmq", () => {

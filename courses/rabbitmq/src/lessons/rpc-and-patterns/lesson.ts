@@ -3,70 +3,12 @@ import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
-const CLIENT = `import pika, uuid
-
-conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = conn.channel()
-
-# A private, auto-named queue for this client's answers.
-result = ch.queue_declare(queue="", exclusive=True)
-reply_queue = result.method.queue
-
-corr_id = str(uuid.uuid4())
-ch.basic_publish(
-    exchange="",
-    routing_key="rpc",
-    properties=pika.BasicProperties(reply_to=reply_queue, correlation_id=corr_id),
-    body=b"fib 30",
-)`;
-
-const SERVER = `def on_request(ch, method, props, body):
-    answer = handle(body)
-    ch.basic_publish(
-        exchange="",
-        routing_key=props.reply_to,
-        properties=pika.BasicProperties(correlation_id=props.correlation_id),
-        body=answer,
-    )
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-ch.queue_declare(queue="rpc", durable=True)
-ch.basic_qos(prefetch_count=1)
-ch.basic_consume(queue="rpc", on_message_callback=on_request)
-ch.start_consuming()`;
-
-const MATCH = `answers = {}
-
-def on_answer(ch, method, props, body):
-    answers[props.correlation_id] = body   # match by id, not by order
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-ch.basic_consume(queue=reply_queue, on_message_callback=on_answer)`;
-
-const TIMEOUT = `ch.basic_publish(
-    exchange="", routing_key="rpc", body=b"fib 30",
-    properties=pika.BasicProperties(
-        reply_to=reply_queue, correlation_id=corr_id,
-        expiration="5000",          # ms, as a string: drop it if nobody takes it in 5 s
-    ),
-)
-conn.process_data_events(time_limit=5)   # wait at most 5 s for the answer
-if corr_id not in answers:
-    raise TimeoutError("no answer from the rpc server")`;
-
-const DIRECT = `# Consume first, in no-ack mode: direct reply-to requires it.
-ch.basic_consume(queue="amq.rabbitmq.reply-to", on_message_callback=on_answer, auto_ack=True)
-ch.basic_publish(
-    exchange="", routing_key="rpc", body=b"fib 30",
-    properties=pika.BasicProperties(reply_to="amq.rabbitmq.reply-to", correlation_id=corr_id),
-)`;
-
 export const rpcAndPatterns: Lesson = {
   slug: "rpc-and-patterns",
   title: l("RPC ve desenler", "RPC and patterns"),
   summary: l(
-    "Kuyruklar üzerinden soru sor, cevap al: reply_to, correlation_id ve zaman aşımı. Sonra bütün desenleri yan yana gör: work queue, pub/sub, routing, RPC.",
-    "Ask and answer over queues: reply_to, correlation_id and timeouts. Then see all the patterns side by side: work queue, pub/sub, routing, RPC.",
+    "Kuyruklar üzerinden soru sor, cevap al: replyTo, correlationId ve zaman aşımı. Sonra bütün desenleri yan yana gör: work queue, pub/sub, routing, RPC.",
+    "Ask and answer over queues: replyTo, correlationId and timeouts. Then see all the patterns side by side: work queue, pub/sub, routing, RPC.",
   ),
   minutes: 13,
   level: l("Orta", "Intermediate"),
@@ -74,7 +16,7 @@ export const rpcAndPatterns: Lesson = {
   changesFor: scene.changesFor,
   missions: scenarios.map(({ id, title }) => ({ id, title })),
   objectives: [
-    { text: l("İsteğin cevabın nereye gideceğini (reply_to) taşıdığını görmek", "See a request carry where its answer goes (reply_to)"), step: 1 },
+    { text: l("İsteğin cevabın nereye gideceğini (replyTo) taşıdığını görmek", "See a request carry where its answer goes (replyTo)"), step: 1 },
     { text: l("Cevapları sıraya değil correlation id'ye göre eşleştirmek", "Match answers by correlation id, not by order"), step: 4 },
     { text: l("Cevapsız kalan isteğe zaman aşımı koymak", "Put a timeout on a request nobody answers"), step: 5 },
     { text: l("Hangi desenin ne zaman kullanılacağını bilmek", "Know which pattern to use when"), step: 7 },
@@ -108,20 +50,20 @@ export const rpcAndPatterns: Lesson = {
         ),
         options: [
           l("Her zaman `rpc` kuyruğuna geri yazar", "It always writes back to the `rpc` queue"),
-          l("İsteğin üstündeki `reply_to` alanından", "From the request's `reply_to` field"),
+          l("İsteğin üstündeki `replyTo` alanından", "From the request's `replyTo` field"),
           l("İstemciye doğrudan bağlanır", "It connects to the client directly"),
         ],
         answer: 1,
         why: l(
-          "İstek kendi dönüş adresini taşır: `reply_to=\"reply\"`. Sunucu istemciyi tanımak zorunda değil; sadece o adrese yazar.",
-          "The request carries its own return address: `reply_to=\"reply\"`. The server does not need to know the client; it just writes to that address.",
+          "İstek kendi dönüş adresini taşır: `replyTo: \"reply\"`. Sunucu istemciyi tanımak zorunda değil; sadece o adrese yazar.",
+          "The request carries its own return address: `replyTo: \"reply\"`. The server does not need to know the client; it just writes to that address.",
         ),
       },
       title: l("İstek, dönüş adresini taşır", "A request carries its return address"),
       body: [
         l(
-          "İstemci `r1` isteğini `rpc` kuyruğuna gönderdi. Mesajın üstünde iki özellik var: `reply_to=\"reply\"` (cevabı nereye yaz) ve `correlation_id=\"c1\"` (bu hangi soru).",
-          "The client sent request `r1` to the `rpc` queue. It carries two properties: `reply_to=\"reply\"` (where to write the answer) and `correlation_id=\"c1\"` (which question this is).",
+          "İstemci `r1` isteğini `rpc` kuyruğuna gönderdi. Mesajın üstünde iki özellik var: `replyTo: \"reply\"` (cevabı nereye yaz) ve `correlationId: \"c1\"` (bu hangi soru).",
+          "The client sent request `r1` to the `rpc` queue. It carries two properties: `replyTo: \"reply\"` (where to write the answer) and `correlationId: \"c1\"` (which question this is).",
         ),
         l(
           "Sunucu 1 isteği aldı ve elinde tutuyor (prefetch 1). Ack'lemeden önce cevabı gönderecek.",
@@ -130,7 +72,13 @@ export const rpcAndPatterns: Lesson = {
       ],
       practice: {
         commands: [],
-        snippets: [{ label: "Python · istemci (istek)", code: CLIENT, note: l("`queue=\"\"` ve `exclusive=True`: RabbitMQ bu bağlantıya özel, adını kendisi veren (`amq.gen-…`) bir kuyruk açar; bağlantı kapanınca silinir.", "`queue=\"\"` with `exclusive=True`: RabbitMQ opens a queue just for this connection, with a generated name (`amq.gen-…`); it is deleted when the connection closes.") }],
+        snippets: [
+          {
+            label: "Node.js · istemci (istek)",
+            code: 'const { queue } = await ch.assertQueue("", {\n  exclusive: true,\n});\nconst correlationId = randomUUID();\nch.sendToQueue("rpc", Buffer.from("fib 30"), {\n  replyTo: queue,\n  correlationId,\n});',
+            note: l("`assertQueue(\"\", { exclusive: true })`: RabbitMQ bu bağlantıya özel, adını kendisi veren (`amq.gen-…`) bir kuyruk açar; bağlantı kapanınca silinir.", "`assertQueue(\"\", { exclusive: true })`: RabbitMQ opens a queue just for this connection, with a generated name (`amq.gen-…`); it is deleted when the connection closes."),
+          },
+        ],
       },
     },
     {
@@ -139,8 +87,8 @@ export const rpcAndPatterns: Lesson = {
       title: l("Sunucu cevabı istemcinin kuyruğuna yazar", "The server writes the answer to the client's queue"),
       body: [
         l(
-          "Sunucu işini yaptı ve cevabı `reply_to`'daki kuyruğa, default exchange üzerinden gönderdi. Cevaba isteğin `correlation_id`'sini (`c1`) aynen kopyaladı.",
-          "The server did its work and sent the answer to the `reply_to` queue through the default exchange. It copied the request's `correlation_id` (`c1`) onto the answer.",
+          "Sunucu işini yaptı ve cevabı `replyTo`'daki kuyruğa, default exchange üzerinden gönderdi. Cevaba isteğin `correlationId`'sini (`c1`) aynen kopyaladı.",
+          "The server did its work and sent the answer to the `replyTo` queue through the default exchange. It copied the request's `correlationId` (`c1`) onto the answer.",
         ),
         l(
           "Sonra isteği ack'ledi. Sıra önemli: önce cevap, sonra ack. Ack'ten önce çökerse istek kuyruğa döner ve başka bir sunucu cevaplar.",
@@ -149,7 +97,12 @@ export const rpcAndPatterns: Lesson = {
       ],
       practice: {
         commands: [],
-        snippets: [{ label: "Python · sunucu", code: SERVER }],
+        snippets: [
+          {
+            label: "Node.js · sunucu",
+            code: 'await ch.prefetch(1);\nawait ch.consume("rpc", (msg) => {\n  const { replyTo, correlationId } = msg.properties;\n  const answer = Buffer.from(handle(msg.content));\n  ch.sendToQueue(replyTo, answer, { correlationId });\n  ch.ack(msg);\n}, { noAck: false });',
+          },
+        ],
       },
     },
     {
@@ -158,14 +111,10 @@ export const rpcAndPatterns: Lesson = {
       title: l("İstemci cevabı alır", "The client gets the answer"),
       body: [
         l(
-          "Cevap `reply` kuyruğundan istemciye geldi; istemci `correlation_id`'ye baktı: `c1`, yani sorduğu soru. Ack'ledi ve iş bitti.",
-          "The answer came to the client from `reply`; it checked the `correlation_id`: `c1`, the question it asked. It acked, and the round trip is done.",
+          "Cevap `reply` kuyruğundan istemciye geldi; istemci `correlationId`'ye baktı: `c1`, yani sorduğu soru. Ack'ledi ve iş bitti.",
+          "The answer came to the client from `reply`; it checked the `correlationId`: `c1`, the question it asked. It acked, and the round trip is done.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · cevapları eşleştir", code: MATCH }],
-      },
     },
     {
       short: l("Sıra", "Order"),
@@ -182,8 +131,8 @@ export const rpcAndPatterns: Lesson = {
         ],
         answer: 1,
         why: l(
-          "Cevaplar, sunucular bitirdikçe gelir. Bu yüzden istemci cevabı sırasına bakarak değil, `correlation_id`'ye bakarak eşleştirmeli.",
-          "Answers arrive as servers finish. That is why the client must match each answer by its `correlation_id`, not by its position.",
+          "Cevaplar, sunucular bitirdikçe gelir. Bu yüzden istemci cevabı sırasına bakarak değil, `correlationId`'ye bakarak eşleştirmeli.",
+          "Answers arrive as servers finish. That is why the client must match each answer by its `correlationId`, not by its position.",
         ),
       },
       title: l("Cevaplar sırayla gelmek zorunda değil", "Answers do not have to arrive in order"),
@@ -193,14 +142,10 @@ export const rpcAndPatterns: Lesson = {
           "`c2` went to Server 2 and `c3` to Server 1. Server 1 finished first: the client got `c3`'s answer, then `c2`'s.",
         ),
         l(
-          "Cevapları gelme sırasına göre okuyan istemci, yanlış soruya yanlış cevabı yapıştırırdı. `correlation_id` bu yüzden var.",
-          "A client that read answers by arrival order would pin the wrong answer to the wrong question. That is why `correlation_id` exists.",
+          "Cevapları gelme sırasına göre okuyan istemci, yanlış soruya yanlış cevabı yapıştırırdı. `correlationId` bu yüzden var.",
+          "A client that read answers by arrival order would pin the wrong answer to the wrong question. That is why `correlationId` exists.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · üretmek", code: "corr_id = str(uuid.uuid4())   # a new, unique id per request" }],
-      },
     },
     {
       short: l("Zaman aşımı", "Timeout"),
@@ -241,10 +186,6 @@ export const rpcAndPatterns: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · iki zaman aşımı", code: TIMEOUT }],
-      },
     },
     {
       short: l("Direct reply-to", "Direct reply-to"),
@@ -252,18 +193,14 @@ export const rpcAndPatterns: Lesson = {
       title: l("Her istemciye kuyruk açmadan: direct reply-to", "Without a queue per client: direct reply-to"),
       body: [
         l(
-          "Her istemcinin kendi cevap kuyruğunu açması, çok sayıda kısa ömürlü istemcide broker'ı yorar. RabbitMQ'nun kısayolu: `reply_to=\"amq.rabbitmq.reply-to\"`.",
-          "Every client opening its own reply queue strains the broker when there are many short-lived clients. RabbitMQ's shortcut: `reply_to=\"amq.rabbitmq.reply-to\"`.",
+          "Her istemcinin kendi cevap kuyruğunu açması, çok sayıda kısa ömürlü istemcide broker'ı yorar. RabbitMQ'nun kısayolu: `replyTo: \"amq.rabbitmq.reply-to\"`.",
+          "Every client opening its own reply queue strains the broker when there are many short-lived clients. RabbitMQ's shortcut: `replyTo: \"amq.rabbitmq.reply-to\"`.",
         ),
         l(
           "Bu sahte bir kuyruk adı: cevap kuyruk açılmadan doğrudan istemcinin kanalına gider. Şartı var: istemci önce bu adı **no-ack** (auto-ack) ile dinlemeli, istek de aynı kanaldan gönderilmeli.",
           "It is a pseudo-queue: the answer goes straight to the client's channel without a real queue. There is a catch: the client must first consume this name in **no-ack** (auto-ack) mode, and send the request on the same channel.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · direct reply-to", code: DIRECT }],
-      },
     },
     {
       short: l("Desenler", "Patterns"),
@@ -275,8 +212,8 @@ export const rpcAndPatterns: Lesson = {
           "Everything in this course comes down to four patterns. **Work queue**: one queue, many workers; each job done once. **Pub/Sub**: a fanout with a queue per service; everyone hears every event.",
         ),
         l(
-          "**Routing**: direct ya da topic exchange ile sadece ilgilenen kuyruklar alır. **RPC**: istek + `reply_to` + `correlation_id`; cevap gerekiyorsa ve beklemek sorun değilse.",
-          "**Routing**: a direct or topic exchange so only interested queues receive. **RPC**: request + `reply_to` + `correlation_id`; when you need an answer and waiting is fine.",
+          "**Routing**: direct ya da topic exchange ile sadece ilgilenen kuyruklar alır. **RPC**: istek + `replyTo` + `correlationId`; cevap gerekiyorsa ve beklemek sorun değilse.",
+          "**Routing**: a direct or topic exchange so only interested queues receive. **RPC**: request + `replyTo` + `correlationId`; when you need an answer and waiting is fine.",
         ),
       ],
       practice: {
@@ -306,9 +243,6 @@ export const rpcAndPatterns: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [],
-      },
     },
     {
       short: l("Sen dene", "Your turn"),
@@ -316,20 +250,20 @@ export const rpcAndPatterns: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Aşağıda bir fiyat servisi ve gerçek işten **4 senaryo** var: istekler `rpc` kuyruğuna gidiyor, sunucu cevabı isteğin `reply_to`'suna, aynı `correlation_id` ile yazıyor. Senaryolarda bu zincirin bir halkası kopuk.",
-          "Your turn. Below is a price service and **4 scenarios** from real work: requests go to the `rpc` queue, and the server writes each answer to the request's `reply_to`, with the same `correlation_id`. In each scenario one link of that chain is broken.",
+          "Sıra sende. Aşağıda bir fiyat servisi ve gerçek işten **4 senaryo** var: istekler `rpc` kuyruğuna gidiyor, sunucu cevabı isteğin `replyTo`'suna, aynı `correlationId` ile yazıyor. Senaryolarda bu zincirin bir halkası kopuk.",
+          "Your turn. Below is a price service and **4 scenarios** from real work: requests go to the `rpc` queue, and the server writes each answer to the request's `replyTo`, with the same `correlationId`. In each scenario one link of that chain is broken.",
         ),
         l(
-          "`rabbitmqctl list_queues name messages consumers` ile bak, `nano` ile `server.py` ya da `client.py`'yi düzelt, `python` ile çalıştır. Sunucu başlatılınca arka planda çalışır.",
-          "Look with `rabbitmqctl list_queues name messages consumers`, fix `server.py` or `client.py` with `nano`, run with `python`. Once started, the server keeps running in the background.",
+          "`rabbitmqctl list_queues name messages consumers` ile bak, `nano` ile `server.js` ya da `client.js`'yi düzelt, `node` ile çalıştır. Sunucu başlatılınca arka planda çalışır.",
+          "Look with `rabbitmqctl list_queues name messages consumers`, fix `server.js` or `client.js` with `nano`, run with `node`. Once started, the server keeps running in the background.",
         ),
       ],
     },
   ],
   recap: [
-    l("RPC'de istek, cevabın gideceği kuyruğu (`reply_to`) ve kendi kimliğini (`correlation_id`) taşır.", "In RPC a request carries the queue for its answer (`reply_to`) and its own id (`correlation_id`)."),
-    l("Sunucu cevabı default exchange ile `reply_to` kuyruğuna yazar, sonra isteği ack'ler.", "The server writes the answer to the `reply_to` queue via the default exchange, then acks the request."),
-    l("Cevaplar sırasız gelebilir: istemci onları `correlation_id` ile eşleştirir.", "Answers can arrive out of order: the client matches them by `correlation_id`."),
+    l("RPC'de istek, cevabın gideceği kuyruğu (`replyTo`) ve kendi kimliğini (`correlationId`) taşır.", "In RPC a request carries the queue for its answer (`replyTo`) and its own id (`correlationId`)."),
+    l("Sunucu cevabı default exchange ile `replyTo` kuyruğuna yazar, sonra isteği ack'ler.", "The server writes the answer to the `replyTo` queue via the default exchange, then acks the request."),
+    l("Cevaplar sırasız gelebilir: istemci onları `correlationId` ile eşleştirir.", "Answers can arrive out of order: the client matches them by `correlationId`."),
     l("Her zaman iki zaman aşımı koy: isteğe `expiration` ve istemcinin beklemesine bir sınır.", "Always set two timeouts: `expiration` on the request and a limit on the client's wait."),
     l("`amq.rabbitmq.reply-to` her istemciye kuyruk açmadan cevap almayı sağlar (no-ack ile).", "`amq.rabbitmq.reply-to` delivers answers without a queue per client (in no-ack mode)."),
     l("Dört desen: work queue, pub/sub, routing, RPC. Kullanıcı cevabı hemen bekliyorsa RPC yerine düz bir çağrı düşün.", "Four patterns: work queue, pub/sub, routing, RPC. If a user waits for the answer right now, consider a plain call instead of RPC."),
@@ -337,16 +271,16 @@ export const rpcAndPatterns: Lesson = {
   quiz: [
     {
       question: l("Sunucu cevabı hangi kuyruğa göndereceğini nereden bilir?", "How does the server know which queue to send the answer to?"),
-      options: [l("`correlation_id`'den", "From `correlation_id`"), l("İsteğin `reply_to` özelliğinden", "From the request's `reply_to` property"), l("Exchange'in adından", "From the exchange's name"), l("Her zaman `rpc` kuyruğuna yazar", "It always writes to `rpc`")],
+      options: [l("`correlationId`'den", "From `correlationId`"), l("İsteğin `replyTo` özelliğinden", "From the request's `replyTo` property"), l("Exchange'in adından", "From the exchange's name"), l("Her zaman `rpc` kuyruğuna yazar", "It always writes to `rpc`")],
       answer: 1,
-      explain: l("`reply_to` dönüş adresidir; `correlation_id` ise hangi soruya ait olduğunu söyler.", "`reply_to` is the return address; `correlation_id` says which question it belongs to."),
+      explain: l("`replyTo` dönüş adresidir; `correlationId` ise hangi soruya ait olduğunu söyler.", "`replyTo` is the return address; `correlationId` says which question it belongs to."),
       reviewStep: 1,
     },
     {
       question: l("İstemci 3 istek gönderdi; cevaplar c2, c3, c1 sırasıyla geldi. İstemci ne yapmalı?", "A client sent 3 requests; answers came as c2, c3, c1. What should it do?"),
       options: [
         l("İlk gelen cevabı ilk isteğe yazmak", "Pin the first answer to the first request"),
-        l("Her cevabı `correlation_id`'sine göre doğru isteğe eşlemek", "Match each answer to its request by `correlation_id`"),
+        l("Her cevabı `correlationId`'sine göre doğru isteğe eşlemek", "Match each answer to its request by `correlationId`"),
         l("Cevapları atıp istekleri yeniden göndermek", "Throw them away and resend"),
         l("Sunucuya hata bildirmek", "Report an error to the server"),
       ],

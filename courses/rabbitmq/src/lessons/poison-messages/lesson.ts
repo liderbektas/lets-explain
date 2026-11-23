@@ -45,8 +45,8 @@ export const poisonMessages: Lesson = {
       tag: "experiment",
       predict: {
         question: l(
-          "İşçi bozuk mesajı her seferinde `nack(requeue=True)` ile geri veriyor. Bu böyle giderse ne olur?",
-          "The worker hands the bad message back with `nack(requeue=True)` every time. If this goes on, what happens?",
+          "İşçi bozuk mesajı her seferinde `nack` (`requeue: true`) ile geri veriyor. Bu böyle giderse ne olur?",
+          "The worker hands the bad message back with `nack` (`requeue: true`) every time. If this goes on, what happens?",
         ),
         options: [
           l("Birkaç denemeden sonra RabbitMQ onu kendisi siler", "After a few tries RabbitMQ deletes it by itself"),
@@ -76,8 +76,8 @@ export const poisonMessages: Lesson = {
       tag: "how",
       predict: {
         question: l(
-          "İşçi hatanın kalıcı olduğunu anladı ve mesajı `requeue=False` ile reddedecek. `orders-v1`'in DLX'i yok. Ne olur?",
-          "The worker sees the failure is permanent and will reject with `requeue=False`. `orders-v1` has no DLX. What happens?",
+          "İşçi hatanın kalıcı olduğunu anladı ve mesajı `requeue: false` ile reddedecek. `orders-v1`'in DLX'i yok. Ne olur?",
+          "The worker sees the failure is permanent and will reject with `requeue: false`. `orders-v1` has no DLX. What happens?",
         ),
         options: [l("Mesaj silinir", "The message is deleted"), l("Mesaj park kuyruğuna gider", "It goes to a parking queue"), l("Mesaj yine geri gelir", "It comes back again")],
         answer: 0,
@@ -94,15 +94,6 @@ export const poisonMessages: Lesson = {
           "The rule is simple: if the failure is **temporary** (database briefly away, network blip), requeue. If it is **permanent** (bad data), do not. But instead of deleting the message, put it somewhere it can be looked at. That is what we build next.",
         ),
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · hatayı ayır",
-            code: 'def handle(ch, method, props, body):\n    try:\n        process(body)\n        ch.basic_ack(delivery_tag=method.delivery_tag)\n    except TemporaryError:\n        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)\n    except Exception:\n        ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)',
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Quorum + DLX", "Quorum + DLX"),
@@ -130,8 +121,8 @@ export const poisonMessages: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · quorum + delivery limit",
-            code: 'ch.exchange_declare(exchange="dlx", exchange_type="fanout")\nch.queue_declare(queue="parking", durable=True)\nch.queue_bind(queue="parking", exchange="dlx")\nch.queue_declare(queue="orders", durable=True, arguments={\n    "x-queue-type": "quorum",\n    "x-delivery-limit": 3,\n    "x-dead-letter-exchange": "dlx",\n})',
+            label: "Node.js · quorum + teslim sınırı",
+            code: 'await ch.assertQueue("orders", {\n  deadLetterExchange: "dlx",\n  arguments: {\n    "x-queue-type": "quorum",\n    "x-delivery-limit": 3,\n  },\n});',
           },
         ],
         commands: [
@@ -172,16 +163,6 @@ export const poisonMessages: Lesson = {
           "The message is not lost and the queue is no longer blocked. Its `x-death` header says why: `delivery_limit`.",
         ),
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · kaçıncı deneme?",
-            code: 'def handle(ch, method, props, body):\n    tries = (props.headers or {}).get("x-delivery-count", 0)\n    print("attempt", tries + 1)',
-            note: l("Quorum queue'lar yeniden teslim edilen mesaja `x-delivery-count` header'ı ekler.", "Quorum queues add an `x-delivery-count` header to redelivered messages."),
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Sağlam olan", "The good one"),
@@ -233,15 +214,6 @@ export const poisonMessages: Lesson = {
           "Nobody listens to `retry`. The message waited there for its TTL, then expired and went back to `orders` through the DLX, and was delivered to the worker again.",
         ),
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · bekleme kuyruğu",
-            code: 'ch.queue_declare(queue="retry", durable=True, arguments={\n    "x-message-ttl": 5000,               # wait 5 seconds\n    "x-dead-letter-exchange": "",         # then the default exchange…\n    "x-dead-letter-routing-key": "orders",  # …puts it back in orders\n})\n\n# on a temporary failure: ack the original and park a copy in retry\nch.basic_publish(exchange="", routing_key="retry", body=body)\nch.basic_ack(delivery_tag=method.delivery_tag)',
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -283,12 +255,12 @@ export const poisonMessages: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: sonsuza kadar dönen ya da iz bırakmadan kaybolan bozuk mesajlar. Bir işçi arka planda çalışıyor; bir mesajı onaylıyor, geri koyuyor ya da reddediyor. Kodunu değiştirirsen yeniden başlatman gerekir (`pkill -f worker.py`, sonra `python worker.py`).",
-          "Your turn. Below are **4 scenarios** from real work: broken messages that go round forever or vanish without a trace. A worker runs in the background, acking, requeueing or rejecting each message. If you change its code, restart it (`pkill -f worker.py`, then `python worker.py`).",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: sonsuza kadar dönen ya da iz bırakmadan kaybolan bozuk mesajlar. Bir işçi arka planda çalışıyor; bir mesajı onaylıyor, geri koyuyor ya da reddediyor. Kodunu değiştirirsen yeniden başlatman gerekir (`pkill -f worker.js`, sonra `node worker.js`).",
+          "Your turn. Below are **4 scenarios** from real work: broken messages that go round forever or vanish without a trace. A worker runs in the background, acking, requeueing or rejecting each message. If you change its code, restart it (`pkill -f worker.js`, then `node worker.js`).",
         ),
         l(
-          "`rabbitmqctl set_policy` ile limit ve DLX ver, `list_queues name type messages` ile bak, `python` ile mesaj gönder. Sahnedeki sayaç bir mesajın kaç kez teslim edildiğini gösterir.",
-          "Set limits and a DLX with `rabbitmqctl set_policy`, look with `list_queues name type messages`, send with `python`. The counter on the scene shows how often a message was delivered.",
+          "`rabbitmqctl set_policy` ile limit ve DLX ver, `list_queues name type messages` ile bak, `node` ile mesaj gönder. Sahnedeki sayaç bir mesajın kaç kez teslim edildiğini gösterir.",
+          "Set limits and a DLX with `rabbitmqctl set_policy`, look with `list_queues name type messages`, send with `node`. The counter on the scene shows how often a message was delivered.",
         ),
       ],
     },
@@ -302,7 +274,7 @@ export const poisonMessages: Lesson = {
   ],
   quiz: [
     {
-      question: l("Klasik bir kuyrukta işçi bozuk bir mesajı hep `requeue=True` ile geri veriyor. Ne olur?", "On a classic queue, a worker keeps handing a bad message back with `requeue=True`. What happens?"),
+      question: l("Klasik bir kuyrukta işçi bozuk bir mesajı hep `requeue: true` ile geri veriyor. Ne olur?", "On a classic queue, a worker keeps handing a bad message back with `requeue: true`. What happens?"),
       options: [
         l("20 denemeden sonra silinir", "It is deleted after 20 tries"),
         l("Sonsuza kadar döner", "It loops forever"),
@@ -323,8 +295,8 @@ export const poisonMessages: Lesson = {
     {
       question: l("Mesajdaki bir alan eksik ve hiçbir zaman işlenemeyecek. İşçi ne yapmalı?", "A field is missing from the message and it can never be processed. What should the worker do?"),
       options: [
-        l("`nack(requeue=True)`", "`nack(requeue=True)`"),
-        l("`reject(requeue=False)` ve kuyrukta bir DLX olsun", "`reject(requeue=False)`, with a DLX on the queue"),
+        l("`nack` (`requeue: true`)", "`nack` (`requeue: true`)"),
+        l("`reject` (`requeue: false`) ve kuyrukta bir DLX olsun", "`reject` (`requeue: false`), with a DLX on the queue"),
         l("Hiç cevap vermemek", "Not answer at all"),
         l("auto-ack'e geçmek", "Switch to auto-ack"),
       ],

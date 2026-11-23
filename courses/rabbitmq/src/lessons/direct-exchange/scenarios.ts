@@ -4,38 +4,39 @@ import { eventsOf, lostSince, projectAfter, reached, script } from "../shared/mi
 
 /* ------------------------------------------------------------ the projects */
 
-/** setup.py for a `tasks` direct exchange with an images queue and an emails queue. */
+/** setup.js for a `tasks` direct exchange with an images queue and an emails queue. */
 export const tasksSetup = (imageKey: string) =>
   script(`
-ch.exchange_declare(exchange="tasks", exchange_type="direct", durable=True)
-ch.queue_declare(queue="images", durable=True)
-ch.queue_declare(queue="emails", durable=True)
+await ch.assertExchange("tasks", "direct");
+await ch.assertQueue("images");
+await ch.assertQueue("emails");
 
-ch.queue_bind(queue="images", exchange="tasks", routing_key="${imageKey}")
-ch.queue_bind(queue="emails", exchange="tasks", routing_key="email")
+await ch.bindQueue("images", "tasks", "${imageKey}");
+await ch.bindQueue("emails", "tasks", "email");
 `);
 
-const publish = (exchange: string, key: string, body: string) => script(`ch.basic_publish(exchange="${exchange}", routing_key="${key}", body=b"${body}")`);
+const publish = (exchange: string, key: string, body: string) => script(`ch.publish("${exchange}", "${key}", Buffer.from("${body}"));`);
 
-/** setup.py for the lesson's `logs` exchange: errors takes errors, all-logs takes info, warning and error. */
+/** setup.js for the lesson's `logs` exchange: errors takes errors, all-logs takes info, warning and error. */
 export const LOGS_SETUP = script(`
-ch.exchange_declare(exchange="logs", exchange_type="direct", durable=True)
-ch.queue_declare(queue="errors", durable=True)
-ch.queue_declare(queue="all-logs", durable=True)
+await ch.assertExchange("logs", "direct");
+await ch.assertQueue("errors");
+await ch.assertQueue("all-logs");
 
-ch.queue_bind(queue="errors", exchange="logs", routing_key="error")
-for sev in ["info", "warning", "error"]:
-    ch.queue_bind(queue="all-logs", exchange="logs", routing_key=sev)
+await ch.bindQueue("errors", "logs", "error");
+for (const sev of ["info", "warning", "error"]) {
+  await ch.bindQueue("all-logs", "logs", sev);
+}
 `);
 
 /** The logs project, as free play starts it. */
 export const LOGS = projectAfter(
   {
-    "setup.py": LOGS_SETUP,
-    "log_error.py": publish("logs", "error", "disk full"),
-    "log_info.py": publish("logs", "info", "user signed in"),
+    "setup.js": LOGS_SETUP,
+    "log_error.js": publish("logs", "error", "disk full"),
+    "log_info.js": publish("logs", "info", "user signed in"),
   },
-  ["python setup.py"],
+  ["node setup.js"],
 );
 
 const bound = (ctx: RabbitCtx, exchange: string, queue: string, key: string) =>
@@ -48,23 +49,23 @@ export const scenarios: RabbitScenario[] = [
     id: "idle-worker",
     title: l("Boşta duran işçi", "The idle worker"),
     story: l(
-      "Resim işçisi bütün gün boş bekliyor. Yükleme servisi resimleri `tasks` exchange'ine `image` key'iyle gönderiyor, ama mesajlar `images` kuyruğuna hiç düşmüyor. Kurulum `setup.py`'de.",
-      "The image worker sits idle all day. The upload service sends pictures to the `tasks` exchange with the key `image`, but nothing ever lands in the `images` queue. The setup lives in `setup.py`.",
+      "Resim işçisi bütün gün boş bekliyor. Yükleme servisi resimleri `tasks` exchange'ine `image` key'iyle gönderiyor, ama mesajlar `images` kuyruğuna hiç düşmüyor. Kurulum `setup.js`'de.",
+      "The image worker sits idle all day. The upload service sends pictures to the `tasks` exchange with the key `image`, but nothing ever lands in the `images` queue. The setup lives in `setup.js`.",
     ),
-    goal: l("`upload.py`'nin gönderdiği bir `image` mesajı `images` kuyruğuna ulaşsın.", "An `image` message sent by `upload.py` reaches the `images` queue."),
-    start: projectAfter({ "setup.py": tasksSetup("images"), "upload.py": publish("tasks", "image", "cat.jpg") }, ["python setup.py"]),
+    goal: l("`upload.js`'nin gönderdiği bir `image` mesajı `images` kuyruğuna ulaşsın.", "An `image` message sent by `upload.js` reaches the `images` queue."),
+    start: projectAfter({ "setup.js": tasksSetup("images"), "upload.js": publish("tasks", "image", "cat.jpg") }, ["node setup.js"]),
     hints: [
       l(
         "Önce bak: `rabbitmqctl list_bindings source_name destination_name routing_key` hangi key'lerin bağlı olduğunu gösterir. Direct exchange birebir eşleşme ister.",
         "Look first: `rabbitmqctl list_bindings source_name destination_name routing_key` shows which keys are bound. A direct exchange needs an exact match.",
       ),
       l(
-        "Binding key'inde bir harf fazla: `images`. `nano setup.py` ile `image` yap, kurulumu yeniden çalıştır, sonra yüklemeyi tekrar dene.",
-        "The binding key has one letter too many: `images`. Make it `image` with `nano setup.py`, run the setup again, then retry the upload.",
+        "Binding key'inde bir harf fazla: `images`. `nano setup.js` ile `image` yap, kurulumu yeniden çalıştır, sonra yüklemeyi tekrar dene.",
+        "The binding key has one letter too many: `images`. Make it `image` with `nano setup.js`, run the setup again, then retry the upload.",
       ),
       l(
-        "`nano setup.py` (`routing_key=\"images\"` → `routing_key=\"image\"`), `python setup.py`, `python upload.py`",
-        "`nano setup.py` (`routing_key=\"images\"` → `routing_key=\"image\"`), `python setup.py`, `python upload.py`",
+        "`nano setup.js` (`bindQueue(\"images\", \"tasks\", \"images\")` → `bindQueue(\"images\", \"tasks\", \"image\")`), `node setup.js`, `node upload.js`",
+        "`nano setup.js` (`bindQueue(\"images\", \"tasks\", \"images\")` → `bindQueue(\"images\", \"tasks\", \"image\")`), `node setup.js`, `node upload.js`",
       ),
     ],
     par: 3,
@@ -79,15 +80,15 @@ export const scenarios: RabbitScenario[] = [
     ),
     goal: l("Bir `video` mesajı **mevcut** `images` kuyruğuna ulaşsın; `image` mesajları da gitmeye devam etsin.", "A `video` message reaches the **existing** `images` queue, while `image` messages keep arriving there too."),
     start: projectAfter(
-      { "setup.py": tasksSetup("image"), "upload.py": publish("tasks", "image", "cat.jpg"), "upload_video.py": publish("tasks", "video", "intro.mp4") },
-      ["python setup.py"],
+      { "setup.js": tasksSetup("image"), "upload.js": publish("tasks", "image", "cat.jpg"), "upload_video.js": publish("tasks", "video", "intro.mp4") },
+      ["node setup.js"],
     ),
     hints: [
       l("Bir kuyruk birden fazla key ile bağlanabilir: her binding ayrı bir kapı.", "One queue can be bound with several keys: each binding is its own door."),
-      l("`setup.py`'ye ikinci bir `queue_bind` satırı ekle, bu sefer `routing_key=\"video\"`.", "Add a second `queue_bind` line to `setup.py`, this time with `routing_key=\"video\"`."),
+      l("`setup.js`'ye ikinci bir `bindQueue` satırı ekle, bu sefer key `\"video\"`.", "Add a second `bindQueue` line to `setup.js`, this time with the key `\"video\"`."),
       l(
-        "`nano setup.py` (ekle: `ch.queue_bind(queue=\"images\", exchange=\"tasks\", routing_key=\"video\")`), `python setup.py`, `python upload_video.py`",
-        "`nano setup.py` (add: `ch.queue_bind(queue=\"images\", exchange=\"tasks\", routing_key=\"video\")`), `python setup.py`, `python upload_video.py`",
+        "`nano setup.js` (ekle: `await ch.bindQueue(\"images\", \"tasks\", \"video\");`), `node setup.js`, `node upload_video.js`",
+        "`nano setup.js` (add: `await ch.bindQueue(\"images\", \"tasks\", \"video\");`), `node setup.js`, `node upload_video.js`",
       ),
     ],
     par: 3,
@@ -100,18 +101,18 @@ export const scenarios: RabbitScenario[] = [
       "Yeni ödeme servisi hatalarını `ERROR` key'iyle (büyük harf) `logs`'a gönderiyor; alarm sistemi bu yüzden hiç çalmıyor. Servis başka bir ekibin, bugün koduna dokunamıyorsun.",
       "The new payment service sends its errors to `logs` with the key `ERROR`, in capitals, so the alarms never go off. The service belongs to another team; you can't touch its code today.",
     ),
-    goal: l("`payments.py`'nin gönderdiği `ERROR` mesajı `errors` kuyruğuna ulaşsın; `payments.py` değişmesin.", "The `ERROR` message from `payments.py` reaches the `errors` queue, with `payments.py` unchanged."),
-    start: projectAfter({ "setup.py": LOGS_SETUP, "payments.py": publish("logs", "ERROR", "card declined") }, ["python setup.py"]),
+    goal: l("`payments.js`'nin gönderdiği `ERROR` mesajı `errors` kuyruğuna ulaşsın; `payments.js` değişmesin.", "The `ERROR` message from `payments.js` reaches the `errors` queue, with `payments.js` unchanged."),
+    start: projectAfter({ "setup.js": LOGS_SETUP, "payments.js": publish("logs", "ERROR", "card declined") }, ["node setup.js"]),
     hints: [
       l("Routing key büyük-küçük harfe duyarlı: `ERROR` ile `error` iki ayrı key.", "Routing keys are case-sensitive: `ERROR` and `error` are two different keys."),
       l("Servisi değiştiremiyorsan kuyruğu o key'e de bağla.", "If you can't change the service, bind the queue to that key as well."),
       l(
-        "`nano setup.py` (ekle: `ch.queue_bind(queue=\"errors\", exchange=\"logs\", routing_key=\"ERROR\")`), `python setup.py`, `python payments.py`",
-        "`nano setup.py` (add: `ch.queue_bind(queue=\"errors\", exchange=\"logs\", routing_key=\"ERROR\")`), `python setup.py`, `python payments.py`",
+        "`nano setup.js` (ekle: `await ch.bindQueue(\"errors\", \"logs\", \"ERROR\");`), `node setup.js`, `node payments.js`",
+        "`nano setup.js` (add: `await ch.bindQueue(\"errors\", \"logs\", \"ERROR\");`), `node setup.js`, `node payments.js`",
       ),
     ],
     par: 3,
-    check: (ctx) => reached(ctx, "ERROR", "errors") && ctx.project.files["payments.py"] === ctx.startProject.files["payments.py"],
+    check: (ctx) => reached(ctx, "ERROR", "errors") && ctx.project.files["payments.js"] === ctx.startProject.files["payments.js"],
   },
   {
     id: "keep-debug",
@@ -121,13 +122,13 @@ export const scenarios: RabbitScenario[] = [
       "While hunting a bug you went to read the debug logs and found none were kept: messages with the key `debug` reach no queue and are silently dropped. From now on the team wants `all-logs` to keep everything, debug included.",
     ),
     goal: l("Bir `debug` mesajı `all-logs`'a ulaşsın ve bu sırada **hiçbir mesaj kaybolmasın**.", "A `debug` message reaches `all-logs`, and **no message is lost** along the way."),
-    start: projectAfter({ "setup.py": LOGS_SETUP, "debug.py": publish("logs", "debug", "cache miss for user 42") }, ["python setup.py"]),
+    start: projectAfter({ "setup.js": LOGS_SETUP, "debug.js": publish("logs", "debug", "cache miss for user 42") }, ["node setup.js"]),
     hints: [
       l("Direct exchange tahmin yürütmez: `debug` için bir binding yoksa mesaj düşer. Önce binding'i kur, sonra gönder.", "A direct exchange doesn't guess: with no binding for `debug`, the message drops. Set up the binding first, then send."),
-      l("`setup.py`'deki döngüdeki listeye `\"debug\"` eklemek yeter.", "Adding `\"debug\"` to the list in the loop in `setup.py` is enough."),
+      l("`setup.js`'deki döngüdeki listeye `\"debug\"` eklemek yeter.", "Adding `\"debug\"` to the list in the loop in `setup.js` is enough."),
       l(
-        "`nano setup.py` (`[\"info\", \"warning\", \"error\"]` → `[\"debug\", \"info\", \"warning\", \"error\"]`), `python setup.py`, `python debug.py`",
-        "`nano setup.py` (`[\"info\", \"warning\", \"error\"]` → `[\"debug\", \"info\", \"warning\", \"error\"]`), `python setup.py`, `python debug.py`",
+        "`nano setup.js` (`[\"info\", \"warning\", \"error\"]` → `[\"debug\", \"info\", \"warning\", \"error\"]`), `node setup.js`, `node debug.js`",
+        "`nano setup.js` (`[\"info\", \"warning\", \"error\"]` → `[\"debug\", \"info\", \"warning\", \"error\"]`), `node setup.js`, `node debug.js`",
       ),
     ],
     par: 3,
@@ -137,18 +138,21 @@ export const scenarios: RabbitScenario[] = [
     id: "wrong-key",
     title: l("Yanlış key", "The wrong key"),
     story: l(
-      "Sipariş onay e-postaları gitmiyor. Kurulum doğru: `emails` kuyruğu herkesin kullandığı `email` key'iyle bağlı. Sorun bu sefer senin yazdığın `checkout.py`'de.",
-      "Order confirmation emails aren't going out. The setup is right: the `emails` queue is bound with `email`, the key everyone uses. This time the problem is in `checkout.py`, which you wrote.",
+      "Sipariş onay e-postaları gitmiyor. Kurulum doğru: `emails` kuyruğu herkesin kullandığı `email` key'iyle bağlı. Sorun bu sefer senin yazdığın `checkout.js`'de.",
+      "Order confirmation emails aren't going out. The setup is right: the `emails` queue is bound with `email`, the key everyone uses. This time the problem is in `checkout.js`, which you wrote.",
     ),
     goal: l(
-      "`checkout.py`'nin gönderdiği mesaj `emails` kuyruğuna ulaşsın; kuruluma yeni bir binding **eklenmesin**.",
-      "The message `checkout.py` sends reaches the `emails` queue, **without** adding a binding to the setup.",
+      "`checkout.js`'nin gönderdiği mesaj `emails` kuyruğuna ulaşsın; kuruluma yeni bir binding **eklenmesin**.",
+      "The message `checkout.js` sends reaches the `emails` queue, **without** adding a binding to the setup.",
     ),
-    start: projectAfter({ "setup.py": tasksSetup("image"), "checkout.py": publish("tasks", "mail", "order 1001 confirmed") }, ["python setup.py"]),
+    start: projectAfter({ "setup.js": tasksSetup("image"), "checkout.js": publish("tasks", "mail", "order 1001 confirmed") }, ["node setup.js"]),
     hints: [
-      l("`cat checkout.py` ile hangi key'le gönderdiğine bak, sonra `list_bindings` ile karşılaştır.", "Check which key it sends with (`cat checkout.py`), then compare with `list_bindings`."),
-      l("Herkesin kullandığı key doğruysa düzeltilecek olan gönderen taraf: `nano checkout.py`.", "If the key everyone uses is right, the sender is what needs fixing: `nano checkout.py`."),
-      l("`nano checkout.py` (`routing_key=\"mail\"` → `routing_key=\"email\"`), `python checkout.py`", "`nano checkout.py` (`routing_key=\"mail\"` → `routing_key=\"email\"`), `python checkout.py`"),
+      l("`cat checkout.js` ile hangi key'le gönderdiğine bak, sonra `list_bindings` ile karşılaştır.", "Check which key it sends with (`cat checkout.js`), then compare with `list_bindings`."),
+      l("Herkesin kullandığı key doğruysa düzeltilecek olan gönderen taraf: `nano checkout.js`.", "If the key everyone uses is right, the sender is what needs fixing: `nano checkout.js`."),
+      l(
+        "`nano checkout.js` (`ch.publish(\"tasks\", \"mail\", …)` → `ch.publish(\"tasks\", \"email\", …)`), `node checkout.js`",
+        "`nano checkout.js` (`ch.publish(\"tasks\", \"mail\", …)` → `ch.publish(\"tasks\", \"email\", …)`), `node checkout.js`",
+      ),
     ],
     par: 2,
     check: (ctx) =>

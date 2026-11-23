@@ -89,14 +89,7 @@ export const whyRabbitmq: Lesson = {
         intro: l("Kendi bilgisayarında bir RabbitMQ açmak için:", "To start a RabbitMQ on your machine:"),
         commands: [
           { cmd: "docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management", note: l("Yönetim paneli: http://localhost:15672 (guest / guest).", "Management UI: http://localhost:15672 (guest / guest).") },
-          { cmd: "pip install pika" },
-        ],
-        snippets: [
-          {
-            label: "Python · sipariş servisi",
-            code: 'import pika\n\nconn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))\nch = conn.channel()\nch.queue_declare(queue="emails", durable=True)\n\ndef order_placed(order_id):\n    # ... save the order ...\n    ch.basic_publish(exchange="", routing_key="emails", body=f"order {order_id}".encode())',
-            note: l("Sipariş servisi e-postanın ne zaman, kim tarafından gönderileceğini bilmek zorunda değil.", "The order service does not need to know when or by whom the email gets sent."),
-          },
+          { cmd: "npm install amqplib" },
         ],
       },
     },
@@ -110,18 +103,12 @@ export const whyRabbitmq: Lesson = {
           "The email service is back and consuming the queue. It sends one email a second; in three seconds all three waiting emails are out.",
         ),
         l(
-          "Bu servis her e-postayı gönderdikten sonra RabbitMQ'ya ack gönderir; o zaman mesaj kuyruktan silinir. Ack'i ilk derste ayrıntısıyla gördük.",
-          "After each email it sends an ack to RabbitMQ, and only then is the message deleted from the queue. We saw acks in detail in the first lesson.",
+          "Bu servis her e-postayı gönderdikten sonra RabbitMQ'ya ack gönderir; o zaman mesaj kuyruktan silinir. Ack'i ileride kendi dersinde, \"Ack, nack, requeue\"da ayrıntısıyla göreceğiz.",
+          "After each email it sends an ack to RabbitMQ, and only then is the message deleted from the queue. We'll look at acks in detail later, in their own lesson, \"Ack, nack, requeue\".",
         ),
       ],
       practice: {
         commands: [{ cmd: LIST, note: l("Kaç mesaj beklediğini ve kaç consumer bağlı olduğunu gösterir.", "Shows how many messages wait and how many consumers are connected.") }],
-        snippets: [
-          {
-            label: "Python · e-posta servisi",
-            code: 'def handle(ch, method, props, body):\n    send_email(body)\n    ch.basic_ack(delivery_tag=method.delivery_tag)\n\nch.basic_qos(prefetch_count=1)\nch.basic_consume(queue="emails", on_message_callback=handle)\nch.start_consuming()',
-          },
-        ],
       },
     },
     {
@@ -192,7 +179,7 @@ export const whyRabbitmq: Lesson = {
       ],
       practice: {
         intro: l("Aynı consumer kodunu ikinci bir terminalde çalıştırman yeterli:", "Just run the same consumer code in a second terminal:"),
-        commands: [{ cmd: "python email_worker.py" }, { cmd: "python email_worker.py" }],
+        commands: [{ cmd: "node email-worker.js" }, { cmd: "node email-worker.js" }],
       },
     },
     {
@@ -235,12 +222,12 @@ export const whyRabbitmq: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Proje klasöründe kuyruğu kuran `setup.py`, sipariş gönderen `order.py` ve e-posta servisi `mailer.py` var. Aşağıda gerçek işten **4 senaryo** var: kesinti, taşıma, ani yük, bakım.",
-          "Your turn. The project folder has `setup.py`, which creates the queue, `order.py`, which sends an order, and the email service `mailer.py`. Below are **4 scenarios** from real work: an outage, a move, a spike, a maintenance break.",
+          "Sıra sende. Proje klasöründe kuyruğu kuran `setup.js`, sipariş gönderen `order.js` ve e-posta servisi `mailer.js` var. Aşağıda gerçek işten **4 senaryo** var: kesinti, taşıma, ani yük, bakım.",
+          "Your turn. The project folder has `setup.js`, which creates the queue, `order.js`, which sends an order, and the email service `mailer.js`. Below are **4 scenarios** from real work: an outage, a move, a spike, a maintenance break.",
         ),
         l(
-          "Dosyaları `python` ile çalıştır, kuyruğa `rabbitmqctl list_queues name messages` ile bak, zamanı `sleep` ile ilerlet. Servis arka planda çalışır; `pkill -f mailer.py` durdurur. Az komutla bitirirsen 3 yıldız.",
-          "Run files with `python`, look at the queue with `rabbitmqctl list_queues name messages`, move time forward with `sleep`. The service runs in the background; `pkill -f mailer.py` stops it. Few commands earn 3 stars.",
+          "Dosyaları `node` ile çalıştır, kuyruğa `rabbitmqctl list_queues name messages` ile bak, zamanı `sleep` ile ilerlet. Servis arka planda çalışır; `pkill -f mailer.js` durdurur. Az komutla bitirirsen 3 yıldız.",
+          "Run files with `node`, look at the queue with `rabbitmqctl list_queues name messages`, move time forward with `sleep`. The service runs in the background; `pkill -f mailer.js` stops it. Few commands earn 3 stars.",
         ),
       ],
     },

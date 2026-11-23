@@ -30,7 +30,7 @@ export const steps: BrokerAction[][] = [
 const names = (t: (x: { tr: string; en: string }) => string) => ({
   "mailer-1": t(l("E-posta 1", "Email 1")),
   "mailer-2": t(l("E-posta 2", "Email 2")),
-  // Typed: mailer.py run once is "mailer", run again "mailer-2".
+  // Typed: mailer.js run once is "mailer", run again "mailer-2".
   mailer: t(l("E-posta 1", "Email 1")),
 });
 

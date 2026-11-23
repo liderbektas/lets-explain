@@ -8,15 +8,16 @@ import { eventsOf, projectAfter, script } from "../shared/missionHelpers";
 /** A three-node cluster (containers rabbit1, rabbit2, rabbit3). */
 const cluster = () => createBroker({ nodes: 3 });
 
-const QUORUM = (name: string) => `ch.queue_declare(queue="${name}", durable=True, arguments={"x-queue-type": "quorum"})`;
+const QUORUM = (name: string) => `await ch.assertQueue("${name}", { arguments: { "x-queue-type": "quorum" } });`;
 
-/** A sender with confirms on, so a refused message raises instead of passing quietly. */
-const send = (queue: string, body: string) => script(`ch.confirm_delivery()\nch.basic_publish(exchange="", routing_key="${queue}", body=b"${body}")\nprint("sent")`);
+/** A sender on a confirm channel, so a refused message fails instead of passing quietly. */
+const send = (queue: string, body: string) =>
+  script(`ch.sendToQueue("${queue}", Buffer.from("${body}"));\nawait ch.waitForConfirms();\nconsole.log("sent");`, { confirm: true });
 
 /** Free play: a quorum `orders` and a classic `cache` on rabbit1. */
 export const FREE = projectAfter(
-  { "setup.py": script(`${QUORUM("orders")}\nch.queue_declare(queue="cache", durable=True)`), "order.py": send("orders", "order-1"), "cache.py": send("cache", "cache-1") },
-  ["python setup.py"],
+  { "setup.js": script(`${QUORUM("orders")}\nawait ch.assertQueue("cache");`), "order.js": send("orders", "order-1"), "cache.js": send("cache", "cache-1") },
+  ["node setup.js"],
   cluster(),
 );
 
@@ -45,12 +46,12 @@ export const scenarios: RabbitScenario[] = [
       "`rabbit1`'e bir güvenlik yaması geçmen gerekiyor ve bunun için container'ı durdurman lazım. `orders` üç kopyalı bir quorum kuyruğu ve leader'ı şu an `rabbit1`'de. Mağaza sipariş göndermeye devam ediyor.",
       "You need to apply a security patch to `rabbit1`, which means stopping its container. `orders` is a three-copy quorum queue whose leader is on `rabbit1` right now. The shop keeps sending orders.",
     ),
-    goal: l("`rabbit1` kapalıyken `order.py`'nin gönderdiği sipariş `orders`'a girsin ve ack alsın.", "While `rabbit1` is down, the order sent by `order.py` gets into `orders` with an ack."),
-    start: projectAfter({ "setup.py": script(QUORUM("orders")), "order.py": send("orders", "order-1001") }, ["python setup.py"], cluster()),
+    goal: l("`rabbit1` kapalıyken `order.js`'nin gönderdiği sipariş `orders`'a girsin ve ack alsın.", "While `rabbit1` is down, the order sent by `order.js` gets into `orders` with an ack."),
+    start: projectAfter({ "setup.js": script(QUORUM("orders")), "order.js": send("orders", "order-1001") }, ["node setup.js"], cluster()),
     hints: [
       l("Quorum kuyruğu, kopyalarının çoğunluğu (3'te 2) ayaktayken çalışır; leader düşerse kalanlardan biri leader olur.", "A quorum queue works while a majority of its copies (2 of 3) is up; if the leader goes, one of the others takes over."),
       l("Node'u durdur, sonra gönder. Sonra `rabbitmq-queues quorum_status orders` ile yeni leader'a bakabilirsin.", "Stop the node, then send. Afterwards you can see the new leader with `rabbitmq-queues quorum_status orders`."),
-      l("`docker stop rabbit1`, `python order.py`", "`docker stop rabbit1`, `python order.py`"),
+      l("`docker stop rabbit1`, `node order.js`", "`docker stop rabbit1`, `node order.js`"),
     ],
     par: 2,
     check: (ctx) => acceptedAt(ctx, "orders").some((i) => !nodeUp(ctx, i + 1, "rabbit@1")) && eventsOf(ctx, "leaderMoved").some((e) => e.queue === "orders"),
@@ -66,7 +67,7 @@ export const scenarios: RabbitScenario[] = [
       "`rabbit2` yeniden başlatılsın, `orders` hiçbir anda çoğunluğunu kaybetmesin ve sonunda üç node da çalışsın.",
       "`rabbit2` gets restarted, `orders` never loses its majority at any point, and all three nodes end up running.",
     ),
-    start: projectAfter({ "setup.py": script(QUORUM("orders")), "order.py": send("orders", "order-2") }, ["python setup.py", "docker stop rabbit3"], cluster()),
+    start: projectAfter({ "setup.js": script(QUORUM("orders")), "order.js": send("orders", "order-2") }, ["node setup.js", "docker stop rabbit3"], cluster()),
     hints: [
       l(
         "Durdurmadan önce sor: `docker exec rabbit2 rabbitmq-queues check_if_node_is_quorum_critical`. Bu node gidince çoğunluğunu kaybedecek kuyruk varsa söyler.",
@@ -89,22 +90,22 @@ export const scenarios: RabbitScenario[] = [
       "Tonight `rabbit1` goes down for maintenance. The `payments` queue, though, was declared classic by mistake: its only copy lives on `rabbit1`, so payments will be lost when the node goes down. The queue is empty right now.",
     ),
     goal: l(
-      "`payments` quorum olsun; `rabbit1` kapalıyken `pay.py`'nin gönderdiği ödeme ack alıp `payments`'a girsin.",
-      "`payments` becomes quorum; with `rabbit1` down, the payment sent by `pay.py` gets an ack and lands in `payments`.",
+      "`payments` quorum olsun; `rabbit1` kapalıyken `pay.js`'nin gönderdiği ödeme ack alıp `payments`'a girsin.",
+      "`payments` becomes quorum; with `rabbit1` down, the payment sent by `pay.js` gets an ack and lands in `payments`.",
     ),
-    start: projectAfter({ "setup.py": script(`ch.queue_declare(queue="payments", durable=True)`), "pay.py": send("payments", "payment-7") }, ["python setup.py"], cluster()),
+    start: projectAfter({ "setup.js": script(`await ch.assertQueue("payments");`), "pay.js": send("payments", "payment-7") }, ["node setup.js"], cluster()),
     hints: [
       l(
         "`rabbitmqctl list_queues name type leader members` ile bak. Bir kuyruğun türü sonradan değişmez; boş olduğu için silip yeniden kurabilirsin.",
         "Look with `rabbitmqctl list_queues name type leader members`. A queue's type can't change later; since it's empty you can delete it and set it up again.",
       ),
       l(
-        "`setup.py`'de `arguments={\"x-queue-type\": \"quorum\"}` ekle, kuyruğu `rabbitmqctl delete_queue payments` ile sil, kurulumu çalıştır; sonra bakımı yap ve ödemeyi gönder.",
-        "Add `arguments={\"x-queue-type\": \"quorum\"}` in `setup.py`, delete the queue with `rabbitmqctl delete_queue payments`, run the setup; then do the maintenance and send the payment.",
+        "`setup.js`'de `assertQueue`'ya `{ arguments: { \"x-queue-type\": \"quorum\" } }` ekle, kuyruğu `rabbitmqctl delete_queue payments` ile sil, kurulumu çalıştır; sonra bakımı yap ve ödemeyi gönder.",
+        "Add `{ arguments: { \"x-queue-type\": \"quorum\" } }` to the `assertQueue` in `setup.js`, delete the queue with `rabbitmqctl delete_queue payments`, run the setup; then do the maintenance and send the payment.",
       ),
       l(
-        "`nano setup.py`, `rabbitmqctl delete_queue payments`, `python setup.py`, `docker stop rabbit1`, `python pay.py`",
-        "`nano setup.py`, `rabbitmqctl delete_queue payments`, `python setup.py`, `docker stop rabbit1`, `python pay.py`",
+        "`nano setup.js`, `rabbitmqctl delete_queue payments`, `node setup.js`, `docker stop rabbit1`, `node pay.js`",
+        "`nano setup.js`, `rabbitmqctl delete_queue payments`, `node setup.js`, `docker stop rabbit1`, `node pay.js`",
       ),
     ],
     par: 5,
@@ -118,7 +119,7 @@ export const scenarios: RabbitScenario[] = [
       "Monitoring shows `rabbit1`'s CPU at 100%: the leader of `orders` lives there and every write goes through it. Move the leader to another node; when you're done, all three nodes must be running.",
     ),
     goal: l("`orders`'ın leader'ı `rabbit1`'den başka bir node'a geçsin; sonunda üç node da çalışsın.", "The leader of `orders` moves off `rabbit1`; all three nodes are running at the end."),
-    start: projectAfter({ "setup.py": script(QUORUM("orders")) }, ["python setup.py"], cluster()),
+    start: projectAfter({ "setup.js": script(QUORUM("orders")) }, ["node setup.js"], cluster()),
     hints: [
       l("Leader düşünce takipçilerden biri leader olur ve node geri gelince de öyle kalır.", "When the leader goes down a follower takes over, and it stays leader when the node comes back."),
       l("Node'u bir kez yeniden başlatmak yeter.", "Restarting the node once is enough."),

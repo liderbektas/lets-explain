@@ -16,18 +16,44 @@ import {
   type QueueArgs,
   type QueueType,
 } from "./broker";
-import { evaluate, isObj, parseBlocks, pyStr, PyError, type Call, type Env, type Py, type Stmt } from "./python";
+import {
+  calleeName,
+  childExprs,
+  ExitSignal,
+  Fn,
+  formatLog,
+  HostObj,
+  inspect,
+  Interp,
+  isHost,
+  jsErr,
+  JsSyntaxError,
+  JsThrow,
+  jsStr,
+  makeBuffer,
+  makeError,
+  Native,
+  NODE_VERSION,
+  parse,
+  SandboxError,
+  Scope,
+  stmtParts,
+  walkExprs,
+  type Expr,
+  type Stmt,
+  type Val,
+} from "./js";
 
 /**
- * A terminal on a small project that talks to the model broker. The project has Python files
- * using pika (`nano publisher.py`, `python publisher.py`); running one turns its pika calls into
- * broker actions. `rabbitmqctl` (also as `docker exec rabbitmq rabbitmqctl …`, the way the
+ * A terminal on a small project that talks to the model broker. The project has Node.js files
+ * using amqplib (`nano publisher.js`, `node publisher.js`); running one turns its amqplib calls
+ * into broker actions. `rabbitmqctl` (also as `docker exec rabbitmq rabbitmqctl …`, the way the
  * lessons write it) reads the broker and prints what the real tool prints.
  *
- * Workers (`python worker.py` with `start_consuming()`) keep running in the background, as if
- * in a second terminal, and handle each message the moment it arrives, the way their callback
- * says: ack it, reject it, or hold it. Time passes only with `sleep N` (one tick a second),
- * which is what TTLs and slow workers (`time.sleep(n)` in the callback) need.
+ * Workers (`node worker.js` with a `ch.consume(…)`) keep running in the background, as if in a
+ * second terminal, and handle each message the moment it arrives, the way their callback says:
+ * ack it, reject it, or hold it. Time passes only with `sleep N` (one tick a second), which is
+ * what TTLs and slow workers (`await sleep(n)` in the callback) need.
  */
 
 export type Files = Record<string, string>;
@@ -40,13 +66,13 @@ export interface Worker {
   /** First matching rule wins; `match` is a body (exact) or a piece of it. */
   rules: { match: string; exact: boolean; verdict: Verdict }[];
   verdict: Verdict;
-  /** Seconds a message takes (time.sleep in the callback); 0 = at once. */
+  /** Seconds a message takes (a sleep or setTimeout in the callback); 0 = at once. */
   slow: number;
-  /** Lines the callback prints per message, with {body} filled in. */
+  /** Lines the callback prints per message, with {text}, {buffer}, {key}, {replyTo} and {corr} filled in. */
   prints: string[];
   /**
    * The callback publishes an answer: an RPC server. `to` is a fixed queue, or null for the
-   * request's `props.reply_to`; `corr` says whether it copies the correlation id. `body` is the
+   * request's `msg.properties.replyTo`; `corr` says whether it copies the correlation id. `body` is the
    * answer when the code gives it literally; otherwise the request's own body goes back.
    */
   reply?: { body: string | null; to: string | null; corr: boolean };
@@ -166,7 +192,7 @@ export function runLine(start: Project, line: string): RabbitResult {
 
 export const promptFor = (_p: Project) => `~/${PROJECT}$`;
 
-const COMMANDS = ["python", "rabbitmqctl", "docker", "nano", "cat", "ls", "echo", "sleep", "jobs", "pkill", "kill", "clear", "help", "rabbitmq-diagnostics", "rabbitmq-queues"];
+const COMMANDS = ["node", "npm", "rabbitmqctl", "docker", "nano", "cat", "ls", "echo", "sleep", "jobs", "pkill", "kill", "clear", "help", "rabbitmq-diagnostics", "rabbitmq-queues"];
 const CTL_SUB = ["list_queues", "list_exchanges", "list_bindings", "list_consumers", "purge_queue", "delete_queue", "set_policy", "list_policies", "clear_policy", "cluster_status"];
 
 export function completeLine(p: Project, input: string) {
@@ -226,7 +252,7 @@ function command(p: Project, words: string[]): Run {
     case "vi":
     case "code": {
       const path = args.find((a) => !a.startsWith("-"));
-      if (!path) return fail(`${cmd}: give the file to open, e.g. ${cmd} publisher.py`);
+      if (!path) return fail(`${cmd}: give the file to open, e.g. ${cmd} publisher.js`);
       return {
         actions: [],
         output: [],
@@ -241,11 +267,12 @@ function command(p: Project, words: string[]): Run {
         },
       };
     }
-    case "python":
-    case "python3": {
-      const file = args[0];
-      if (!file) return say("(an interactive Python shell is not in this sandbox: run a file, e.g. python publisher.py)", "dim");
-      if (!(file in p.files)) return fail(`python: can't open file '/home/you/${PROJECT}/${file}': [Errno 2] No such file or directory`);
+    case "node": {
+      if (args.includes("-v") || args.includes("--version")) return say(NODE_VERSION);
+      const file = args.find((a) => !a.startsWith("-"))?.replace(/^\.\//, "");
+      if (!file) return say("(an interactive Node.js shell is not in this sandbox: run a file, e.g. node publisher.js)", "dim");
+      if (!(file in p.files))
+        return fail(`node:internal/modules/cjs/loader:1228\n  throw err;\n  ^\n\nError: Cannot find module '/home/you/${PROJECT}/${file}'\n  code: 'MODULE_NOT_FOUND'\n\nNode.js ${NODE_VERSION}`);
       return runScript(p, file);
     }
     case "sleep": {
@@ -256,7 +283,7 @@ function command(p: Project, words: string[]): Run {
     case "ps": {
       const tags = Object.keys(p.workers);
       if (!tags.length) return { actions: [], output: [] };
-      return { actions: [], output: tags.map((tag, i) => out(`[${i + 1}]${i === tags.length - 1 ? "+" : "-"}  Running                 python ${p.workers[tag]!.script} &  (consumer ${tag})`)) };
+      return { actions: [], output: tags.map((tag, i) => out(`[${i + 1}]${i === tags.length - 1 ? "+" : "-"}  Running                 node ${p.workers[tag]!.script} &  (consumer ${tag})`)) };
     }
     case "pkill":
     case "kill": {
@@ -266,7 +293,7 @@ function command(p: Project, words: string[]): Run {
       const tags = Object.keys(p.workers).filter((tag) => tag === target || p.workers[tag]!.script === target || `%${Object.keys(p.workers).indexOf(tag) + 1}` === target);
       if (!tags.length) return cmd === "pkill" ? { actions: [], output: [], failed: true } : fail(`bash: kill: ${target}: no such job`);
       const actions: ProjectAction[] = tags.flatMap((tag): ProjectAction[] => [{ type: hard ? "crashConsumer" : "cancel", tag }, { type: "stopWorker", tag }]);
-      return { actions, output: tags.map((tag) => out(`[${Object.keys(p.workers).indexOf(tag) + 1}]   ${hard ? "Killed" : "Terminated"}              python ${p.workers[tag]!.script}`, "dim")) };
+      return { actions, output: tags.map((tag) => out(`[${Object.keys(p.workers).indexOf(tag) + 1}]   ${hard ? "Killed" : "Terminated"}              node ${p.workers[tag]!.script}`, "dim")) };
     }
     case "docker":
       return docker(p, args);
@@ -278,9 +305,9 @@ function command(p: Project, words: string[]): Run {
       if (args[0] === "check_running" || args[0] === "ping" || args[0] === "status")
         return say(`Checking if RabbitMQ is running on node rabbit@1 ...\nRabbitMQ on node rabbit@1 is fully booted and running`);
       return say(`(rabbitmq-diagnostics ${args[0] ?? ""} is not in this sandbox)`, "dim");
-    case "pip":
-    case "pip3":
-      return say("Requirement already satisfied: pika in ./.venv/lib/python3.12/site-packages (1.3.2)");
+    case "npm":
+      if (args[0] === "install" || args[0] === "i" || args[0] === "add") return say("\nup to date, audited 3 packages in 412ms\n\nfound 0 vulnerabilities");
+      return say(`(npm ${args[0] ?? ""} is not in this sandbox; amqplib is already installed: npm install amqplib)`, "dim");
     default:
       return fail(`bash: ${cmd}: command not found`);
   }
@@ -344,8 +371,16 @@ function work(cur: Project, tag: string): { actions: ProjectAction[]; state: Pro
   return { actions, state };
 }
 
-function printsFor(w: Worker, body: string): TermLine[] {
-  return w.prints.map((t) => out(t.replace(/\{body\}/g, `b'${body}'`).replace(/\{text\}/g, body)));
+/** The callback's console.log lines for one message: its body, routing key and reply properties filled in. */
+function printsFor(w: Worker, m: { body: string; routingKey: string; replyTo?: string; correlationId?: string }): TermLine[] {
+  const fill: Record<string, string> = {
+    text: m.body,
+    buffer: inspect(makeBuffer(m.body)),
+    key: m.routingKey,
+    replyTo: m.replyTo ?? "undefined",
+    corr: m.correlationId ?? "undefined",
+  };
+  return w.prints.map((t) => out(t.replace(/\{(text|buffer|key|replyTo|corr)\}/g, (_, k: string) => fill[k]!)));
 }
 
 /** Fast workers handle everything they hold, as many rounds as it takes (capped, so a requeue loop shows). */
@@ -362,7 +397,7 @@ function settle(p: Project): Run {
       const c = cur.broker.consumers[tag];
       const done = work(cur, tag);
       if (!done || !c) continue;
-      output.push(...printsFor(cur.workers[tag]!, c.unacked[0]!.body));
+      output.push(...printsFor(cur.workers[tag]!, c.unacked[0]!));
       actions.push(...done.actions);
       cur = done.state;
       moved = true;
@@ -387,7 +422,7 @@ function passTime(p: Project, n: number): Run {
       const c = cur.broker.consumers[tag];
       const done = work(cur, tag);
       if (!done || !c) continue;
-      output.push(...printsFor(w, c.unacked[0]!.body));
+      output.push(...printsFor(w, c.unacked[0]!));
       actions.push(...done.actions);
       cur = done.state;
     }
@@ -404,18 +439,64 @@ function passTime(p: Project, n: number): Run {
 
 /* -------------------------------------------------------------- scripts */
 
-class Stop extends Error {}
+/** AMQP reply codes as amqplib names them in its errors. */
+const AMQP_NAMES: Record<number, string> = { 403: "ACCESS-REFUSED", 404: "NOT-FOUND", 405: "RESOURCE-LOCKED", 406: "PRECONDITION-FAILED", 503: "COMMAND-INVALID", 530: "NOT-ALLOWED" };
 
-/** Runs a Python file: its pika calls become broker actions, in order, until it ends or fails. */
+/** What a consumer callback sees as `msg.properties.replyTo` / `correlationId` while it is read. */
+const REPLY_TO = "{replyTo}";
+const CORR = "{corr}";
+
+/** A plain object argument (amqplib's options), or an empty one. */
+const optsOf = (v: Val): Record<string, Val> => (v && typeof v === "object" && !(v instanceof HostObj) && !Array.isArray(v) ? (v as Record<string, Val>) : {});
+
+/** A queue or exchange name as amqplib checks it. */
+function nameArg(v: Val, field: string, fallback?: string): string {
+  if (v === undefined && fallback !== undefined) return fallback;
+  if (typeof v !== "string") throw jsErr("TypeError", `Field '${field}' is the wrong type; must be a string (up to 255 chars)`);
+  return v;
+}
+
+/** The message object amqplib hands a `return` listener. */
+function returnedMessage(m: { body: string; exchange: string; routingKey: string; headers?: Record<string, string>; replyTo?: string; correlationId?: string }): HostObj {
+  return new HostObj("Message", {
+    content: makeBuffer(m.body),
+    fields: { replyCode: 312, replyText: "NO_ROUTE", exchange: m.exchange, routingKey: m.routingKey },
+    properties: { headers: { ...m.headers }, replyTo: m.replyTo, correlationId: m.correlationId },
+  });
+}
+
+interface Chan {
+  obj: HostObj;
+  closed: boolean;
+  confirm: boolean;
+  qos: number;
+  /** A message was nacked since the last waitForConfirms. */
+  nacked: boolean;
+  returns: Val[];
+  errors: Val[];
+}
+
+/** Runs a Node.js file: its amqplib calls become broker actions, in order, until it ends or fails. */
 function runScript(p: Project, file: string): Run {
   const source = p.files[file]!;
+  const path = `/home/you/${PROJECT}/${file}`;
   let cur = p;
   const actions: ProjectAction[] = [];
   const output: TermLine[] = [];
-  let qos = 0;
-  let confirms = false;
-  let current: Stmt | null = null;
-  const funcs: Record<string, Stmt> = {};
+  /** Consumers this run started that are still there, and the channel each is on. */
+  const live: { tag: string; chan: Chan }[] = [];
+  let connClosed = false;
+
+  let stmts: Stmt[];
+  try {
+    stmts = parse(source);
+  } catch (e) {
+    if (!(e instanceof JsSyntaxError)) throw e;
+    const src = source.split("\n")[e.line - 1] ?? "";
+    return { actions: [], output: lines(`${path}:${e.line}\n${src}\n\nSyntaxError: ${e.message}\n\nNode.js ${NODE_VERSION}`, "err"), failed: true };
+  }
+
+  const it = new Interp({ module: (name) => moduleFor(name), log: (text) => output.push(...lines(text)) }, file, source);
 
   const doAction = (a: ProjectAction) => {
     const r = applyProject(cur, a);
@@ -426,61 +507,125 @@ function runScript(p: Project, file: string): Run {
     return r.events;
   };
 
-  const env: Env = {
-    vars: {},
-    call: (c: Call): Py => {
-      const fn = c.callee.split(".").pop()!;
-      if (c.callee === "print") {
-        output.push(out(c.args.map(pyStr).join(" ")));
-        return null;
+  const closeText = (e: BrokerError) => `${e.code} (${AMQP_NAMES[e.code] ?? "INTERNAL-ERROR"}) with message "${e.message}"`;
+
+  /** An RPC on the channel (assertQueue…): a refusal closes the channel and rejects with "Operation failed". */
+  const rpc = <T>(chan: Chan, method: string, f: () => T): HostObj => {
+    if (chan.closed) throw jsErr("IllegalOperationError", "Channel closed");
+    try {
+      return it.promise("fulfilled", f() as Val);
+    } catch (e) {
+      if (!(e instanceof BrokerError)) throw e;
+      chan.closed = true;
+      throw jsErr("Error", `Operation failed: ${method}; ${closeText(e)}`, 0, { code: e.code });
+    }
+  };
+
+  /** Stops consumers this run started (on one channel, or all): cleanly, or as a crash. */
+  const stopConsumers = (chan: Chan | null, crash: boolean) => {
+    for (const c of [...live]) {
+      if (chan && c.chan !== chan) continue;
+      live.splice(live.indexOf(c), 1);
+      if (!cur.broker.consumers[c.tag]) continue;
+      doAction({ type: crash ? "crashConsumer" : "cancel", tag: c.tag });
+      doAction({ type: "stopWorker", tag: c.tag });
+    }
+  };
+
+  const fn = (name: string, f: (args: Val[]) => Val) => new Native(name, f, true);
+  const notHere = (name: string, why = "") => fn(name, () => {
+    throw new SandboxError(`ch.${name}()${why}`);
+  });
+
+  const makeChannel = (confirm: boolean): HostObj => {
+    const chan: Chan = { obj: new HostObj(confirm ? "ConfirmChannel" : "Channel"), closed: false, confirm, qos: 0, nacked: false, returns: [], errors: [] };
+    const publish = (exchange: string, routingKey: string, content: Val, options: Val, cb: Val): boolean => {
+      if (chan.closed) throw jsErr("IllegalOperationError", "Channel closed");
+      if (!isHost(content, "Buffer")) throw jsErr("TypeError", "content is not a buffer");
+      const o = optsOf(options);
+      const headers = optsOf(o.headers);
+      const mandatory = o.mandatory === true;
+      let events: BrokerEvent[];
+      try {
+        if (exchange !== DEFAULT_EXCHANGE && !cur.broker.exchanges[exchange]) throw new BrokerError(`NOT_FOUND - no exchange '${exchange}' in vhost '/'`, null, 404);
+        events = doAction({
+          type: "publish",
+          exchange,
+          routingKey,
+          body: String(content.props.text),
+          persistent: o.persistent === true || o.deliveryMode === 2 || o.deliveryMode === true,
+          headers: Object.keys(headers).length ? Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, jsStr(v)])) : undefined,
+          ttl: o.expiration !== undefined ? Math.max(1, Math.ceil(Number(o.expiration) / 1000)) : undefined,
+          replyTo: o.replyTo !== undefined ? jsStr(o.replyTo) : undefined,
+          correlationId: o.correlationId !== undefined ? jsStr(o.correlationId) : undefined,
+          mandatory,
+        });
+      } catch (e) {
+        if (!(e instanceof BrokerError)) throw e;
+        // A publish has no reply: the broker closes the channel, which emits 'error'.
+        chan.closed = true;
+        const err = makeError("Error", `Channel closed by server: ${closeText(e)}`, { code: e.code });
+        if (!chan.errors.length) throw new JsThrow(err, 0);
+        for (const f of chan.errors) it.call(f, [err]);
+        return true;
       }
-      if (c.callee === "pika.BlockingConnection") return { __obj: "BlockingConnection" };
-      if (c.callee === "pika.ConnectionParameters" || c.callee === "pika.URLParameters" || c.callee === "pika.PlainCredentials") return { __obj: c.callee.slice(5) };
-      if (c.callee === "pika.BasicProperties") return { __obj: "BasicProperties", ...c.kwargs };
-      if (c.callee === "time.sleep") return null;
-      const target = c.callee.split(".").slice(0, -1).join(".");
-      const obj = target ? env.vars[target.split(".")[0]!] : undefined;
-      if (isObj(obj) && obj.__obj === "BlockingConnection") {
-        if (fn === "channel") return { __obj: "BlockingChannel" };
-        if (fn === "close") return null;
+      for (const e of events) if (e.type === "unroutable" && e.returned) for (const f of chan.returns) it.call(f, [returnedMessage(e.message)]);
+      if (chan.confirm) {
+        const nack = events.some((e) => e.type === "confirmed" && !e.ok);
+        if (nack) chan.nacked = true;
+        if (cb instanceof Fn || cb instanceof Native) it.call(cb, [nack ? makeError("Error", "message nacked") : null]);
       }
-      if (!(isObj(obj) && obj.__obj === "BlockingChannel")) throw new PyError("Sandbox", `${c.callee}(…)`);
-      const arg = (name: string, pos: number) => (name in c.kwargs ? c.kwargs[name]! : (c.args[pos] ?? undefined));
-      const s = (v: Py | undefined) => (v === undefined || v === null ? "" : pyStr(v));
-      switch (fn) {
-        case "exchange_declare": {
-          const name = s(arg("exchange", 0));
-          const kind = s(arg("exchange_type", 1) ?? "direct") || "direct";
+      return true;
+    };
+    Object.assign(chan.obj.props, {
+      assertExchange: fn("assertExchange", ([n, t, options]) =>
+        rpc(chan, "ExchangeDeclare", () => {
+          const name = nameArg(n, "exchange");
+          const kind = t === undefined ? "direct" : jsStr(t);
+          const o = optsOf(options);
           if (!["direct", "fanout", "topic", "headers"].includes(kind)) throw new BrokerError(`COMMAND_INVALID - unknown exchange type '${kind}'`, null, 503);
-          const argsV = (c.kwargs.arguments ?? {}) as Record<string, Py>;
+          const durable = o.durable === undefined ? true : o.durable === true;
+          const alt = o.alternateExchange ?? optsOf(o.arguments)["alternate-exchange"];
+          const alternate = alt === undefined || alt === null ? undefined : jsStr(alt);
           const existing = cur.broker.exchanges[name];
-          const durable = c.kwargs.durable === true;
           if (existing && existing.durable !== durable)
             throw new BrokerError(`PRECONDITION_FAILED - inequivalent arg 'durable' for exchange '${name}' in vhost '/': received '${durable}' but current is '${existing.durable}'`, null, 406);
-          const alternate = argsV["alternate-exchange"] ? s(argsV["alternate-exchange"]) : undefined;
           // Arguments are part of an exchange's identity: redeclaring with another alternate is refused.
           if (existing && (existing.alternate ?? undefined) !== alternate) {
             const v = (x: string | undefined) => (x === undefined ? "none" : `the value '${x}' of type 'longstr'`);
             throw new BrokerError(`PRECONDITION_FAILED - inequivalent arg 'alternate-exchange' for exchange '${name}' in vhost '/': received ${v(alternate)} but current is ${v(existing.alternate)}`, null, 406);
           }
           doAction({ type: "declareExchange", name, kind: kind as ExchangeType, durable, alternate });
-          return null;
-        }
-        case "queue_declare": {
-          let name = s(arg("queue", 0));
+          return { exchange: name };
+        }),
+      ),
+      checkExchange: fn("checkExchange", ([n]) =>
+        rpc(chan, "ExchangeDeclare", () => {
+          const name = nameArg(n, "exchange");
+          if (!cur.broker.exchanges[name]) throw new BrokerError(`NOT_FOUND - no exchange '${name}' in vhost '/'`, null, 404);
+          return { exchange: name };
+        }),
+      ),
+      assertQueue: fn("assertQueue", ([n, options]) =>
+        rpc(chan, "QueueDeclare", () => {
+          let name = nameArg(n, "queue", "");
           if (!name) {
             name = `amq.gen-${String(cur.gen).padStart(4, "0")}`;
             doAction({ type: "nextGen" });
           }
-          const a = (c.kwargs.arguments ?? {}) as Record<string, Py>;
-          const durable = c.kwargs.durable === true;
-          const qtype = (a["x-queue-type"] ? s(a["x-queue-type"]) : "classic") as QueueType;
+          const o = optsOf(options);
+          // amqplib's named options win over the same key in `arguments`.
+          const a: Record<string, Val> = { ...optsOf(o.arguments) };
+          const named: [string, string][] = [["messageTtl", "x-message-ttl"], ["deadLetterExchange", "x-dead-letter-exchange"], ["deadLetterRoutingKey", "x-dead-letter-routing-key"], ["maxLength", "x-max-length"], ["expires", "x-expires"], ["maxPriority", "x-max-priority"]];
+          for (const [k, x] of named) if (o[k] !== undefined) a[x] = o[k];
+          const durable = o.durable === undefined ? true : o.durable === true;
+          const qtype = (a["x-queue-type"] !== undefined ? jsStr(a["x-queue-type"]) : "classic") as QueueType;
           const args: QueueArgs = {};
-          if (a["x-dead-letter-exchange"] !== undefined) args.dlx = s(a["x-dead-letter-exchange"]);
-          if (a["x-dead-letter-routing-key"] !== undefined) args.dlxKey = s(a["x-dead-letter-routing-key"]);
+          if (a["x-dead-letter-exchange"] !== undefined) args.dlx = jsStr(a["x-dead-letter-exchange"]);
+          if (a["x-dead-letter-routing-key"] !== undefined) args.dlxKey = jsStr(a["x-dead-letter-routing-key"]);
           if (a["x-message-ttl"] !== undefined) args.ttl = Math.max(1, Math.ceil(Number(a["x-message-ttl"]) / 1000));
           if (a["x-max-length"] !== undefined) args.maxLength = Number(a["x-max-length"]);
-          if (a["x-overflow"] !== undefined) args.overflow = s(a["x-overflow"]) as Overflow;
+          if (a["x-overflow"] !== undefined) args.overflow = jsStr(a["x-overflow"]) as Overflow;
           if (a["x-delivery-limit"] !== undefined) args.deliveryLimit = Number(a["x-delivery-limit"]);
           const existing = cur.broker.queues[name];
           if (existing) {
@@ -493,175 +638,192 @@ function runScript(p: Project, file: string): Run {
                 throw new BrokerError(`PRECONDITION_FAILED - inequivalent arg '${label}' for queue '${name}' in vhost '/': received ${args[k] === undefined ? "none" : `'${args[k]}'`} but current is ${existing.args[k] === undefined ? "none" : `'${existing.args[k]}'`}`, null, 406);
             }
           } else doAction({ type: "declareQueue", name, durable, queueType: qtype, args });
-          return { __obj: "Method.DeclareOk", method: { __obj: "Queue.DeclareOk", queue: name } } as unknown as Py;
-        }
-        case "queue_bind":
-        case "queue_unbind": {
-          const queue = s(arg("queue", 0));
-          const exchange = s(arg("exchange", 1));
-          const key = arg("routing_key", 2);
-          const a = (c.kwargs.arguments ?? {}) as Record<string, Py>;
+          const d = depth(cur.broker, name);
+          return { queue: name, messageCount: d.ready, consumerCount: Object.values(cur.broker.consumers).filter((c) => c.queue === name).length };
+        }),
+      ),
+      checkQueue: fn("checkQueue", ([n]) =>
+        rpc(chan, "QueueDeclare", () => {
+          const name = nameArg(n, "queue");
+          if (!cur.broker.queues[name]) throw new BrokerError(`NOT_FOUND - no queue '${name}' in vhost '/'`, null, 404);
+          return { queue: name, messageCount: depth(cur.broker, name).ready, consumerCount: Object.values(cur.broker.consumers).filter((c) => c.queue === name).length };
+        }),
+      ),
+      bindQueue: fn("bindQueue", ([q, ex, pattern, argt]) =>
+        rpc(chan, "QueueBind", () => {
+          const queue = nameArg(q, "queue", "");
+          const exchange = nameArg(ex, "exchange");
+          // amqplib sends an empty routing key when no pattern is given.
+          const key = pattern === undefined || pattern === null ? "" : jsStr(pattern);
+          const a = optsOf(argt);
           if (!cur.broker.exchanges[exchange] || exchange === DEFAULT_EXCHANGE) throw new BrokerError(`NOT_FOUND - no exchange '${exchange}' in vhost '/'`, null, 404);
           if (!cur.broker.queues[queue]) throw new BrokerError(`NOT_FOUND - no queue '${queue}' in vhost '/'`, null, 404);
-          const headers = Object.fromEntries(Object.entries(a).filter(([k]) => k !== "x-match").map(([k, v]) => [k, s(v)]));
-          // Without a routing key, pika binds with the queue name, as RabbitMQ does.
-          const bindKey = key === undefined || key === null ? queue : s(key);
-          if (fn === "queue_unbind") {
-            if (!cur.broker.bindings.some((b) => b.exchange === exchange && b.queue === queue && b.key === bindKey)) return null;
-            doAction({ type: "unbind", exchange, queue, key: bindKey });
-          } else
-            doAction({
-              type: "bind",
-              exchange,
-              queue,
-              key: bindKey,
-              headers: Object.keys(headers).length ? headers : undefined,
-              match: a["x-match"] ? (s(a["x-match"]) as "all" | "any") : undefined,
-            });
-          return null;
-        }
-        case "basic_publish": {
-          const exchange = s(arg("exchange", 0));
-          const routingKey = s(arg("routing_key", 1));
-          const body = s(arg("body", 2));
-          const props = (c.kwargs.properties ?? {}) as Record<string, Py>;
-          const mandatory = c.kwargs.mandatory === true;
-          if (exchange !== DEFAULT_EXCHANGE && !cur.broker.exchanges[exchange]) throw new BrokerError(`NOT_FOUND - no exchange '${exchange}' in vhost '/'`, null, 404);
-          const events = doAction({
-            type: "publish",
+          const headers = Object.fromEntries(Object.entries(a).filter(([k]) => k !== "x-match").map(([k, v]) => [k, jsStr(v)]));
+          doAction({
+            type: "bind",
             exchange,
-            routingKey,
-            body,
-            persistent: Number(props.delivery_mode) === 2,
-            headers: props.headers ? Object.fromEntries(Object.entries(props.headers as Record<string, Py>).map(([k, v]) => [k, s(v)])) : undefined,
-            ttl: props.expiration !== undefined ? Math.max(1, Math.ceil(Number(props.expiration) / 1000)) : undefined,
-            replyTo: props.reply_to ? s(props.reply_to) : undefined,
-            correlationId: props.correlation_id ? s(props.correlation_id) : undefined,
-            mandatory,
+            queue,
+            key,
+            headers: Object.keys(headers).length ? headers : undefined,
+            match: a["x-match"] !== undefined ? (jsStr(a["x-match"]) as "all" | "any") : undefined,
           });
-          if (confirms) {
-            if (mandatory && events.some((e) => e.type === "unroutable")) throw new PyError("pika.exceptions.UnroutableError", "1 unroutable message(s) returned");
-            if (events.some((e) => e.type === "confirmed" && !e.ok)) throw new PyError("pika.exceptions.NackError", "1 message(s) NACKed");
-          }
-          return null;
-        }
-        case "basic_qos":
-          qos = Number(arg("prefetch_count", 1) ?? 0);
-          return null;
-        case "confirm_delivery":
-          confirms = true;
-          return null;
-        case "basic_consume": {
-          const queue = s(arg("queue", 0));
-          const cb = arg("on_message_callback", 1);
-          const autoAck = c.kwargs.auto_ack === true;
+          return {};
+        }),
+      ),
+      unbindQueue: fn("unbindQueue", ([q, ex, pattern]) =>
+        rpc(chan, "QueueUnbind", () => {
+          const queue = nameArg(q, "queue", "");
+          const exchange = nameArg(ex, "exchange");
+          const key = pattern === undefined || pattern === null ? "" : jsStr(pattern);
+          if (!cur.broker.exchanges[exchange] || exchange === DEFAULT_EXCHANGE) throw new BrokerError(`NOT_FOUND - no exchange '${exchange}' in vhost '/'`, null, 404);
           if (!cur.broker.queues[queue]) throw new BrokerError(`NOT_FOUND - no queue '${queue}' in vhost '/'`, null, 404);
-          const consumeArgs = (c.kwargs.arguments ?? {}) as Record<string, Py>;
+          if (cur.broker.bindings.some((b) => b.exchange === exchange && b.queue === queue && b.key === key)) doAction({ type: "unbind", exchange, queue, key });
+          return {};
+        }),
+      ),
+      publish: fn("publish", ([ex, key, content, options, cb]) => publish(nameArg(ex, "exchange"), key === undefined ? "" : jsStr(key), content, options, cb)),
+      sendToQueue: fn("sendToQueue", ([q, content, options, cb]) => publish("", nameArg(q, "routingKey"), content, options, cb)),
+      prefetch: fn("prefetch", ([count]) => rpc(chan, "BasicQos", () => {
+        chan.qos = Number(count ?? 0);
+        return {};
+      })),
+      consume: fn("consume", ([q, callback, options]) =>
+        rpc(chan, "BasicConsume", () => {
+          const queue = nameArg(q, "queue");
+          const o = optsOf(options);
+          const autoAck = o.noAck === true;
+          if (!cur.broker.queues[queue]) throw new BrokerError(`NOT_FOUND - no queue '${queue}' in vhost '/'`, null, 404);
           const isStream = cur.broker.queues[queue]!.type === "stream";
           if (isStream && autoAck) throw new BrokerError(`PRECONDITION_FAILED - Stream consumers must use manual acknowledgements`, null, 406);
-          if (isStream && qos === 0) throw new BrokerError(`PRECONDITION_FAILED - consumer prefetch count is not set for stream queue '${queue}' in vhost '/'`, null, 406);
-          const rawOffset = consumeArgs["x-stream-offset"];
+          if (isStream && chan.qos === 0) throw new BrokerError(`PRECONDITION_FAILED - consumer prefetch count is not set for stream queue '${queue}' in vhost '/'`, null, 406);
+          const rawOffset = optsOf(o.arguments)["x-stream-offset"];
           let offset: "first" | "last" | "next" | number | undefined;
           if (rawOffset !== undefined) {
             if (typeof rawOffset === "number") offset = rawOffset;
-            else if (["first", "last", "next"].includes(s(rawOffset))) offset = s(rawOffset) as "first" | "last" | "next";
-            else throw new BrokerError(`PRECONDITION_FAILED - invalid x-stream-offset '${s(rawOffset)}'`, null, 406);
+            else if (["first", "last", "next"].includes(jsStr(rawOffset))) offset = jsStr(rawOffset) as "first" | "last" | "next";
+            else throw new BrokerError(`PRECONDITION_FAILED - invalid x-stream-offset '${jsStr(rawOffset)}'`, null, 406);
           }
-          const base = file.replace(/\.py$/, "");
-          let tag = c.kwargs.consumer_tag ? s(c.kwargs.consumer_tag) : base;
+          const base = file.replace(/\.[cm]?js$/, "");
+          let tag = o.consumerTag !== undefined ? jsStr(o.consumerTag) : base;
           for (let k = 2; cur.broker.consumers[tag]; k++) tag = `${base}-${k}`;
-          const fnStmt = isObj(cb) && cb.__obj === "function" ? funcs[cb.name as string] : undefined;
-          const worker = analyse(fnStmt, file);
-          doAction({ type: "consume", tag, queue, prefetch: qos, autoAck, speed: autoAck ? 1 : 0, offset });
+          const worker = analyse(it, callback, file);
+          doAction({ type: "consume", tag, queue, prefetch: chan.qos, autoAck, speed: autoAck ? 1 : 0, offset });
           doAction({ type: "startWorker", tag, worker });
-          return null;
-        }
-        case "start_consuming":
-          throw new Stop();
-        case "queue_purge":
-          doAction({ type: "purge", queue: s(arg("queue", 0)) });
-          return null;
-        case "queue_delete":
-          doAction({ type: "deleteQueue", name: s(arg("queue", 0)) });
-          return null;
-        case "basic_ack":
-        case "basic_nack":
-        case "basic_reject":
-          throw new PyError("Sandbox", `${fn} outside a callback`);
-        case "close":
-          return null;
-        default:
-          throw new PyError("Sandbox", `${c.callee}(…)`);
-      }
-    },
+          live.push({ tag, chan });
+          return { consumerTag: tag };
+        }),
+      ),
+      cancel: fn("cancel", ([t]) =>
+        rpc(chan, "BasicCancel", () => {
+          const c = live.find((x) => x.tag === jsStr(t));
+          if (c) {
+            live.splice(live.indexOf(c), 1);
+            doAction({ type: "cancel", tag: c.tag });
+            doAction({ type: "stopWorker", tag: c.tag });
+          }
+          return { consumerTag: jsStr(t) };
+        }),
+      ),
+      purgeQueue: fn("purgeQueue", ([q]) =>
+        rpc(chan, "QueuePurge", () => {
+          const queue = nameArg(q, "queue");
+          const n = cur.broker.queues[queue] ? depth(cur.broker, queue).ready : 0;
+          doAction({ type: "purge", queue });
+          return { messageCount: n };
+        }),
+      ),
+      deleteQueue: fn("deleteQueue", ([q]) =>
+        rpc(chan, "QueueDelete", () => {
+          const name = nameArg(q, "queue");
+          const n = cur.broker.queues[name] ? depth(cur.broker, name).ready : 0;
+          doAction({ type: "deleteQueue", name });
+          return { messageCount: n };
+        }),
+      ),
+      ack: notHere("ack", " outside a consume callback"),
+      nack: notHere("nack", " outside a consume callback"),
+      reject: notHere("reject", " outside a consume callback"),
+      ackAll: notHere("ackAll", " outside a consume callback"),
+      nackAll: notHere("nackAll", " outside a consume callback"),
+      get: notHere("get"),
+      recover: notHere("recover"),
+      bindExchange: notHere("bindExchange"),
+      unbindExchange: notHere("unbindExchange"),
+      deleteExchange: notHere("deleteExchange"),
+      close: fn("close", () => {
+        stopConsumers(chan, false);
+        chan.closed = true;
+        return it.promise("fulfilled");
+      }),
+      on: fn("on", ([event, f]) => {
+        if (event === "return") chan.returns.push(f);
+        if (event === "error") chan.errors.push(f);
+        return chan.obj;
+      }),
+    });
+    chan.obj.props.once = chan.obj.props.on;
+    chan.obj.props.addListener = chan.obj.props.on;
+    if (confirm)
+      chan.obj.props.waitForConfirms = fn("waitForConfirms", () => {
+        if (!chan.nacked) return it.promise("fulfilled", []);
+        chan.nacked = false;
+        const rejected = it.promise("rejected", makeError("Error", "message nacked"));
+        rejected.props.line = it.current?.line ?? 0;
+        return rejected;
+      });
+    return chan.obj;
   };
 
-  const exec = (stmts: Stmt[]) => {
-    for (const st of stmts) {
-      current = st;
-      const t = st.text;
-      if (/^(import|from)\s/.test(t)) {
-        for (const m of t.replace(/^from\s+(\S+).*/, "$1").replace(/^import\s+/, "").split(",")) {
-          const name = m.trim().split(/\s+as\s+/).pop()!.split(".")[0]!;
-          env.vars[name] = { __obj: `module ${name}` };
-        }
-        continue;
-      }
-      let m = /^def\s+([A-Za-z_]\w*)\s*\(.*\)\s*:$/.exec(t);
-      if (m) {
-        funcs[m[1]!] = st;
-        env.vars[m[1]!] = { __obj: "function", name: m[1]! };
-        continue;
-      }
-      m = /^for\s+([A-Za-z_]\w*)\s+in\s+(.+):$/.exec(t);
-      if (m) {
-        const items = evaluate(m[2]!, env);
-        if (!Array.isArray(items)) throw new PyError("TypeError", "object is not iterable");
-        for (const item of items) {
-          env.vars[m[1]!] = item;
-          exec(st.body);
-        }
-        continue;
-      }
-      if (/^(if|while|try|with|class|elif|else)\b/.test(t)) throw new PyError("Sandbox", t.split(/\s/)[0]!);
-      m = /^([A-Za-z_]\w*)\s*=(?!=)\s*(.+)$/.exec(t);
-      if (m) {
-        env.vars[m[1]!] = evaluate(m[2]!, env);
-        continue;
-      }
-      evaluate(t, env);
-    }
+  const connection = new HostObj("ChannelModel", {
+    createChannel: fn("createChannel", () => it.promise("fulfilled", makeChannel(false))),
+    createConfirmChannel: fn("createConfirmChannel", () => it.promise("fulfilled", makeChannel(true))),
+    close: fn("close", () => {
+      stopConsumers(null, false);
+      connClosed = true;
+      return it.promise("fulfilled");
+    }),
+    on: fn("on", () => connection),
+    once: fn("once", () => connection),
+  });
+  const connect = fn("connect", () => it.promise("fulfilled", connection));
+  const amqplib = { connect, default: { connect } };
+  const moduleFor = (name: string): Val | undefined => {
+    if (name === "amqplib") return amqplib;
+    if (name.startsWith("amqplib/")) throw new SandboxError(`${name} (this sandbox runs amqplib's promise API: import amqp from "amqplib")`);
+    return undefined;
   };
 
-  let stmts: Stmt[];
+  const where = () => {
+    const st = it.current;
+    return st ? `${path}:${st.line}\n${source.split("\n")[st.line - 1] ?? ""}\n` : "";
+  };
+
   try {
-    stmts = parseBlocks(source);
+    it.run(stmts);
   } catch (e) {
-    return { actions: [], output: lines(`  File "/home/you/${PROJECT}/${file}"\nSyntaxError: ${(e as Error).message}`, "err"), failed: true };
-  }
-  try {
-    exec(stmts);
-  } catch (e) {
-    if (e instanceof Stop) {
-      output.push(out(" [*] Waiting for messages. To exit press CTRL+C"), out("(running in the background, as if in a second terminal; stop it with pkill -f " + file + ")", "dim"));
-      return { actions, output };
+    if (e instanceof ExitSignal) {
+      stopConsumers(null, true);
+      return { actions, output, failed: e.code !== 0 };
     }
-    const st = current as Stmt | null;
-    const where = st ? `  File "/home/you/${PROJECT}/${file}", line ${st.line}, in <module>\n    ${st.text}\n` : "";
-    if (e instanceof BrokerError) {
-      return { actions, output: [...output, ...lines(`Traceback (most recent call last):\n${where}pika.exceptions.ChannelClosedByBroker: (${e.code}, "${e.message}")`, "err")], failed: true };
+    if (e instanceof SandboxError) {
+      stopConsumers(null, true);
+      return {
+        actions,
+        output: [...output, ...lines(`${where()}(this sandbox runs the amqplib calls from the lessons with const/let, if, for loops, functions and console.log; it cannot run: ${e.message})`, "dim")],
+        failed: true,
+      };
     }
-    if (e instanceof PyError) {
-      if (e.kind === "Sandbox")
-        return {
-          actions,
-          output: [...output, ...lines(`${where}(this sandbox runs the pika calls from the lessons, assignments, for loops, def and print; it cannot run: ${e.message})`, "dim")],
-          failed: true,
-        };
-      return { actions, output: [...output, ...lines(`Traceback (most recent call last):\n${where}${e.kind}: ${e.message}`, "err")], failed: true };
+    if (e instanceof JsThrow) {
+      stopConsumers(null, true);
+      const line = e.line || it.current?.line || 0;
+      const head = line ? `${path}:${line}\n${source.split("\n")[line - 1] ?? ""}\n^\n\n` : "";
+      const v = e.value;
+      const text = v instanceof HostObj && v.kind === "Error" ? `${jsStr(v.props.name)}: ${jsStr(v.props.message)}` : `Uncaught ${inspect(v, true)}`;
+      return { actions, output: [...output, ...lines(`${head}${text}\n\nNode.js ${NODE_VERSION}`, "err")], failed: true };
     }
     throw e;
   }
+  if (live.length && !connClosed) output.push(out(`(node keeps running and would hold this terminal; here it runs in the background, as with &. Stop it with: pkill -f ${file})`, "dim"));
   return { actions, output };
 }
 
@@ -674,50 +836,135 @@ class BrokerError extends Error {
   }
 }
 
-/** Reads a callback: what it does with each message (ack, reject…), when, how slowly, what it prints. */
-function analyse(fn: Stmt | undefined, script: string): Worker {
+/* ----------------------------------------------------------- callbacks */
+
+/** Swallows whatever reading a piece of a callback throws: that piece just tells nothing. */
+function quiet<T>(f: () => T): T | undefined {
+  try {
+    return f();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reads a consume callback without running it: what it does with each message (ack, nack,
+ * reject…, and on which bodies), how slowly, what it prints and what it answers (RPC).
+ * Its `const`s and `console.log` arguments are worked out with a stand-in message whose body
+ * prints as {text}; library calls are never made.
+ */
+function analyse(it: Interp, callback: Val, script: string): Worker {
   const w: Worker = { script, rules: [], verdict: "none", slow: 0, prints: [] };
-  if (!fn) return w;
-  const verdictIn = (stmts: Stmt[]): Verdict | null => {
-    for (const st of stmts) {
-      const t = st.text;
-      if (/basic_ack\(/.test(t)) return "ack";
-      if (/basic_(nack|reject)\(/.test(t)) return /requeue\s*=\s*False/.test(t) ? "drop" : "requeue";
-    }
-    return null;
+  if (!(callback instanceof Fn)) return w;
+  const def = callback.def;
+  const scope = new Scope(callback.scope);
+  const msg = new HostObj("Message", {
+    content: makeBuffer("{text}", true),
+    fields: { deliveryTag: 1, redelivered: false, exchange: "", routingKey: "{key}", consumerTag: "" },
+    properties: { headers: {}, replyTo: REPLY_TO, correlationId: CORR },
+  });
+  const body: Stmt[] = Array.isArray(def.body) ? def.body : [{ k: "expr", e: def.body, at: def.body.at, to: def.body.to, line: 0 }];
+  const ev = (e: Expr) => quiet(() => it.eval(e, scope));
+
+  /** What a call does with the message: ch.ack, ch.nack(msg, false, false), ch.reject(msg, false)… */
+  const settles = (e: Expr): Verdict | null => {
+    if (e.k !== "call") return null;
+    const n = calleeName(e);
+    if (n === "ack" || n === "ackAll") return "ack";
+    const at = n === "nack" ? 2 : n === "reject" ? 1 : n === "nackAll" ? 0 : -1;
+    if (at < 0) return null;
+    const arg = e.args[at];
+    return arg && ev(arg) === false ? "drop" : "requeue";
   };
+  const verdictIn = (stmts: Stmt[]): Verdict | null => {
+    let v: Verdict | null = null;
+    walkExprs(stmts, (e) => {
+      v ??= settles(e);
+    });
+    return v;
+  };
+
+  const onCall = (e: Extract<Expr, { k: "call" }>) => {
+    const n = calleeName(e);
+    if (e.callee.k === "mem" && e.callee.obj.k === "id" && e.callee.obj.name === "console" && n && ["log", "info", "warn", "error", "debug"].includes(n)) {
+      const args = quiet(() => e.args.map((a) => it.eval(a, scope)));
+      if (args) w.prints.push(formatLog(args));
+      return;
+    }
+    const v = settles(e);
+    if (v) {
+      if (w.verdict === "none") w.verdict = v;
+      return;
+    }
+    if (n === "setTimeout" || n === "sleep" || n === "delay" || n === "wait") {
+      // setTimeout(fn, ms) or, from timers/promises, setTimeout(ms) like sleep(ms).
+      const msArg = n === "setTimeout" && e.args.length >= 2 ? e.args[1] : e.args[0];
+      const ms = msArg ? ev(msArg) : undefined;
+      if (typeof ms === "number" && ms > 0) w.slow = Math.max(1, Math.round(ms / 1000));
+      return;
+    }
+    if (n === "sendToQueue" || n === "publish") {
+      const [toArg, bodyArg, optArg] = n === "sendToQueue" ? e.args : e.args.slice(1);
+      const to = toArg ? ev(toArg) : undefined;
+      if (typeof to !== "string" || (to !== REPLY_TO && /\{\w+\}/.test(to))) return;
+      // A literal answer (Buffer.from("42")); anything worked out from the request sends its body back.
+      const lit = bodyArg && bodyArg.k === "call" && calleeName(bodyArg) === "from" && bodyArg.args.length === 1 && (bodyArg.args[0]!.k === "lit" || (bodyArg.args[0]!.k === "tpl" && !bodyArg.args[0]!.exprs.length)) ? jsStr(ev(bodyArg.args[0]!)) : null;
+      const o = optArg ? ev(optArg) : undefined;
+      w.reply = { body: lit, to: to === REPLY_TO ? null : to, corr: optsOf(o).correlationId === CORR };
+    }
+  };
+
+  const visit = (e: Expr): void => {
+    if (e.k === "fn") {
+      if (Array.isArray(e.fn.body)) walk(e.fn.body);
+      else visit(e.fn.body);
+      return;
+    }
+    if (e.k === "call") onCall(e);
+    childExprs(e).forEach(visit);
+  };
+
   const walk = (stmts: Stmt[]) => {
     for (const st of stmts) {
-      const t = st.text;
-      const sleep = /time\.sleep\(\s*([\d.]+)\s*\)/.exec(t);
-      if (sleep) w.slow = Math.max(1, Math.round(Number(sleep[1])));
-      const pr = /^print\(\s*f?(["'])(.*)\1\s*\)$/.exec(t);
-      if (pr) w.prints.push(pr[2]!.replace(/\{body\.decode\(\)\}/g, "{text}").replace(/\{body\}/g, "{body}"));
-      const cond = /^(if|elif)\s+(.+):$/.exec(t);
-      if (cond) {
-        const c = cond[2]!;
-        const exact = /body(?:\.decode\(\))?\s*==\s*b?(["'])(.*?)\1/.exec(c);
-        const part = /b?(["'])(.*?)\1\s+in\s+body/.exec(c);
-        const v = verdictIn(st.body);
-        if ((exact || part) && v) w.rules.push({ match: (exact ?? part)![2]!, exact: Boolean(exact), verdict: v });
+      if (st.k === "if") {
+        // if / else if: a rule for each body test; a final else is what happens to the rest.
+        let s: Stmt | undefined = st;
+        while (s && s.k === "if") {
+          const cond = it.text(s.test);
+          const exact = /(?:^|[^!=<>])===?\s*(["'`])(.*?)\1/.exec(cond) ?? /(["'`])(.*?)\1\s*===?(?!=)/.exec(cond);
+          const part = /\.includes\(\s*(["'`])(.*?)\1\s*\)/.exec(cond);
+          if (exact || part) {
+            const v = verdictIn(s.yes);
+            if (v) w.rules.push({ match: (exact ?? part)![2]!, exact: Boolean(exact), verdict: v });
+          } else walk(s.yes); // A guard such as `if (msg !== null)`: its body is the callback's own work.
+          const no: Stmt[] | undefined = s.no;
+          if (no && no.length === 1 && no[0]!.k === "if") s = no[0];
+          else {
+            const ev2 = no ? verdictIn(no) : null;
+            if (ev2) w.verdict = ev2;
+            s = undefined;
+          }
+        }
         continue;
       }
-      if (/^else\s*:$/.test(t)) {
-        const v = verdictIn(st.body);
-        if (v) w.verdict = v;
-        continue;
-      }
-      if (/basic_ack\(|basic_(nack|reject)\(/.test(t) && w.verdict === "none") w.verdict = verdictIn([st])!;
-      if (/basic_publish\(/.test(t)) {
-        const lit = /body\s*=\s*b?(["'])(.*?)\1/.exec(t);
-        const fixed = /routing_key\s*=\s*(["'])(.*?)\1/.exec(t);
-        const toReplyTo = /routing_key\s*=\s*\w+\.reply_to/.test(t);
-        if (fixed || toReplyTo)
-          w.reply = { body: lit ? lit[2]! : null, to: toReplyTo ? null : fixed![2]!, corr: /correlation_id\s*=\s*\w+\.correlation_id/.test(t) };
-      }
+      if (st.k === "var") quiet(() => it.exec(st, scope));
+      const { exprs, blocks } = stmtParts(st);
+      exprs.forEach(visit);
+      // try blocks and plain blocks count as the callback's own code; a catch does not.
+      if (st.k === "try") walk(st.block);
+      else if (st.k === "block" || st.k === "for" || st.k === "forof") blocks.forEach(walk);
     }
   };
-  walk(fn.body);
+
+  it.analysing = true;
+  const saved = it.current;
+  try {
+    def.params.forEach((p, k) => quiet(() => it.bind(p, k === 0 ? msg : undefined, scope, false, true)));
+    walk(body);
+  } finally {
+    it.analysing = false;
+    it.current = saved;
+  }
   return w;
 }
 
@@ -1042,8 +1289,8 @@ function rabbitmqQueues(p: Project, args: string[], on = p.broker.nodes.find((n)
 }
 
 const HELP = `This sandbox understands:
-  nano <file>          edit a file (publisher.py, worker.py, setup.py…)
-  python <file>        run it; its pika calls go to the broker
+  nano <file>          edit a file (publisher.js, worker.js, setup.js…)
+  node <file>          run it; its amqplib calls go to the broker
   rabbitmqctl …        list_queues, list_exchanges, list_bindings, list_consumers,
                        purge_queue, delete_queue, set_policy, list_policies, clear_policy,
                        cluster_status (also: docker exec rabbitmq rabbitmqctl …)

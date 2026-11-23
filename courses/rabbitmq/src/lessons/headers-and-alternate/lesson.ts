@@ -40,8 +40,8 @@ export const headersAndAlternate: Lesson = {
         commands: [],
         snippets: [
           {
-            label: "Python · headers kur",
-            code: 'ch.exchange_declare(exchange="documents", exchange_type="headers", durable=True)\nch.queue_declare(queue="pdf-eu", durable=True)\nch.queue_bind(exchange="documents", queue="pdf-eu",\n              arguments={"x-match": "all", "format": "pdf", "region": "eu"})',
+            label: "Node.js · headers kur ve gönder",
+            code: 'await ch.assertExchange("documents", "headers");\nawait ch.assertQueue("pdf-eu");\nawait ch.bindQueue("pdf-eu", "documents", "", {\n  "x-match": "all", format: "pdf", region: "eu",\n});\nch.publish("documents", "", body, {\n  headers: { format: "pdf", region: "eu" },\n});',
           },
         ],
       },
@@ -57,10 +57,6 @@ export const headersAndAlternate: Lesson = {
       },
       title: l("İki kural da sağlandı", "Both rules are met"),
       body: [l("Belge iki kuyruğa da düştü. Headers exchange de fanout ve topic gibi uyan her kuyruğa bir kopya verir.", "The document landed in both queues. Like fanout and topic, a headers exchange gives a copy to every matching queue.")],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · header'lı gönder", code: 'ch.basic_publish(exchange="documents", routing_key="", body=b"...",\n                 properties=pika.BasicProperties(headers={"format": "pdf", "region": "eu"}))' }],
-      },
     },
     {
       short: l("all ile any", "all vs any"),
@@ -98,7 +94,6 @@ export const headersAndAlternate: Lesson = {
         l("Belge hiçbir kuyruğa uymadı ve atıldı; çöp kutusunun altında \"kayıp: 1\" var. Producer'a hiçbir hata gelmedi.", "The document matched no queue and was dropped; under the waste bin it says \"lost: 1\". The producer got no error."),
         l("Bu, yazım hatalı bir header, eksik bir binding ya da henüz açılmamış bir servis yüzünden her exchange türünde olabilir. Bunu yakalamanın iki yolu var.", "This can happen with any exchange type: a misspelled header, a missing binding, a service not started yet. There are two ways to catch it."),
       ],
-      practice: { commands: [] },
     },
     {
       short: l("Alternate", "Alternate"),
@@ -129,8 +124,8 @@ export const headersAndAlternate: Lesson = {
         ],
         snippets: [
           {
-            label: "Python · tanımlarken",
-            code: 'ch.exchange_declare(exchange="unrouted", exchange_type="fanout", durable=True)\nch.exchange_declare(exchange="documents", exchange_type="headers", durable=True,\n                    arguments={"alternate-exchange": "unrouted"})',
+            label: "Node.js · alternate exchange",
+            code: 'await ch.assertExchange("unrouted", "fanout");\nawait ch.assertExchange("documents", "headers", {\n  alternateExchange: "unrouted",\n});',
           },
         ],
       },
@@ -140,8 +135,8 @@ export const headersAndAlternate: Lesson = {
       tag: "how",
       predict: {
         question: l(
-          "`orders` exchange'inde sadece `invoice` binding'i var. Mağaza `refund` key'li bir mesajı `mandatory=True` ile gönderecek. Ne olur?",
-          "`orders` has only an `invoice` binding. The shop will send a `refund` message with `mandatory=True`. What happens?",
+          "`orders` exchange'inde sadece `invoice` binding'i var. Mağaza `refund` key'li bir mesajı `mandatory: true` ile gönderecek. Ne olur?",
+          "`orders` has only an `invoice` binding. The shop will send a `refund` message with `mandatory: true`. What happens?",
         ),
         options: [l("Sessizce atılır", "It is silently dropped"), l("Producer'a geri döner", "It comes back to the producer"), l("`billing`'e gider", "It goes to `billing`")],
         answer: 1,
@@ -150,8 +145,8 @@ export const headersAndAlternate: Lesson = {
       title: l("`mandatory`: uymazsa geri ver", "`mandatory`: give it back if it matches nothing"),
       body: [
         l(
-          "Mağaza önce `refund`'ı normal gönderdi: atıldı. Sonra aynısını `mandatory=True` ile gönderdi: broker mesajı **geri döndürdü**. Producer bunu fark edip loglayabilir, uyarı verebilir ya da tekrar deneyebilir.",
-          "The shop first sent `refund` normally: dropped. Then it sent the same with `mandatory=True`: the broker **returned** it. The producer can notice, log it, alert, or retry.",
+          "Mağaza önce `refund`'ı normal gönderdi: atıldı. Sonra aynısını `mandatory: true` ile gönderdi: broker mesajı **geri döndürdü**. Producer bunu fark edip loglayabilir, uyarı verebilir ya da tekrar deneyebilir.",
+          "The shop first sent `refund` normally: dropped. Then it sent the same with `mandatory: true`: the broker **returned** it. The producer can notice, log it, alert, or retry.",
         ),
       ],
       callouts: [
@@ -163,16 +158,6 @@ export const headersAndAlternate: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · mandatory",
-            code: 'ch.confirm_delivery()\ntry:\n    ch.basic_publish(exchange="orders", routing_key="refund", body=b"r2", mandatory=True)\nexcept pika.exceptions.UnroutableError:\n    print("no queue took it")',
-            note: l("Pika'nın BlockingConnection'ında iade edilen mesaj, publisher confirms açıkken `UnroutableError` olarak gelir.", "With pika's BlockingConnection and publisher confirms on, a returned message raises `UnroutableError`."),
-          },
-        ],
-      },
     },
     {
       short: l("Hangisi?", "Which one?"),
@@ -196,12 +181,12 @@ export const headersAndAlternate: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Bir belge arşivi var: `upload.py` `docs` headers exchange'ine `format` ve `region` header'lı dört belge gönderir (`pdf/eu`, `pdf/us`, `csv/eu`, `csv/us`); `setup.py` exchange'leri ve kuyrukları kurar. Aşağıda gerçek işten **4 senaryo** var.",
-          "Your turn. There's a document archive: `upload.py` sends four documents with `format` and `region` headers to the `docs` headers exchange (`pdf/eu`, `pdf/us`, `csv/eu`, `csv/us`); `setup.py` builds the exchanges and queues. Below are **4 scenarios** from real work.",
+          "Sıra sende. Bir belge arşivi var: `upload.js` `docs` headers exchange'ine `format` ve `region` header'lı dört belge gönderir (`pdf/eu`, `pdf/us`, `csv/eu`, `csv/us`); `setup.js` exchange'leri ve kuyrukları kurar. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a document archive: `upload.js` sends four documents with `format` and `region` headers to the `docs` headers exchange (`pdf/eu`, `pdf/us`, `csv/eu`, `csv/us`); `setup.js` builds the exchanges and queues. Below are **4 scenarios** from real work.",
         ),
         l(
-          "`nano` ile kodu düzelt, `python` ile çalıştır. `rabbitmqctl list_bindings source_name destination_name arguments` headers binding'lerini gösterir. Hata çıkarsa oku: sıranın önemli olduğu bir senaryo var.",
-          "Fix the code with `nano`, run it with `python`. `rabbitmqctl list_bindings source_name destination_name arguments` shows the headers bindings. If you get an error, read it: in one scenario the order matters.",
+          "`nano` ile kodu düzelt, `node` ile çalıştır. `rabbitmqctl list_bindings source_name destination_name arguments` headers binding'lerini gösterir. Hata çıkarsa oku: sıranın önemli olduğu bir senaryo var.",
+          "Fix the code with `nano`, run it with `node`. `rabbitmqctl list_bindings source_name destination_name arguments` shows the headers bindings. If you get an error, read it: in one scenario the order matters.",
         ),
       ],
     },
@@ -211,7 +196,7 @@ export const headersAndAlternate: Lesson = {
     l("`x-match: all` bütün header'ların, `any` sadece birinin uymasını ister.", "`x-match: all` needs every header to match, `any` needs just one."),
     l("Hiçbir kuyruğa uymayan mesaj varsayılan olarak sessizce atılır.", "A message that matches no queue is silently dropped by default."),
     l("Alternate exchange, uymayan mesajları broker'da yakalar; en iyisi policy ile kurmak.", "An alternate exchange catches unmatched messages in the broker; best set with a policy."),
-    l("`mandatory=True` uymayan mesajı producer'a geri döndürür; producer bunu dinlemeli.", "`mandatory=True` returns an unmatched message to the producer, which must listen for it."),
+    l("`mandatory: true` uymayan mesajı producer'a geri döndürür; producer bunu dinlemeli.", "`mandatory: true` returns an unmatched message to the producer, which must listen for it."),
   ],
   quiz: [
     {
@@ -230,7 +215,7 @@ export const headersAndAlternate: Lesson = {
     },
     {
       question: l("Producer kodlarına dokunmadan, uymayan bütün mesajları bir kuyrukta toplamak istiyorsun. Ne kullanırsın?", "You want every unmatched message collected in a queue, without touching producer code. What do you use?"),
-      options: [l("`mandatory=True`", "`mandatory=True`"), l("Policy ile alternate exchange", "An alternate exchange set by policy"), l("Headers exchange", "A headers exchange"), l("Daha büyük bir kuyruk", "A bigger queue")],
+      options: [l("`mandatory: true`", "`mandatory: true`"), l("Policy ile alternate exchange", "An alternate exchange set by policy"), l("Headers exchange", "A headers exchange"), l("Daha büyük bir kuyruk", "A bigger queue")],
       answer: 1,
       explain: l("Alternate exchange broker'da tanımlanır; policy ile kodsuz eklenir. `mandatory` her producer'ın kodunu değiştirmeyi gerektirir.", "An alternate exchange lives in the broker and a policy adds it without code. `mandatory` needs every producer's code to change."),
       reviewStep: 4,

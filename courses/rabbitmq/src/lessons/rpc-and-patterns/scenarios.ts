@@ -1,38 +1,32 @@
 import { l } from "@lets-explain/core/i18n";
 import { depth } from "../../engine/broker";
 import type { RabbitCtx, RabbitScenario } from "../shared/BrokerScene";
-import { eventsOf, projectAfter, script } from "../shared/missionHelpers";
+import { CONNECT, eventsOf, projectAfter, script } from "../shared/missionHelpers";
 
 /* ------------------------------------------------------------ the projects */
 
 /** The request queue `rpc` and the web client's reply queue `replies` (and any more reply queues). */
 const setup = (...replyQueues: string[]) =>
-  script(["rpc", "replies", ...replyQueues].map((q) => `ch.queue_declare(queue="${q}", durable=True)`).join("\n"));
+  script(["rpc", "replies", ...replyQueues].map((q) => `await ch.assertQueue("${q}");`).join("\n"));
 
 /** A price server. `publish` is its answer line, so a scenario can start from a broken one. */
-const server = (publish: string) => `import pika
+const server = (publish: string) => `${CONNECT}
+await ch.prefetch(1);
+await ch.consume("rpc", (msg) => {
+  console.log(\` [.] price for \${msg.content}\`);
+  ${publish}
+  ch.ack(msg);
+});
+console.log(" [x] Awaiting RPC requests");`;
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
+const GOOD_ANSWER = 'ch.sendToQueue(msg.properties.replyTo, Buffer.from("42.90"), { correlationId: msg.properties.correlationId });';
 
-def on_request(ch, method, props, body):
-    print(f" [.] price for {body.decode()}")
-    ${publish}
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-ch.basic_qos(prefetch_count=1)
-ch.basic_consume(queue="rpc", on_message_callback=on_request)
-print(" [x] Awaiting RPC requests")
-ch.start_consuming()`;
-
-const GOOD_ANSWER = 'ch.basic_publish(exchange="", routing_key=props.reply_to, properties=pika.BasicProperties(correlation_id=props.correlation_id), body=b"42.90")';
-
-/** A client asking for a price; the answer is to go to `replyTo`, tagged with `corr`. */
+/** A client asking for a price; the answer is to go to `replyTo`, tagged with `corr`. `extra` adds options. */
 const client = (replyTo: string, corr: string, extra = "") =>
-  script(`ch.basic_publish(exchange="", routing_key="rpc", properties=pika.BasicProperties(reply_to="${replyTo}", correlation_id="${corr}"${extra}), body=b"sku-${corr}")`);
+  script(`ch.sendToQueue("rpc", Buffer.from("sku-${corr}"), { replyTo: "${replyTo}", correlationId: "${corr}"${extra} });`);
 
 /** Free play: the queues, a working server and a client. */
-export const FREE = projectAfter({ "setup.py": setup(), "server.py": server(GOOD_ANSWER), "client.py": client("replies", "c1") }, ["python setup.py"]);
+export const FREE = projectAfter({ "setup.js": setup(), "server.js": server(GOOD_ANSWER), "client.js": client("replies", "c1") }, ["node setup.js"]);
 
 /* ----------------------------------------------------------------- checks */
 
@@ -51,11 +45,11 @@ export const scenarios: RabbitScenario[] = [
       "The checkout page times out when it asks for a price. The request is waiting in the `rpc` queue, but `rabbitmqctl list_queues name messages consumers` shows the sad truth: the price server hasn't run since this morning's deploy.",
     ),
     goal: l("Bekleyen `c1` isteğinin cevabı `replies` kuyruğuna ulaşsın.", "The answer to the waiting request `c1` reaches the `replies` queue."),
-    start: projectAfter({ "setup.py": setup(), "server.py": server(GOOD_ANSWER), "client.py": client("replies", "c1") }, ["python setup.py", "python client.py"]),
+    start: projectAfter({ "setup.js": setup(), "server.js": server(GOOD_ANSWER), "client.js": client("replies", "c1") }, ["node setup.js", "node client.js"]),
     hints: [
       l("`consumers` sütunu 0: istek kuyrukta bekliyor, kimse almıyor.", "The `consumers` column is 0: the request waits in the queue and nobody takes it."),
-      l("Sunucu bir Python dosyası; başlatınca arka planda çalışır ve bekleyen isteği hemen alır.", "The server is a Python file; started, it runs in the background and picks up the waiting request at once."),
-      l("`python server.py`", "`python server.py`"),
+      l("Sunucu bir Node.js dosyası; başlatınca arka planda çalışır ve bekleyen isteği hemen alır.", "The server is a Node.js file; started, it runs in the background and picks up the waiting request at once."),
+      l("`node server.js`", "`node server.js`"),
     ],
     par: 1,
     check: (ctx) => answered(ctx, "replies", "c1"),
@@ -64,22 +58,28 @@ export const scenarios: RabbitScenario[] = [
     id: "wrong-reply-queue",
     title: l("Başkasının kutusu", "Someone else's mailbox"),
     story: l(
-      "Mobil uygulama artık kendi cevap kuyruğunu (`replies-mobile`) kullanıyor ve isteğinde `reply_to` ile bunu söylüyor. Ama mobil kullanıcılar hiç fiyat görmüyor: sunucu cevabı her zaman `replies`'a yazıyor. Mobilin `c7` isteği `rpc`'de bekliyor; sunucu şu an kapalı.",
-      "The mobile app now uses its own reply queue (`replies-mobile`) and says so in its request with `reply_to`. But mobile users never see a price: the server always writes the answer to `replies`. The mobile request `c7` is waiting in `rpc`; the server is down right now.",
+      "Mobil uygulama artık kendi cevap kuyruğunu (`replies-mobile`) kullanıyor ve isteğinde `replyTo` ile bunu söylüyor. Ama mobil kullanıcılar hiç fiyat görmüyor: sunucu cevabı her zaman `replies`'a yazıyor. Mobilin `c7` isteği `rpc`'de bekliyor; sunucu şu an kapalı.",
+      "The mobile app now uses its own reply queue (`replies-mobile`) and says so in its request with `replyTo`. But mobile users never see a price: the server always writes the answer to `replies`. The mobile request `c7` is waiting in `rpc`; the server is down right now.",
     ),
     goal: l("`c7`'nin cevabı `replies-mobile`'a ulaşsın.", "The answer to `c7` reaches `replies-mobile`."),
     start: projectAfter(
       {
-        "setup.py": setup("replies-mobile"),
-        "server.py": server('ch.basic_publish(exchange="", routing_key="replies", properties=pika.BasicProperties(correlation_id=props.correlation_id), body=b"42.90")'),
-        "mobile.py": client("replies-mobile", "c7"),
+        "setup.js": setup("replies-mobile"),
+        "server.js": server('ch.sendToQueue("replies", Buffer.from("42.90"), { correlationId: msg.properties.correlationId });'),
+        "mobile.js": client("replies-mobile", "c7"),
       },
-      ["python setup.py", "python mobile.py"],
+      ["node setup.js", "node mobile.js"],
     ),
     hints: [
       l("RPC'de cevabın nereye gideceğini istemci söyler, sunucu değil.", "In RPC the client says where the answer goes, not the server."),
-      l("Sunucu, `routing_key` olarak sabit bir kuyruk yerine isteğin `props.reply_to`'sunu kullanmalı.", "The server should use the request's `props.reply_to` as its `routing_key`, not a fixed queue."),
-      l("`nano server.py` (`routing_key=props.reply_to`), `python server.py`", "`nano server.py` (`routing_key=props.reply_to`), `python server.py`"),
+      l(
+        "Sunucu cevabı sabit bir kuyruk yerine isteğin `msg.properties.replyTo`'suna göndermeli.",
+        "The server should send the answer to the request's `msg.properties.replyTo`, not to a fixed queue.",
+      ),
+      l(
+        "`nano server.js` (`ch.sendToQueue(\"replies\", …)` → `ch.sendToQueue(msg.properties.replyTo, …)`), `node server.js`",
+        "`nano server.js` (`ch.sendToQueue(\"replies\", …)` → `ch.sendToQueue(msg.properties.replyTo, …)`), `node server.js`",
+      ),
     ],
     par: 2,
     check: (ctx) => answered(ctx, "replies-mobile", "c7"),
@@ -94,16 +94,22 @@ export const scenarios: RabbitScenario[] = [
     goal: l("`replies`'a `c1` ve `c2` correlation id'li iki cevap ulaşsın.", "Two answers, with correlation ids `c1` and `c2`, reach `replies`."),
     start: projectAfter(
       {
-        "setup.py": setup(),
-        "server.py": server('ch.basic_publish(exchange="", routing_key=props.reply_to, body=b"42.90")'),
-        "client.py": script(`for c in ["c1", "c2"]:\n    ch.basic_publish(exchange="", routing_key="rpc", properties=pika.BasicProperties(reply_to="replies", correlation_id=c), body=b"sku")`),
+        "setup.js": setup(),
+        "server.js": server('ch.sendToQueue(msg.properties.replyTo, Buffer.from("42.90"));'),
+        "client.js": script(`for (const c of ["c1", "c2"]) {\n  ch.sendToQueue("rpc", Buffer.from("sku"), { replyTo: "replies", correlationId: c });\n}`),
       },
-      ["python setup.py", "python client.py"],
+      ["node setup.js", "node client.js"],
     ),
     hints: [
-      l("Correlation id isteğin `props`'unda geliyor; sunucunun onu cevaba aynen koyması gerekir.", "The correlation id arrives in the request's `props`; the server must put it on the answer as is."),
-      l("Cevabın `basic_publish`'ine `properties=pika.BasicProperties(correlation_id=props.correlation_id)` ekle ve sunucuyu başlat.", "Add `properties=pika.BasicProperties(correlation_id=props.correlation_id)` to the answer's `basic_publish` and start the server."),
-      l("`nano server.py`, `python server.py`", "`nano server.py`, `python server.py`"),
+      l(
+        "Correlation id isteğin `msg.properties`'inde geliyor; sunucunun onu cevaba aynen koyması gerekir.",
+        "The correlation id arrives in the request's `msg.properties`; the server must put it on the answer as is.",
+      ),
+      l(
+        "Cevabın `sendToQueue`'suna seçenek olarak `{ correlationId: msg.properties.correlationId }` ekle ve sunucuyu başlat.",
+        "Add `{ correlationId: msg.properties.correlationId }` as the options of the answer's `sendToQueue` and start the server.",
+      ),
+      l("`nano server.js`, `node server.js`", "`nano server.js`, `node server.js`"),
     ],
     par: 2,
     check: (ctx) => answered(ctx, "replies", "c1") && answered(ctx, "replies", "c2"),
@@ -116,14 +122,17 @@ export const scenarios: RabbitScenario[] = [
       "The price servers are down for maintenance tonight. The checkout page gives up after 5 seconds anyway, but requests pile up in `rpc`, and in the morning the servers spend hours computing stale prices. A request not answered within 5 seconds should disappear on its own.",
     ),
     goal: l(
-      "`client.py`'nin isteği 5 saniye içinde cevapsız kalınca `rpc`'den kendiliğinden silinsin; sonunda `rpc` boş olsun.",
-      "When `client.py`'s request goes unanswered for 5 seconds, it leaves `rpc` on its own; `rpc` is empty at the end.",
+      "`client.js`'nin isteği 5 saniye içinde cevapsız kalınca `rpc`'den kendiliğinden silinsin; sonunda `rpc` boş olsun.",
+      "When `client.js`'s request goes unanswered for 5 seconds, it leaves `rpc` on its own; `rpc` is empty at the end.",
     ),
-    start: projectAfter({ "setup.py": setup(), "client.py": client("replies", "c9") }, ["python setup.py"]),
+    start: projectAfter({ "setup.js": setup(), "client.js": client("replies", "c9") }, ["node setup.js"]),
     hints: [
       l("Bir mesaj kendi ömrünü taşıyabilir: `expiration` özelliği, milisaniye cinsinden, metin olarak.", "A message can carry its own lifetime: the `expiration` property, in milliseconds, as a string."),
-      l("İstemcinin `BasicProperties`'ine `expiration=\"5000\"` ekle, gönder ve zamanın geçmesini bekle.", "Add `expiration=\"5000\"` to the client's `BasicProperties`, send, and let the time pass."),
-      l("`nano client.py` (`expiration=\"5000\"`), `python client.py`, `sleep 5`", "`nano client.py` (`expiration=\"5000\"`), `python client.py`, `sleep 5`"),
+      l(
+        "İstemcinin seçeneklerine (`replyTo`'nun yanına) `expiration: \"5000\"` ekle, gönder ve zamanın geçmesini bekle.",
+        "Add `expiration: \"5000\"` to the client's options (next to `replyTo`), send, and let the time pass.",
+      ),
+      l("`nano client.js` (`expiration: \"5000\"`), `node client.js`, `sleep 5`", "`nano client.js` (`expiration: \"5000\"`), `node client.js`, `sleep 5`"),
     ],
     par: 3,
     check: (ctx) =>

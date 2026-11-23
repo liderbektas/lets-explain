@@ -3,16 +3,6 @@ import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
-const DLX_SETUP = `ch.exchange_declare(exchange="dlx", exchange_type="fanout", durable=True)
-ch.queue_declare(queue="dead", durable=True)
-ch.queue_bind(queue="dead", exchange="dlx")
-
-ch.queue_declare(
-    queue="work",
-    durable=True,
-    arguments={"x-dead-letter-exchange": "dlx"},
-)`;
-
 export const deadLetters: Lesson = {
   slug: "dead-letters",
   title: l("Dead letter, TTL, max-length", "Dead letters, TTL, max length"),
@@ -48,7 +38,12 @@ export const deadLetters: Lesson = {
         ),
       ],
       practice: {
-        snippets: [{ label: "Python · DLX kur", code: DLX_SETUP }],
+        snippets: [
+          {
+            label: "Node.js · DLX kur",
+            code: 'await ch.assertExchange("dlx", "fanout");\nawait ch.assertQueue("dead");\nawait ch.bindQueue("dead", "dlx", "");\n\nawait ch.assertQueue("work", {\n  deadLetterExchange: "dlx",\n});',
+          },
+        ],
         commands: [],
       },
     },
@@ -57,8 +52,8 @@ export const deadLetters: Lesson = {
       tag: "how",
       predict: {
         question: l(
-          "İşçi `a1`'i `nack(requeue=False)` ile reddedecek. `work`'ün DLX'i var. Mesaj nereye gider?",
-          "The worker will reject `a1` with `nack(requeue=False)`. `work` has a DLX. Where does the message go?",
+          "İşçi `a1`'i `nack` (`requeue: false`) ile reddedecek. `work`'ün DLX'i var. Mesaj nereye gider?",
+          "The worker will reject `a1` with `nack` (`requeue: false`). `work` has a DLX. Where does the message go?",
         ),
         options: [l("Silinir", "It is deleted"), l("`dlx` üzerinden `dead` kuyruğuna", "Through `dlx` into the `dead` queue"), l("`work`'ün başına geri döner", "Back to the front of `work`")],
         answer: 1,
@@ -74,14 +69,10 @@ export const deadLetters: Lesson = {
           "`a1` went to the worker, the worker rejected it, and it landed in `dead` through `dlx`. The panel on the right shows why: `rejected@work`.",
         ),
         l(
-          "`requeue=True` ile reddetmek mesajı geri koyar ve aynı hata sonsuza dek tekrarlanabilir. İşlenemeyeceğinden emin olduğun mesajı `requeue=False` ile reddet.",
-          "Rejecting with `requeue=True` puts the message back, and the same failure can repeat forever. Reject a message you know cannot succeed with `requeue=False`.",
+          "`requeue: true` ile reddetmek mesajı geri koyar ve aynı hata sonsuza dek tekrarlanabilir. İşlenemeyeceğinden emin olduğun mesajı `requeue: false` ile reddet.",
+          "Rejecting with `requeue: true` puts the message back, and the same failure can repeat forever. Reject a message you know cannot succeed with `requeue: false`.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · DLX'e gönder", code: "ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)" }],
-        commands: [],
-      },
     },
     {
       short: l("TTL", "TTL"),
@@ -120,8 +111,10 @@ export const deadLetters: Lesson = {
       ],
       practice: {
         snippets: [
-          { label: "Python · kuyruk TTL'i", code: 'ch.queue_declare(\n    queue="waiting",\n    durable=True,\n    arguments={"x-message-ttl": 60000, "x-dead-letter-exchange": "dlx"},\n)' },
-          { label: "Python · mesaj başına TTL", code: 'pika.BasicProperties(expiration="60000")  # milisaniye, metin olarak' },
+          {
+            label: "Node.js · TTL",
+            code: 'await ch.assertQueue("waiting", {\n  messageTtl: 60000, // ms\n  deadLetterExchange: "dlx",\n});\n// per message: { expiration: "60000" }',
+          },
         ],
         commands: [],
       },
@@ -140,15 +133,6 @@ export const deadLetters: Lesson = {
           "An app reading `dead` can decide from this header: show `rejected` ones to a human, drop `expired` ones quietly.",
         ),
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · x-death oku",
-            code: 'def handle(ch, method, props, body):\n    for death in (props.headers or {}).get("x-death", []):\n        print(death["reason"], death["queue"], death["count"])\n    ch.basic_ack(delivery_tag=method.delivery_tag)',
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("max-length", "max-length"),
@@ -180,10 +164,6 @@ export const deadLetters: Lesson = {
           "A limit stops a queue from eating all memory when a consumer is down for a long time. Mind which messages go, though: the oldest ones.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · max-length", code: 'arguments={"x-max-length": 2, "x-dead-letter-exchange": "dlx"}' }],
-        commands: [],
-      },
     },
     {
       short: l("reject-publish", "reject-publish"),
@@ -211,10 +191,6 @@ export const deadLetters: Lesson = {
           "The choice is: sacrifice the old (drop-head) or stop the new (reject-publish). For work that must not be lost, such as orders, reject-publish plus publisher confirms that slow the producer down is safer.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · reject-publish", code: 'arguments={"x-max-length": 1, "x-overflow": "reject-publish"}' }],
-        commands: [],
-      },
     },
     {
       short: l("Dead letter key", "Dead letter key"),
@@ -233,8 +209,8 @@ export const deadLetters: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · dead letter key",
-            code: 'ch.queue_declare(\n    queue="payments",\n    durable=True,\n    arguments={\n        "x-dead-letter-exchange": "errors-x",\n        "x-dead-letter-routing-key": "payment.failed",\n    },\n)',
+            label: "Node.js · dead letter key",
+            code: 'await ch.assertQueue("payments", {\n  deadLetterExchange: "errors-x",\n  deadLetterRoutingKey: "payment.failed",\n});',
           },
         ],
         commands: [],
@@ -263,15 +239,6 @@ export const deadLetters: Lesson = {
           ),
         },
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · bekleme kuyruğu",
-            code: 'ch.exchange_declare(exchange="retry-x", exchange_type="fanout", durable=True)\nch.queue_declare(\n    queue="jobs.retry",\n    durable=True,\n    arguments={\n        "x-message-ttl": 30000,\n        "x-dead-letter-exchange": "",\n        "x-dead-letter-routing-key": "jobs",\n    },\n)\nch.queue_bind(queue="jobs.retry", exchange="retry-x")\nch.queue_declare(queue="jobs", durable=True, arguments={"x-dead-letter-exchange": "retry-x"})',
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -307,22 +274,22 @@ export const deadLetters: Lesson = {
           "Your turn. Below are **4 scenarios** from real work: rejected, expired and overflowing messages vanish without a trace or go to the wrong place. The queues are live; most of the time a **policy** is enough, instead of changing the code and recreating the queue.",
         ),
         l(
-          "`rabbitmqctl set_policy`, `list_policies` ve `list_queues name messages` ile çalış; `python` ile mesaj gönder, `sleep` ile zamanı ilerlet. Sağdaki x-death paneli her ölü mektubun neden öldüğünü gösterir.",
-          "Work with `rabbitmqctl set_policy`, `list_policies` and `list_queues name messages`; send with `python`, move time on with `sleep`. The x-death panel on the right shows why each dead letter died.",
+          "`rabbitmqctl set_policy`, `list_policies` ve `list_queues name messages` ile çalış; `node` ile mesaj gönder, `sleep` ile zamanı ilerlet. Sağdaki x-death paneli her ölü mektubun neden öldüğünü gösterir.",
+          "Work with `rabbitmqctl set_policy`, `list_policies` and `list_queues name messages`; send with `node`, move time on with `sleep`. The x-death panel on the right shows why each dead letter died.",
         ),
       ],
     },
   ],
   recap: [
     l("Bir kuyruğa `x-dead-letter-exchange` verirsen reddedilen, süresi dolan ve sığmayan mesajlar silinmek yerine oraya gider.", "Give a queue `x-dead-letter-exchange` and rejected, expired and overflowing messages go there instead of being deleted."),
-    l("`nack(requeue=False)` reddeder; TTL dolan mesaj kuyruğun başında atılır; `drop-head` taşınca en eskiyi atar.", "`nack(requeue=False)` rejects; an expired message leaves at the head; `drop-head` drops the oldest on overflow."),
+    l("`nack` (`requeue: false`) reddeder; TTL dolan mesaj kuyruğun başında atılır; `drop-head` taşınca en eskiyi atar.", "`nack` (`requeue: false`) rejects; an expired message leaves at the head; `drop-head` drops the oldest on overflow."),
     l("`x-death` başlığı mesajın nereden, neden ve kaç kez ölü mektup olduğunu taşır.", "The `x-death` header says where from, why and how often a message was dead-lettered."),
     l("`reject-publish` mesajı kapıda reddeder: dead letter olmaz, producer nack alır.", "`reject-publish` refuses at the door: no dead letter, the producer gets a nack."),
     l("TTL'li bir bekleme kuyruğu ile gecikmeli tekrar kurulur; döngüyü x-death sayısıyla sınırla.", "A TTL waiting queue gives a delayed retry; cap the loop by the x-death count."),
   ],
   quiz: [
     {
-      question: l("DLX'i olmayan bir kuyrukta bir mesaj `nack(requeue=False)` ile reddedilirse?", "A message is rejected with `nack(requeue=False)` in a queue with no DLX. What happens?"),
+      question: l("DLX'i olmayan bir kuyrukta bir mesaj `nack` (`requeue: false`) ile reddedilirse?", "A message is rejected with `nack` (`requeue: false`) in a queue with no DLX. What happens?"),
       options: [l("Kuyruğun başına döner", "It goes back to the front"), l("Silinir", "It is deleted"), l("Producer'a döner", "It goes back to the producer"), l("Başka kuyruğa geçer", "It moves to another queue")],
       answer: 1,
       explain: l("Gidecek DLX yoksa reddedilen mesaj silinir.", "With no DLX to go to, a rejected message is deleted."),

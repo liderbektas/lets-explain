@@ -19,64 +19,59 @@ const addLine = (after: string, line: string): Edit => (t) => {
   return t.replace(after, `${after}\n${line}`);
 };
 
-const SMS_BIND = 'ch.queue_bind(exchange="orders", queue="sms")';
-const OWN_QUEUE = swap(
-  'ch.basic_consume(queue="email"',
-  'ch.queue_declare(queue="push", durable=True)\nch.queue_bind(exchange="orders", queue="push")\nch.basic_consume(queue="push"',
-);
+const SMS_BIND = 'await ch.bindQueue("sms", "orders", "");';
+const OWN_QUEUE = swap('await ch.consume("email"', 'await ch.assertQueue("push");\nawait ch.bindQueue("push", "orders", "");\nawait ch.consume("push"');
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
   "new-subscriber": {
-    typed: ["nano setup.py", "python setup.py", "python order.py"],
-    edits: [addLine(SMS_BIND, 'ch.queue_declare(queue="analytics", durable=True)\nch.queue_bind(exchange="orders", queue="analytics")')],
+    typed: ["nano setup.js", "node setup.js", "node order.js"],
+    edits: [addLine(SMS_BIND, 'await ch.assertQueue("analytics");\nawait ch.bindQueue("analytics", "orders", "");')],
   },
-  "sms-off": { typed: ["nano setup.py", "python setup.py", "python order.py"], edits: [swap(SMS_BIND, 'ch.queue_unbind(exchange="orders", queue="sms")')] },
-  "own-queue": { typed: ["nano push.py", "pkill -f push.py", "python push.py", "python order.py"], edits: [OWN_QUEUE] },
-  "key-ignored": { typed: ["nano newsletter.py", "python newsletter.py"], edits: [swap('exchange="orders"', 'exchange=""')] },
+  "sms-off": { typed: ["nano setup.js", "node setup.js", "node order.js"], edits: [swap(SMS_BIND, 'await ch.unbindQueue("sms", "orders", "");')] },
+  "own-queue": { typed: ["nano push.js", "pkill -f push.js", "node push.js", "node order.js"], edits: [OWN_QUEUE] },
+  "key-ignored": { typed: ["nano newsletter.js", "node newsletter.js"], edits: [swap('ch.publish("orders",', 'ch.publish("",')] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
   "sms-off": [
-    // A one-off script for the unbind, leaving setup.py as it was.
+    // A one-off script for the unbind, leaving setup.js as it was.
     {
-      typed: ["nano unbind_sms.py", "python unbind_sms.py", "python order.py"],
-      edits: [() => 'import pika\nconnection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))\nch = connection.channel()\nch.queue_unbind(exchange="orders", queue="sms")'],
+      typed: ["nano unbind_sms.js", "node unbind_sms.js", "node order.js"],
+      edits: [() => 'import amqp from "amqplib";\nconst conn = await amqp.connect();\nconst ch = await conn.createChannel();\nawait ch.unbindQueue("sms", "orders", "");\nawait conn.close();'],
     },
   ],
   "own-queue": [
     // A server-named queue, as the lesson's dashboard does.
     {
-      typed: ["pkill -f push.py", "nano push.py", "python push.py", "python order.py"],
+      typed: ["pkill -f push.js", "nano push.js", "node push.js", "node order.js"],
       edits: [
-        swap(
-          'ch.basic_consume(queue="email"',
-          'result = ch.queue_declare(queue="", exclusive=True)\nname = result.method.queue\nch.queue_bind(exchange="orders", queue=name)\nch.basic_consume(queue=name',
-        ),
+        swap('await ch.consume("email"', 'const { queue } = await ch.assertQueue("", { exclusive: true });\nawait ch.bindQueue(queue, "orders", "");\nawait ch.consume(queue'),
       ],
     },
   ],
+  "key-ignored": [{ typed: ["nano newsletter.js", "node newsletter.js"], edits: [swap('ch.publish("orders", "email",', 'ch.sendToQueue("email",')] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // A second publish just for analytics: the order service now sends twice, and it was off limits.
   "new-subscriber": {
-    typed: ["nano setup.py", "python setup.py", "nano order.py", "python order.py"],
+    typed: ["nano setup.js", "node setup.js", "nano order.js", "node order.js"],
     edits: [
-      addLine(SMS_BIND, 'ch.queue_declare(queue="analytics", durable=True)'),
-      addLine('body=b"order 1001")', 'ch.basic_publish(exchange="", routing_key="analytics", body=b"order 1001")'),
+      addLine(SMS_BIND, 'await ch.assertQueue("analytics");'),
+      addLine('Buffer.from("order 1001"));', 'ch.sendToQueue("analytics", Buffer.from("order 1001"));'),
     ],
   },
   // Deleting the bind line and re-running declares nothing new, and removes nothing either.
-  "sms-off": { typed: ["nano setup.py", "python setup.py", "python order.py"], edits: [swap(`${SMS_BIND}\n`, "")] },
+  "sms-off": { typed: ["nano setup.js", "node setup.js", "node order.js"], edits: [swap(`${SMS_BIND}\n`, "")] },
   // Two orders: each service gets one, neither gets both.
-  "own-queue": { typed: ["python order.py", "python order.py"] },
+  "own-queue": { typed: ["node order.js", "node order.js"] },
   // Unbinding sms keeps it out, but changes the subscriptions for every order.
   "key-ignored": {
-    typed: ["nano setup.py", "python setup.py", "python newsletter.py"],
-    edits: [swap(SMS_BIND, 'ch.queue_unbind(exchange="orders", queue="sms")')],
+    typed: ["nano setup.js", "node setup.js", "node newsletter.js"],
+    edits: [swap(SMS_BIND, 'await ch.unbindQueue("sms", "orders", "");')],
   },
 };
 
@@ -104,7 +99,7 @@ describe("fanout-exchange", () => {
 
   it("with push on the email queue, two orders split between the services", () => {
     const s = scenarios.find((x) => x.id === "own-queue")!;
-    const out = typeInto(s.start, ["python order.py", "python order.py"]).output;
+    const out = typeInto(s.start, ["node order.js", "node order.js"]).output;
     expect(out.filter((x) => x.startsWith(" [email]"))).toHaveLength(1);
     expect(out.filter((x) => x.startsWith(" [push]"))).toHaveLength(1);
   });

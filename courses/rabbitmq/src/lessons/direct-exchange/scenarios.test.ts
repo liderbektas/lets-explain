@@ -14,56 +14,59 @@ const swap = (from: string, to: string): Edit => (t) => {
   if (!t.includes(from)) throw new Error(`the file has no ${from}`);
   return t.replace(from, to);
 };
-const addLine = (after: string, line: string): Edit => (t) => t.replace(after, `${after}\n${line}`);
+const addLine = (after: string, line: string): Edit => (t) => {
+  if (!t.includes(after)) throw new Error(`the file has no ${after}`);
+  return t.replace(after, `${after}\n${line}`);
+};
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "idle-worker": { typed: ["nano setup.py", "python setup.py", "python upload.py"], edits: [swap('routing_key="images"', 'routing_key="image"')] },
+  "idle-worker": { typed: ["nano setup.js", "node setup.js", "node upload.js"], edits: [swap('"tasks", "images");', '"tasks", "image");')] },
   "videos-too": {
-    typed: ["nano setup.py", "python setup.py", "python upload_video.py"],
-    edits: [addLine('routing_key="image")', 'ch.queue_bind(queue="images", exchange="tasks", routing_key="video")')],
+    typed: ["nano setup.js", "node setup.js", "node upload_video.js"],
+    edits: [addLine('"tasks", "image");', 'await ch.bindQueue("images", "tasks", "video");')],
   },
   "shouting-service": {
-    typed: ["nano setup.py", "python setup.py", "python payments.py"],
-    edits: [addLine('routing_key="error")', 'ch.queue_bind(queue="errors", exchange="logs", routing_key="ERROR")')],
+    typed: ["nano setup.js", "node setup.js", "node payments.js"],
+    edits: [addLine('"logs", "error");', 'await ch.bindQueue("errors", "logs", "ERROR");')],
   },
-  "keep-debug": { typed: ["nano setup.py", "python setup.py", "python debug.py"], edits: [swap('["info", "warning", "error"]', '["debug", "info", "warning", "error"]')] },
-  "wrong-key": { typed: ["nano checkout.py", "python checkout.py"], edits: [swap('routing_key="mail"', 'routing_key="email"')] },
+  "keep-debug": { typed: ["nano setup.js", "node setup.js", "node debug.js"], edits: [swap('["info", "warning", "error"]', '["debug", "info", "warning", "error"]')] },
+  "wrong-key": { typed: ["nano checkout.js", "node checkout.js"], edits: [swap('"tasks", "mail",', '"tasks", "email",')] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
   "idle-worker": [
     {
-      typed: ["rabbitmqctl list_bindings source_name destination_name routing_key", "cat setup.py", "nano setup.py", "python setup.py && python upload.py"],
-      edits: [swap('routing_key="images"', 'routing_key="image"')],
+      typed: ["rabbitmqctl list_bindings source_name destination_name routing_key", "cat setup.js", "nano setup.js", "node setup.js && node upload.js"],
+      edits: [swap('"tasks", "images");', '"tasks", "image");')],
     },
   ],
   "videos-too": [
-    { typed: ["nano bind_video.py", "python bind_video.py", "python upload_video.py"], edits: [() => 'import pika\nconnection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))\nch = connection.channel()\nch.queue_bind(queue="images", exchange="tasks", routing_key="video")'] },
+    { typed: ["nano bind_video.js", "node bind_video.js", "node upload_video.js"], edits: [() => `const amqp = require("amqplib");\n\n(async () => {\n  const conn = await amqp.connect();\n  const ch = await conn.createChannel();\n  await ch.bindQueue("images", "tasks", "video");\n  await conn.close();\n})();`] },
   ],
   "keep-debug": [
-    { typed: ["nano setup.py", "python setup.py", "python debug.py"], edits: [addLine('routing_key="error")', 'ch.queue_bind(queue="all-logs", exchange="logs", routing_key="debug")')] },
+    { typed: ["nano setup.js", "node setup.js", "node debug.js"], edits: [addLine('"logs", "error");', 'await ch.bindQueue("all-logs", "logs", "debug");')] },
   ],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Running the upload again changes nothing: the binding is still wrong.
-  "idle-worker": { typed: ["python upload.py"] },
+  "idle-worker": { typed: ["node upload.js"] },
   // A new queue for videos is not what the team asked for.
   "videos-too": {
-    typed: ["nano setup.py", "python setup.py", "python upload_video.py"],
-    edits: [addLine('routing_key="image")', 'ch.queue_declare(queue="videos", durable=True)\nch.queue_bind(queue="videos", exchange="tasks", routing_key="video")')],
+    typed: ["nano setup.js", "node setup.js", "node upload_video.js"],
+    edits: [addLine('"tasks", "image");', 'await ch.assertQueue("videos");\nawait ch.bindQueue("videos", "tasks", "video");')],
   },
   // Changing the other team's service is off limits.
-  "shouting-service": { typed: ["nano payments.py", "python payments.py"], edits: [swap('routing_key="ERROR"', 'routing_key="error"')] },
+  "shouting-service": { typed: ["nano payments.js", "node payments.js"], edits: [swap('"logs", "ERROR",', '"logs", "error",')] },
   // Sending first loses the message, even if the binding comes after.
-  "keep-debug": { typed: ["python debug.py", "nano setup.py", "python setup.py", "python debug.py"], edits: [swap('["info", "warning", "error"]', '["debug", "info", "warning", "error"]')] },
+  "keep-debug": { typed: ["node debug.js", "nano setup.js", "node setup.js", "node debug.js"], edits: [swap('["info", "warning", "error"]', '["debug", "info", "warning", "error"]')] },
   // Binding the wrong key works, but adds a binding instead of fixing the sender.
   "wrong-key": {
-    typed: ["nano setup.py", "python setup.py", "python checkout.py"],
-    edits: [addLine('routing_key="email")', 'ch.queue_bind(queue="emails", exchange="tasks", routing_key="mail")')],
+    typed: ["nano setup.js", "node setup.js", "node checkout.js"],
+    edits: [addLine('"tasks", "email");', 'await ch.bindQueue("emails", "tasks", "mail");')],
   },
 };
 

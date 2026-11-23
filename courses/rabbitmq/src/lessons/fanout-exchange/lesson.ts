@@ -3,8 +3,6 @@ import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
-const CONNECT = 'import pika\n\nconn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))\nch = conn.channel()';
-
 export const fanoutExchange: Lesson = {
   slug: "fanout-exchange",
   title: l("Fanout exchange", "Fanout exchange"),
@@ -42,8 +40,8 @@ export const fanoutExchange: Lesson = {
         commands: [{ cmd: "docker exec rabbitmq rabbitmqctl list_exchanges name type", note: l("Exchange'leri türleriyle listeler. `amq.fanout` gibi hazır olanları da görürsün.", "Lists exchanges with their types, including built-in ones such as `amq.fanout`.") }],
         snippets: [
           {
-            label: "Python · fanout kur",
-            code: `${CONNECT}\nch.exchange_declare(exchange="orders", exchange_type="fanout", durable=True)\nfor q in ("email", "sms"):\n    ch.queue_declare(queue=q, durable=True)\n    ch.queue_bind(exchange="orders", queue=q)`,
+            label: "Node.js · fanout kur ve yayınla",
+            code: 'await ch.assertExchange("orders", "fanout");\nfor (const q of ["email", "sms"]) {\n  await ch.assertQueue(q);\n  await ch.bindQueue(q, "orders", "");\n}\n// the routing key is ignored\nch.publish("orders", "", Buffer.from("o1"));',
           },
         ],
       },
@@ -67,10 +65,6 @@ export const fanoutExchange: Lesson = {
           "One message was sent, and each queue now has its own copy. The email service handles its copy and the SMS service handles its own; neither waits for the other.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · yayınla", code: 'ch.basic_publish(exchange="orders", routing_key="", body=b"o1")', note: l("Fanout'ta routing key boş bırakılır; yazsan da bakılmaz.", "With fanout the routing key is usually empty; it is ignored anyway.") }],
-      },
     },
     {
       short: l("Key yok sayılır", "Key ignored"),
@@ -102,15 +96,6 @@ export const fanoutExchange: Lesson = {
           "The rule is simple: **each subscriber gets its own queue**. If two services shared one queue they would split the work, and each message would reach only one of them.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · e-posta servisi",
-            code: 'def handle(ch, method, props, body):\n    send_email(body)\n    ch.basic_ack(delivery_tag=method.delivery_tag)\n\nch.basic_consume(queue="email", on_message_callback=handle)\nch.start_consuming()',
-          },
-        ],
-      },
     },
     {
       short: l("Geç gelen", "Late joiner"),
@@ -144,7 +129,6 @@ export const fanoutExchange: Lesson = {
           ),
         },
       ],
-      practice: { commands: [], snippets: [{ label: "Python · yeni abone", code: 'ch.queue_declare(queue="analytics", durable=True)\nch.queue_bind(exchange="orders", queue="analytics")' }] },
     },
     {
       short: l("Geçici kuyruk", "Temporary queue"),
@@ -156,8 +140,8 @@ export const fanoutExchange: Lesson = {
           "A live dashboard only cares about what happens while it is open. It opens a **temporary** queue, binds it, and the queue is deleted when it closes. It got `o4` while open; once deleted, nothing is left behind.",
         ),
         l(
-          "Python'da `queue_declare(queue=\"\", exclusive=True)` adı sunucunun verdiği (`amq.gen-...`), sadece bu bağlantıya ait ve bağlantı kapanınca silinen bir kuyruk açar.",
-          "In Python, `queue_declare(queue=\"\", exclusive=True)` opens a queue with a server-chosen name (`amq.gen-...`) that belongs to this connection only and is deleted when it closes.",
+          "Node.js'te `assertQueue(\"\", { exclusive: true })` adı sunucunun verdiği (`amq.gen-...`), sadece bu bağlantıya ait ve bağlantı kapanınca silinen bir kuyruk açar.",
+          "In Node.js, `assertQueue(\"\", { exclusive: true })` opens a queue with a server-chosen name (`amq.gen-...`) that belongs to this connection only and is deleted when it closes.",
         ),
       ],
       callouts: [
@@ -169,15 +153,6 @@ export const fanoutExchange: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [],
-        snippets: [
-          {
-            label: "Python · geçici abone",
-            code: 'result = ch.queue_declare(queue="", exclusive=True)\nname = result.method.queue  # amq.gen-...\nch.queue_bind(exchange="orders", queue=name)\nch.basic_consume(queue=name, on_message_callback=show, auto_ack=True)',
-          },
-        ],
-      },
     },
     {
       short: l("Aboneliği bitir", "Unsubscribe"),
@@ -190,7 +165,6 @@ export const fanoutExchange: Lesson = {
           "Here is fanout's cost too: each message is copied once per bound queue. With 10 subscribers every order is stored 10 times. If not everyone needs everything, direct or topic is cheaper.",
         ),
       ],
-      practice: { commands: [], snippets: [{ label: "Python · bağı kopar", code: 'ch.queue_unbind(exchange="orders", queue="sms")' }] },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -223,12 +197,12 @@ export const fanoutExchange: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Mağazanın `orders` fanout exchange'ine `email` ve `sms` kuyrukları bağlı; `setup.py` kurar, `order.py` sipariş yayınlar. Aşağıda gerçek işten **4 senaryo** var: yeni abone, kapanan abone, kuyruğu paylaşan servis, yanlış anlaşılan routing key.",
-          "Your turn. The shop's `orders` fanout exchange has the `email` and `sms` queues bound; `setup.py` builds it and `order.py` publishes an order. Below are **4 scenarios** from real work: a new subscriber, one that leaves, a service sharing a queue it shouldn't, a misunderstood routing key.",
+          "Sıra sende. Mağazanın `orders` fanout exchange'ine `email` ve `sms` kuyrukları bağlı; `setup.js` kurar, `order.js` sipariş yayınlar. Aşağıda gerçek işten **4 senaryo** var: yeni abone, kapanan abone, kuyruğu paylaşan servis, yanlış anlaşılan routing key.",
+          "Your turn. The shop's `orders` fanout exchange has the `email` and `sms` queues bound; `setup.js` builds it and `order.js` publishes an order. Below are **4 scenarios** from real work: a new subscriber, one that leaves, a service sharing a queue it shouldn't, a misunderstood routing key.",
         ),
         l(
-          "`rabbitmqctl list_bindings source_name destination_name` aboneleri gösterir; `nano` ile kodu düzelt, `python` ile çalıştır. Az komutla bitirirsen 3 yıldız.",
-          "`rabbitmqctl list_bindings source_name destination_name` shows the subscribers; fix the code with `nano`, run it with `python`. Few commands earn 3 stars.",
+          "`rabbitmqctl list_bindings source_name destination_name` aboneleri gösterir; `nano` ile kodu düzelt, `node` ile çalıştır. Az komutla bitirirsen 3 yıldız.",
+          "`rabbitmqctl list_bindings source_name destination_name` shows the subscribers; fix the code with `nano`, run it with `node`. Few commands earn 3 stars.",
         ),
       ],
     },

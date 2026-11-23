@@ -42,8 +42,8 @@ export const directExchange: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · exchange ve binding'ler",
-            code: 'ch.exchange_declare(exchange="logs", exchange_type="direct", durable=True)\nch.queue_declare(queue="errors", durable=True)\nch.queue_declare(queue="all-logs", durable=True)\n\nch.queue_bind(queue="errors", exchange="logs", routing_key="error")\nfor sev in ["info", "warning", "error"]:\n    ch.queue_bind(queue="all-logs", exchange="logs", routing_key=sev)',
+            label: "Node.js · exchange ve binding'ler",
+            code: 'await ch.assertExchange("logs", "direct");\nawait ch.assertQueue("errors");\nawait ch.assertQueue("all-logs");\n\nawait ch.bindQueue("errors", "logs", "error");\nfor (const key of ["info", "warning", "error"]) {\n  await ch.bindQueue("all-logs", "logs", key);\n}',
           },
         ],
         commands: [{ cmd: `${CTL} list_bindings source_name destination_name routing_key` }],
@@ -72,10 +72,6 @@ export const directExchange: Lesson = {
           "Direct does not mean \"one queue\"; it means \"the queues whose key matches **exactly**\". As many matches, as many copies.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · error gönder", code: 'ch.basic_publish(exchange="logs", routing_key="error", body=b"disk full")' }],
-        commands: [],
-      },
     },
     {
       short: l("info", "info"),
@@ -129,10 +125,6 @@ export const directExchange: Lesson = {
           "A queue can have as many bindings as you like. Nothing changed in the producer; the bindings decide who gets what.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · ikinci binding", code: 'ch.queue_bind(queue="errors", exchange="logs", routing_key="warning")' }],
-        commands: [],
-      },
     },
     {
       short: l("İki kopya", "Two copies"),
@@ -194,12 +186,12 @@ export const directExchange: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: mesajlar yanlış yere gidiyor ya da hiç gitmiyor. Proje klasöründe kurulumu yapan `setup.py` ve mesaj gönderen küçük Python dosyaları var; gerçekte de binding'ler böyle, uygulamanın kodunda durur.",
-          "Your turn. Below are **5 scenarios** from real work: messages go to the wrong place, or nowhere. The project folder has `setup.py`, which builds the topology, and small Python files that send messages; in real life bindings live in the app's code like this too.",
+          "Sıra sende. Aşağıda gerçek işten **5 senaryo** var: mesajlar yanlış yere gidiyor ya da hiç gitmiyor. Proje klasöründe kurulumu yapan `setup.js` ve mesaj gönderen küçük Node.js dosyaları var; gerçekte de binding'ler böyle, uygulamanın kodunda durur.",
+          "Your turn. Below are **5 scenarios** from real work: messages go to the wrong place, or nowhere. The project folder has `setup.js`, which builds the topology, and small Node.js files that send messages; in real life bindings live in the app's code like this too.",
         ),
         l(
-          "`rabbitmqctl list_bindings` ile neyin neye bağlı olduğuna bak, `nano` ile kodu düzelt, `python` ile çalıştır. Sahne her komutta ne olduğunu gösterir; az komutla bitirirsen 3 yıldız.",
-          "Use `rabbitmqctl list_bindings` to see what is bound to what, fix the code with `nano`, run it with `python`. The scene shows what each command does; finish in few commands for 3 stars.",
+          "`rabbitmqctl list_bindings` ile neyin neye bağlı olduğuna bak, `nano` ile kodu düzelt, `node` ile çalıştır. Sahne her komutta ne olduğunu gösterir; az komutla bitirirsen 3 yıldız.",
+          "Use `rabbitmqctl list_bindings` to see what is bound to what, fix the code with `nano`, run it with `node`. The scene shows what each command does; finish in few commands for 3 stars.",
         ),
       ],
     },

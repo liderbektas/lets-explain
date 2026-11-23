@@ -3,47 +3,47 @@ import { typeLines } from "@lets-explain/core/components/TypedSandbox";
 import { createBroker, depth } from "./broker";
 import { applyAll, project, rabbitShell, type Files, type Project } from "./cli";
 
-const SETUP = `import pika
+const SETUP = `import amqp from "amqplib";
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
+const conn = await amqp.connect("amqp://localhost");
+const ch = await conn.createChannel();
 
-ch.exchange_declare(exchange="logs", exchange_type="direct", durable=True)
-ch.queue_declare(queue="errors", durable=True)
-ch.queue_declare(queue="all-logs", durable=True)
+await ch.assertExchange("logs", "direct");
+await ch.assertQueue("errors");
+await ch.assertQueue("all-logs");
 
-ch.queue_bind(queue="errors", exchange="logs", routing_key="error")
-for sev in ["info", "warning", "error"]:
-    ch.queue_bind(queue="all-logs", exchange="logs", routing_key=sev)
+await ch.bindQueue("errors", "logs", "error");
+for (const sev of ["info", "warning", "error"]) {
+  await ch.bindQueue("all-logs", "logs", sev);
+}
 
-connection.close()`;
+await conn.close();`;
 
-const PUBLISH = `import pika
+const PUBLISH = `import amqp from "amqplib";
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
-ch.basic_publish(exchange="logs", routing_key="error", body=b"disk full")
-connection.close()`;
+const conn = await amqp.connect("amqp://localhost");
+const ch = await conn.createChannel();
+ch.publish("logs", "error", Buffer.from("disk full"));
+await conn.close();`;
 
-const WORKER = `import pika
+const WORKER = `import amqp from "amqplib";
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
+const conn = await amqp.connect("amqp://localhost");
+const ch = await conn.createChannel();
 
-def callback(ch, method, properties, body):
-    print(f" [x] {body.decode()}")
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-ch.basic_qos(prefetch_count=1)
-ch.basic_consume(queue="errors", on_message_callback=callback)
-ch.start_consuming()`;
+await ch.prefetch(1);
+await ch.consume("errors", (msg) => {
+  console.log(\` [x] \${msg.content}\`);
+  ch.ack(msg);
+});
+console.log(" [*] Waiting for messages. To exit press CTRL+C");`;
 
 const start = (files: Files): Project => project(createBroker(), files);
 const type = (p: Project, typed: string[], edits: ((t: string) => string)[] = []) => typeLines(rabbitShell, applyAll, p, typed, edits);
 
 describe("rabbitmq cli", () => {
   it("runs a setup script: exchange, queues, bindings in a loop", () => {
-    const r = type(start({ "setup.py": SETUP }), ["python setup.py"]);
+    const r = type(start({ "setup.js": SETUP }), ["node setup.js"]);
     expect(r.output).toEqual([]);
     expect(r.state.broker.exchanges.logs?.type).toBe("direct");
     expect(r.state.broker.bindings.filter((b) => b.queue === "all-logs").map((b) => b.key)).toEqual(["info", "warning", "error"]);
@@ -51,59 +51,66 @@ describe("rabbitmq cli", () => {
   });
 
   it("lists queues and bindings like rabbitmqctl, with or without docker exec", () => {
-    const r = type(start({ "setup.py": SETUP, "publish.py": PUBLISH }), ["python setup.py", "python publish.py", "docker exec rabbitmq rabbitmqctl list_queues name messages"]);
+    const r = type(start({ "setup.js": SETUP, "publish.js": PUBLISH }), ["node setup.js", "node publish.js", "docker exec rabbitmq rabbitmqctl list_queues name messages"]);
     expect(r.output.slice(-3)).toEqual(["name\tmessages", "all-logs\t1", "errors\t1"]);
     const b = type(r.state, ["rabbitmqctl list_bindings source_name destination_name routing_key"]);
     expect(b.output).toContain("logs\terrors\terror");
     expect(b.output).toContain("\terrors\terrors");
   });
 
-  it("raises pika's channel error for a missing exchange, with a traceback", () => {
-    const r = type(start({ "publish.py": PUBLISH }), ["python publish.py"]);
-    expect(r.output.at(-1)).toBe(`pika.exceptions.ChannelClosedByBroker: (404, "NOT_FOUND - no exchange 'logs' in vhost '/'")`);
-    expect(r.output).toContain('  File "/home/you/shop/publish.py", line 5, in <module>');
+  it("crashes with amqplib's channel error for a missing exchange, at the line that published", () => {
+    const r = type(start({ "publish.js": PUBLISH }), ["node publish.js"]);
+    expect(r.output).toContain(`Error: Channel closed by server: 404 (NOT-FOUND) with message "NOT_FOUND - no exchange 'logs' in vhost '/'"`);
+    expect(r.output).toContain("/home/you/shop/publish.js:5");
+    expect(r.output).toContain('ch.publish("logs", "error", Buffer.from("disk full"));');
+    expect(r.output.at(-1)).toBe("Node.js v22.12.0");
   });
 
   it("keeps a worker in the background that acks each message as it comes", () => {
-    const r = type(start({ "setup.py": SETUP, "publish.py": PUBLISH, "worker.py": WORKER }), ["python setup.py", "python worker.py", "python publish.py", "python publish.py"]);
+    const r = type(start({ "setup.js": SETUP, "publish.js": PUBLISH, "worker.js": WORKER }), ["node setup.js", "node worker.js", "node publish.js", "node publish.js"]);
     expect(r.output).toContain(" [*] Waiting for messages. To exit press CTRL+C");
     expect(r.output.filter((l) => l === " [x] disk full")).toHaveLength(2);
     expect(depth(r.state.broker, "errors").total).toBe(0);
     expect(depth(r.state.broker, "all-logs").total).toBe(2);
     const jobs = type(r.state, ["jobs"]);
-    expect(jobs.output[0]).toMatch(/python worker\.py/);
+    expect(jobs.output[0]).toMatch(/node worker\.js/);
   });
 
   it("holds messages when the callback forgets to ack, and returns them when the worker stops", () => {
-    const lazy = WORKER.replace("    ch.basic_ack(delivery_tag=method.delivery_tag)\n", "");
-    const r = type(start({ "setup.py": SETUP, "publish.py": PUBLISH, "worker.py": lazy }), ["python setup.py", "python worker.py", "python publish.py"]);
+    const lazy = WORKER.replace("  ch.ack(msg);\n", "");
+    expect(lazy).not.toBe(WORKER);
+    const r = type(start({ "setup.js": SETUP, "publish.js": PUBLISH, "worker.js": lazy }), ["node setup.js", "node worker.js", "node publish.js"]);
     expect(depth(r.state.broker, "errors")).toMatchObject({ ready: 0, unacked: 1 });
-    const stopped = type(r.state, ["pkill -f worker.py"]);
+    const stopped = type(r.state, ["pkill -f worker.js"]);
     expect(depth(stopped.state.broker, "errors")).toMatchObject({ ready: 1, unacked: 0 });
     expect(stopped.state.workers).toEqual({});
   });
 
   it("edits a file in nano and runs the new version", () => {
-    const r = type(start({ "setup.py": SETUP }), ["nano setup.py", "python setup.py"], [(t) => t.replace('routing_key="error")\nfor', 'routing_key="critical")\nfor')]);
+    const r = type(start({ "setup.js": SETUP }), ["nano setup.js", "node setup.js"], [(t) => t.replace('"logs", "error");\nfor', '"logs", "critical");\nfor')]);
     expect(r.state.broker.bindings.some((b) => b.queue === "errors" && b.key === "critical")).toBe(true);
     expect(r.moves).toBe(2);
   });
 
   it("refuses a redeclare with other settings, as RabbitMQ does", () => {
-    const again = SETUP.replace('ch.queue_declare(queue="errors", durable=True)', 'ch.queue_declare(queue="errors")');
-    const r = type(start({ "setup.py": SETUP, "again.py": again }), ["python setup.py", "python again.py"]);
-    expect(r.output.at(-1)).toContain("PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'errors'");
+    const again = SETUP.replace('await ch.assertQueue("errors");', 'await ch.assertQueue("errors", { durable: false });');
+    expect(again).not.toBe(SETUP);
+    const r = type(start({ "setup.js": SETUP, "again.js": again }), ["node setup.js", "node again.js"]);
+    expect(r.output).toContain(
+      `Error: Operation failed: QueueDeclare; 406 (PRECONDITION-FAILED) with message "PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'errors' in vhost '/': received 'false' but current is 'true'"`,
+    );
   });
 
   it("says plainly what it cannot run", () => {
-    const r = type(start({ "x.py": "import pika\nwhile True:\n    pass" }), ["python x.py"]);
-    expect(r.output.at(-1)).toMatch(/this sandbox runs the pika calls/);
+    const r = type(start({ "x.js": 'import amqp from "amqplib";\nwhile (true) {}' }), ["node x.js"]);
+    expect(r.output.at(-1)).toMatch(/this sandbox runs the amqplib calls.*it cannot run: while loops\)$/);
     expect(type(start({}), ["rabbitmqctl frob"]).output[0]).toBe("Command 'frob' not found.");
   });
 
   it("restarts the broker: non-durable queues and their workers are gone", () => {
-    const transient = SETUP.replace(/, durable=True\)/g, ")");
-    const r = type(start({ "setup.py": transient, "worker.py": WORKER }), ["python setup.py", "python worker.py", "docker restart rabbitmq"]);
+    const transient = SETUP.replace(/\("(logs|errors|all-logs)"(, "direct")?\);/g, '("$1"$2, { durable: false });');
+    expect(transient.match(/durable: false/g)).toHaveLength(3);
+    const r = type(start({ "setup.js": transient, "worker.js": WORKER }), ["node setup.js", "node worker.js", "docker restart rabbitmq"]);
     expect(r.state.broker.queues).toEqual({});
     expect(r.state.workers).toEqual({});
   });

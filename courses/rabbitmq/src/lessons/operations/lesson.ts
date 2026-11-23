@@ -6,20 +6,6 @@ import { scene } from "./Scene";
 const DX = "docker exec rabbitmq";
 const QUEUES = `${DX} rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers`;
 
-const CONN = `import pika
-
-# Open once when the app starts, and keep it.
-conn = pika.BlockingConnection(pika.ConnectionParameters("localhost", heartbeat=30))
-ch = conn.channel()          # one channel per thread; pika connections are not thread-safe
-
-def send(order):
-    ch.basic_publish(exchange="", routing_key="orders", body=order)
-
-# Wrong: a new connection for every message
-# def send(order):
-#     with pika.BlockingConnection(...) as c:
-#         c.channel().basic_publish(...)`;
-
 const CONF = `# rabbitmq.conf
 vm_memory_high_watermark.relative = 0.6
 disk_free_limit.absolute = 2GB`;
@@ -256,14 +242,19 @@ export const operations: Lesson = {
         {
           kind: "warning",
           text: l(
-            "pika'nın `BlockingConnection`'ı thread-safe değildir: aynı bağlantıyı birden fazla iş parçacığından kullanma. Her iş parçacığı kendi kanalını (gerekirse kendi bağlantısını) almalı.",
-            "pika's `BlockingConnection` is not thread-safe: do not use one connection from several threads. Each thread needs its own channel (and if needed its own connection).",
+            "Bir bağlantı nesnesi iş parçacıkları arasında paylaşılamaz: Node.js'te her worker thread kendi bağlantısını açmalı. Tek iş parçacıklı bir uygulamada bir bağlantı ve birkaç kanal yeter.",
+            "A connection object cannot be shared between threads: in Node.js each worker thread opens its own connection. A single-threaded app needs one connection and a few channels.",
           ),
         },
       ],
       practice: {
         commands: [{ cmd: `${DX} rabbitmqctl list_connections name state channels`, note: l("Sayısı sürekli artan ya da çok sayıda kısa ömürlü bağlantı varsa, bir uygulama her mesajda bağlantı açıyor demektir.", "A constantly growing count, or many short-lived connections, means some app opens one per message.") }],
-        snippets: [{ label: "Python · bağlantıyı açık tut", code: CONN }],
+        snippets: [
+          {
+            label: "Node.js · bağlantıyı açık tut",
+            code: '// once, at startup; then keep it open\nconst conn = await amqp.connect("amqp://localhost");\nconst ch = await conn.createChannel();\n\nexport const send = (order) =>\n  ch.sendToQueue("orders", Buffer.from(order));\n// wrong: amqp.connect() inside send()',
+          },
+        ],
       },
     },
     {
@@ -292,8 +283,8 @@ export const operations: Lesson = {
           "RabbitMQ protects itself. When memory use passes its limit (60% of the machine's memory by default) or free disk drops below its limit (50MB by default), an **alarm** fires.",
         ),
         l(
-          "Alarm sırasında producer'lar bloklanır: `basic_publish` beklemeye başlar. Consumer'lar çalışmaya devam eder, çünkü alarmı söndürecek olan onlardır. Uygulaman bu durumda donmuş gibi görünebilir; nedeni bu.",
-          "During an alarm producers are blocked: `basic_publish` starts to wait. Consumers keep working, because they are what clears the alarm. Your app may look frozen; this is why.",
+          "Alarm sırasında producer'lar bloklanır: `publish` beklemeye başlar. Consumer'lar çalışmaya devam eder, çünkü alarmı söndürecek olan onlardır. Uygulaman bu durumda donmuş gibi görünebilir; nedeni bu.",
+          "During an alarm producers are blocked: `publish` starts to wait. Consumers keep working, because they are what clears the alarm. Your app may look frozen; this is why.",
         ),
       ],
       callouts: [
@@ -345,8 +336,8 @@ export const operations: Lesson = {
           "Your turn. Below are **4 scenarios** from being on call: a queue left without consumers, a worker that never acks, workers that can't keep up, and a test queue to clean out. In each, measure first, then act.",
         ),
         l(
-          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers` ile bak; işçiyi `python worker.py` ile başlat (birden fazla kez de olur), `pkill -f worker.py` ile durdur, `sleep` ile zamanı ilerlet.",
-          "Look with `rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers`; start the worker with `python worker.py` (more than once if you like), stop it with `pkill -f worker.py`, move time on with `sleep`.",
+          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers` ile bak; işçiyi `node worker.js` ile başlat (birden fazla kez de olur), `pkill -f worker.js` ile durdur, `sleep` ile zamanı ilerlet.",
+          "Look with `rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers`; start the worker with `node worker.js` (more than once if you like), stop it with `pkill -f worker.js`, move time on with `sleep`.",
         ),
       ],
     },

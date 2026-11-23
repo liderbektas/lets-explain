@@ -8,21 +8,22 @@ import { eventsOf, projectAfter, script } from "../shared/missionHelpers";
 /** Every key the app sends: `<thing>.<event>.<region>`, and one longer VIP key. */
 export const KEYS = ["order.created.eu", "order.paid.eu", "order.created.us", "order.paid.eu.vip", "user.signup.eu"];
 
-/** setup.py: an `events` topic exchange, these queues, and these bindings. */
+/** setup.js: an `events` topic exchange, these queues, and these bindings. */
 export const topicSetup = (queues: string[], bindings: [queue: string, pattern: string][]) =>
   script(`
-ch.exchange_declare(exchange="events", exchange_type="topic", durable=True)
-${queues.map((q) => `ch.queue_declare(queue="${q}", durable=True)`).join("\n")}
-${bindings.map(([q, p]) => `ch.queue_bind(queue="${q}", exchange="events", routing_key="${p}")`).join("\n")}
+await ch.assertExchange("events", "topic");
+${queues.map((q) => `await ch.assertQueue("${q}");`).join("\n")}
+${bindings.map(([q, p]) => `await ch.bindQueue("${q}", "events", "${p}");`).join("\n")}
 `);
 
 /** The app's traffic for a minute: one of each key. */
 const EVENTS = script(`
-for key in [${KEYS.map((k) => `"${k}"`).join(", ")}]:
-    ch.basic_publish(exchange="events", routing_key=key, body=key)
+for (const key of [${KEYS.map((k) => `"${k}"`).join(", ")}]) {
+  ch.publish("events", key, Buffer.from(key));
+}
 `);
 
-const files = (queues: string[], bindings: [string, string][]): Files => ({ "setup.py": topicSetup(queues, bindings), "events.py": EVENTS });
+const files = (queues: string[], bindings: [string, string][]): Files => ({ "setup.js": topicSetup(queues, bindings), "events.js": EVENTS });
 
 /** Free play: the lesson's three queues. */
 export const FREE = projectAfter(
@@ -34,7 +35,7 @@ export const FREE = projectAfter(
       ["audit", "#"],
     ],
   ),
-  ["python setup.py"],
+  ["node setup.js"],
 );
 
 /** The keys that reached a queue during the scenario (each message's body is its key). */
@@ -55,10 +56,10 @@ export const scenarios: RabbitScenario[] = [
       "The service that handles European orders never sees one. The app sends keys shaped `<thing>.<event>.<region>` (like `order.created.eu`); the `eu-orders` queue is bound with the pattern `order.eu`.",
     ),
     goal: l(
-      "`events.py`'nin gönderdiklerinden `eu-orders`'a **tam olarak** `order.created.eu` ve `order.paid.eu` gitsin; ABD siparişleri, VIP ve kullanıcı olayları gitmesin.",
-      "Of what `events.py` sends, `eu-orders` gets **exactly** `order.created.eu` and `order.paid.eu`; no US orders, no VIP, no user events.",
+      "`events.js`'nin gönderdiklerinden `eu-orders`'a **tam olarak** `order.created.eu` ve `order.paid.eu` gitsin; ABD siparişleri, VIP ve kullanıcı olayları gitmesin.",
+      "Of what `events.js` sends, `eu-orders` gets **exactly** `order.created.eu` and `order.paid.eu`; no US orders, no VIP, no user events.",
     ),
-    start: projectAfter(files(["eu-orders"], [["eu-orders", "order.eu"]]), ["python setup.py"]),
+    start: projectAfter(files(["eu-orders"], [["eu-orders", "order.eu"]]), ["node setup.js"]),
     hints: [
       l(
         "Topic kalıbında her nokta bir kelime ayırır. `order.eu` sadece tam olarak iki kelimelik `order.eu` key'ine uyar.",
@@ -66,8 +67,8 @@ export const scenarios: RabbitScenario[] = [
       ),
       l("Ortadaki olay kelimesi ne olursa olsun: `*` tam bir kelime yerine geçer.", "Whatever the event word in the middle is: `*` stands for exactly one word."),
       l(
-        "`nano setup.py` (`routing_key=\"order.eu\"` → `routing_key=\"order.*.eu\"`), `python setup.py`, `python events.py`",
-        "`nano setup.py` (`routing_key=\"order.eu\"` → `routing_key=\"order.*.eu\"`), `python setup.py`, `python events.py`",
+        "`nano setup.js` (`\"events\", \"order.eu\"` → `\"events\", \"order.*.eu\"`), `node setup.js`, `node events.js`",
+        "`nano setup.js` (`\"events\", \"order.eu\"` → `\"events\", \"order.*.eu\"`), `node setup.js`, `node events.js`",
       ),
     ],
     par: 3,
@@ -81,13 +82,13 @@ export const scenarios: RabbitScenario[] = [
       "The data warehouse team wants **every** order event in the `warehouse` queue: from every region, longer keys like `order.paid.eu.vip` included. User events are of no interest to them. Right now the queue is bound with `order.*` and nothing arrives.",
     ),
     goal: l("`warehouse` 4 sipariş olayının hepsini alsın, `user.signup.eu`'yu almasın.", "`warehouse` gets all 4 order events and not `user.signup.eu`."),
-    start: projectAfter(files(["warehouse"], [["warehouse", "order.*"]]), ["python setup.py"]),
+    start: projectAfter(files(["warehouse"], [["warehouse", "order.*"]]), ["node setup.js"]),
     hints: [
       l("`order.*` tam iki kelimeye uyar; key'ler üç ya da dört kelimeli.", "`order.*` matches exactly two words; the keys have three or four."),
       l("`#` sıfır ya da daha fazla kelime yerine geçer.", "`#` stands for zero or more words."),
       l(
-        "`nano setup.py` (`routing_key=\"order.*\"` → `routing_key=\"order.#\"`), `python setup.py`, `python events.py`",
-        "`nano setup.py` (`routing_key=\"order.*\"` → `routing_key=\"order.#\"`), `python setup.py`, `python events.py`",
+        "`nano setup.js` (`\"events\", \"order.*\"` → `\"events\", \"order.#\"`), `node setup.js`, `node events.js`",
+        "`nano setup.js` (`\"events\", \"order.*\"` → `\"events\", \"order.#\"`), `node setup.js`, `node events.js`",
       ),
     ],
     par: 3,
@@ -100,14 +101,14 @@ export const scenarios: RabbitScenario[] = [
       "Uyum ekibi bir kural koydu: `events` exchange'ine giden **her** mesajın, key'i ne olursa olsun, `audit` kuyruğunda kopyası olmalı. Kuyruk tanımlı ama hiçbir şeye bağlı değil.",
       "Compliance set a rule: **every** message sent to the `events` exchange, whatever its key, must have a copy in the `audit` queue. The queue is declared but bound to nothing.",
     ),
-    goal: l("`events.py`'nin gönderdiği 5 mesajın hepsi `audit`'e ulaşsın.", "All 5 messages `events.py` sends reach `audit`."),
-    start: projectAfter(files(["audit"], []), ["python setup.py"]),
+    goal: l("`events.js`'nin gönderdiği 5 mesajın hepsi `audit`'e ulaşsın.", "All 5 messages `events.js` sends reach `audit`."),
+    start: projectAfter(files(["audit"], []), ["node setup.js"]),
     hints: [
       l("Her key'e uyan tek bir kalıp var: kaç kelime olursa olsun.", "There's one pattern that matches every key, however many words it has."),
       l("`#` tek başına her şeye uyar: o binding'le topic exchange fanout gibi davranır.", "`#` on its own matches everything: with that binding the topic exchange acts like fanout."),
       l(
-        "`nano setup.py` (ekle: `ch.queue_bind(queue=\"audit\", exchange=\"events\", routing_key=\"#\")`), `python setup.py`, `python events.py`",
-        "`nano setup.py` (add: `ch.queue_bind(queue=\"audit\", exchange=\"events\", routing_key=\"#\")`), `python setup.py`, `python events.py`",
+        "`nano setup.js` (ekle: `await ch.bindQueue(\"audit\", \"events\", \"#\");`), `node setup.js`, `node events.js`",
+        "`nano setup.js` (add: `await ch.bindQueue(\"audit\", \"events\", \"#\");`), `node setup.js`, `node events.js`",
       ),
     ],
     par: 3,
@@ -124,7 +125,7 @@ export const scenarios: RabbitScenario[] = [
       "`us-marketing` **tam olarak** `order.created.us` ve `user.signup.eu`'yu alsın.",
       "`us-marketing` gets **exactly** `order.created.us` and `user.signup.eu`.",
     ),
-    start: projectAfter(files(["us-marketing"], []), ["python setup.py"]),
+    start: projectAfter(files(["us-marketing"], []), ["node setup.js"]),
     hints: [
       l(
         "Tek kalıp ikisini birden tutmaz; bir kuyruğa birden fazla binding eklenebilir ve mesaj herhangi birine uyarsa gelir.",
@@ -132,8 +133,8 @@ export const scenarios: RabbitScenario[] = [
       ),
       l("Biri son kelimesi `us` olan üç kelimelik key'ler için, biri `user` ile başlayan her şey için.", "One for three-word keys ending in `us`, one for everything starting with `user`."),
       l(
-        "`nano setup.py` (ekle: `ch.queue_bind(queue=\"us-marketing\", exchange=\"events\", routing_key=\"*.*.us\")` ve `ch.queue_bind(queue=\"us-marketing\", exchange=\"events\", routing_key=\"user.#\")`), `python setup.py`, `python events.py`",
-        "`nano setup.py` (add: `ch.queue_bind(queue=\"us-marketing\", exchange=\"events\", routing_key=\"*.*.us\")` and `ch.queue_bind(queue=\"us-marketing\", exchange=\"events\", routing_key=\"user.#\")`), `python setup.py`, `python events.py`",
+        "`nano setup.js` (ekle: `await ch.bindQueue(\"us-marketing\", \"events\", \"*.*.us\");` ve `await ch.bindQueue(\"us-marketing\", \"events\", \"user.#\");`), `node setup.js`, `node events.js`",
+        "`nano setup.js` (add: `await ch.bindQueue(\"us-marketing\", \"events\", \"*.*.us\");` and `await ch.bindQueue(\"us-marketing\", \"events\", \"user.#\");`), `node setup.js`, `node events.js`",
       ),
     ],
     par: 3,

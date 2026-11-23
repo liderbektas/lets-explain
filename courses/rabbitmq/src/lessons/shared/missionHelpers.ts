@@ -37,19 +37,20 @@ export function lostSince(ctx: BrokerCtx) {
 
 /* -------------------------------------------------------------- scenarios */
 
-/** The usual top of every script: a connection and a channel called `ch`. */
-export const CONNECT = `import pika
+/** The usual top of every script: amqplib, a connection and a channel called `ch` (a confirm channel if asked). */
+export const connect = (confirm = false) => `import amqp from "amqplib";
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
+const conn = await amqp.connect("amqp://localhost");
+const ch = await conn.${confirm ? "createConfirmChannel" : "createChannel"}();
 `;
+export const CONNECT = connect();
 
 /** A script: the connection lines, the body, and a close. */
-export const script = (body: string) => `${CONNECT}\n${body.trim()}\n\nconnection.close()`;
+export const script = (body: string, opts: { confirm?: boolean } = {}) => `${connect(opts.confirm)}\n${body.trim()}\n\nawait conn.close();`;
 
 /**
  * A scenario's starting project: these files, after typing these lines (usually
- * `python setup.py`), so the broker is exactly what the files describe.
+ * `node setup.js`), so the broker is exactly what the files describe.
  */
 export function projectAfter(files: Files, typed: string[] = [], broker: Broker = createBroker()): Project {
   return typeLines(rabbitShell, applyAll, project(broker, files), typed).state;

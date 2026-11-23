@@ -24,22 +24,22 @@ void addLine;
 const down = (node: string): BrokerAction => ({ type: "nodeDown", node });
 const up = (node: string): BrokerAction => ({ type: "nodeUp", node });
 void apply;
-const QUORUM = 'ch.queue_declare(queue="payments", durable=True, arguments={"x-queue-type": "quorum"})';
+const QUORUM = 'await ch.assertQueue("payments", { arguments: { "x-queue-type": "quorum" } });';
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "patch-the-leader": { typed: ["docker stop rabbit1", "python order.py"] },
+  "patch-the-leader": { typed: ["docker stop rabbit1", "node order.js"] },
   "check-first": { typed: ["docker start rabbit3", "docker restart rabbit2"] },
   "classic-by-mistake": {
-    typed: ["nano setup.py", "rabbitmqctl delete_queue payments", "python setup.py", "docker stop rabbit1", "python pay.py"],
-    edits: [swap('ch.queue_declare(queue="payments", durable=True)', QUORUM)],
+    typed: ["nano setup.js", "rabbitmqctl delete_queue payments", "node setup.js", "docker stop rabbit1", "node pay.js"],
+    edits: [swap('await ch.assertQueue("payments");', QUORUM)],
   },
   "move-the-leader": { typed: ["docker restart rabbit1"] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "patch-the-leader": [{ typed: ["docker exec rabbit2 rabbitmq-queues quorum_status orders", "docker stop rabbit1", "docker exec rabbit2 rabbitmq-queues quorum_status orders", "python order.py"] }],
+  "patch-the-leader": [{ typed: ["docker exec rabbit2 rabbitmq-queues quorum_status orders", "docker stop rabbit1", "docker exec rabbit2 rabbitmq-queues quorum_status orders", "node order.js"] }],
   "check-first": [
     { typed: ["docker exec rabbit2 rabbitmq-queues check_if_node_is_quorum_critical", "docker start rabbit3", "docker exec rabbit2 rabbitmq-queues check_if_node_is_quorum_critical", "docker stop rabbit2", "docker start rabbit2"] },
   ],
@@ -49,11 +49,11 @@ const alternatives: Record<string, Play[]> = {
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Sending before the stop proves nothing about the maintenance.
-  "patch-the-leader": { typed: ["python order.py", "docker stop rabbit1"] },
+  "patch-the-leader": { typed: ["node order.js", "docker stop rabbit1"] },
   // Restarting rabbit2 while rabbit3 is still down leaves orders without a majority for a moment.
   "check-first": { typed: ["docker restart rabbit2", "docker start rabbit3"] },
   // Doing the maintenance first: the payment is acked and lost with the node.
-  "classic-by-mistake": { typed: ["docker stop rabbit1", "python pay.py"] },
+  "classic-by-mistake": { typed: ["docker stop rabbit1", "node pay.js"] },
   // Stopping the node moves the leader but leaves the cluster short a node.
   "move-the-leader": { typed: ["docker stop rabbit1"] },
 };

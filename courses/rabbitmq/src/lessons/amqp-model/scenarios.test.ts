@@ -18,52 +18,55 @@ const addLine = (after: string, line: string): Edit => (t) => {
   if (!t.includes(after)) throw new Error(`the file has no ${after}`);
   return t.replace(after, `${after}\n${line}`);
 };
-const SHIPPING = 'ch.queue_declare(queue="shipping", durable=True)';
+const SHIPPING = 'await ch.assertQueue("shipping");';
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
   "no-payments": {
-    typed: ["nano setup.py", "python setup.py", "python pay.py"],
-    edits: [addLine(SHIPPING, 'ch.queue_bind(queue="billing", exchange="shop", routing_key="order.paid")')],
+    typed: ["nano setup.js", "node setup.js", "node pay.js"],
+    edits: [addLine(SHIPPING, 'await ch.bindQueue("billing", "shop", "order.paid");')],
   },
   "pack-on-payment": {
-    typed: ["nano setup.py", "python setup.py", "python pay.py"],
-    edits: [addLine('routing_key="order.paid")', 'ch.queue_bind(queue="shipping", exchange="shop", routing_key="order.paid")')],
+    typed: ["nano setup.js", "node setup.js", "node pay.js"],
+    edits: [addLine('"shop", "order.paid");', 'await ch.bindQueue("shipping", "shop", "order.paid");')],
   },
-  "refused-declare": { typed: ["nano invoice.py", "python invoice.py"], edits: [swap('queue_declare(queue="billing")', 'queue_declare(queue="billing", durable=True)')] },
-  "straight-to-queue": { typed: ["nano test_ship.py", "python test_ship.py"], edits: [swap('exchange="shop"', 'exchange=""')] },
+  "refused-declare": { typed: ["nano invoice.js", "node invoice.js"], edits: [swap("{ durable: false }", "{ durable: true }")] },
+  "straight-to-queue": { typed: ["nano test_ship.js", "node test_ship.js"], edits: [swap('ch.publish("shop",', 'ch.publish("",')] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
   "no-payments": [
     {
-      typed: ["rabbitmqctl list_bindings source_name destination_name routing_key", "nano setup.py", "python setup.py && python pay.py"],
-      edits: [addLine(SHIPPING, 'ch.queue_bind(queue="billing", exchange="shop", routing_key="order.paid")')],
+      typed: ["rabbitmqctl list_bindings source_name destination_name routing_key", "nano setup.js", "node setup.js && node pay.js"],
+      edits: [addLine(SHIPPING, 'await ch.bindQueue("billing", "shop", "order.paid");')],
     },
   ],
   "refused-declare": [
-    { typed: ["python invoice.py", "nano invoice.py", "python invoice.py"], edits: [swap('queue_declare(queue="billing")', 'queue_declare(queue="billing", durable=True)')] },
-    // Not declaring at all is fine too: setup.py owns the queue.
-    { typed: ["nano invoice.py", "python invoice.py"], edits: [swap('ch.queue_declare(queue="billing")\n', "")] },
+    { typed: ["node invoice.js", "nano invoice.js", "node invoice.js"], edits: [swap("{ durable: false }", "{ durable: true }")] },
+    // Dropping the option works as well: amqplib declares queues durable by default.
+    { typed: ["nano invoice.js", "node invoice.js"], edits: [swap(', { durable: false }', "")] },
+    // Not declaring at all is fine too: setup.js owns the queue.
+    { typed: ["nano invoice.js", "node invoice.js"], edits: [swap('await ch.assertQueue("billing", { durable: false });\n', "")] },
   ],
+  "straight-to-queue": [{ typed: ["nano test_ship.js", "node test_ship.js"], edits: [swap('ch.publish("shop", "shipping",', 'ch.sendToQueue("shipping",')] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Skipping the exchange gets it into billing, but not through `shop` as the service does.
-  "no-payments": { typed: ["nano pay.py", "python pay.py"], edits: [swap('exchange="shop", routing_key="order.paid"', 'exchange="", routing_key="billing"')] },
+  "no-payments": { typed: ["nano pay.js", "node pay.js"], edits: [swap('ch.publish("shop", "order.paid",', 'ch.publish("", "billing",')] },
   // Two messages, one per queue: the service now sends everything twice.
   "pack-on-payment": {
-    typed: ["nano pay.py", "python pay.py"],
-    edits: [addLine('body=b"order 1001 paid")', 'ch.basic_publish(exchange="", routing_key="shipping", body=b"order 1001 paid")')],
+    typed: ["nano pay.js", "node pay.js"],
+    edits: [addLine('Buffer.from("order 1001 paid"));', 'ch.sendToQueue("shipping", Buffer.from("order 1001 paid"));')],
   },
   // Deleting the queue lets the declare pass, but the binding and the durability are gone.
-  "refused-declare": { typed: ["rabbitmqctl delete_queue billing", "python invoice.py"] },
+  "refused-declare": { typed: ["rabbitmqctl delete_queue billing", "node invoice.js"] },
   // A new binding on live traffic is exactly what was off limits.
   "straight-to-queue": {
-    typed: ["nano setup.py", "python setup.py", "python test_ship.py"],
-    edits: [addLine('routing_key="order.paid")', 'ch.queue_bind(queue="shipping", exchange="shop", routing_key="shipping")')],
+    typed: ["nano setup.js", "node setup.js", "node test_ship.js"],
+    edits: [addLine('"shop", "order.paid");', 'await ch.bindQueue("shipping", "shop", "shipping");')],
   },
 };
 
@@ -91,9 +94,11 @@ describe("amqp-model", () => {
     expect(at(7).consumers["billing-1"]!.done).toEqual(["m1"]);
   });
 
-  it("the refused declare prints pika's real error", () => {
+  it("the refused declare prints amqplib's real error", () => {
     const s = scenarios.find((x) => x.id === "refused-declare")!;
-    expect(typeInto(s.start, ["python invoice.py"]).output.at(-1)).toContain("PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'billing'");
+    expect(typeInto(s.start, ["node invoice.js"]).output).toContain(
+      `Error: Operation failed: QueueDeclare; 406 (PRECONDITION-FAILED) with message "PRECONDITION_FAILED - inequivalent arg 'durable' for queue 'billing' in vhost '/': received 'false' but current is 'true'"`,
+    );
   });
 
   for (const s of scenarios) {

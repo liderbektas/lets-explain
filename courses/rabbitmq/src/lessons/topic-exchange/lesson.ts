@@ -42,8 +42,8 @@ export const topicExchange: Lesson = {
         commands: [{ cmd: "docker exec rabbitmq rabbitmqctl list_bindings source_name destination_name routing_key", note: l("Kalıpları binding'lerin routing key sütununda görürsün.", "Patterns show up in the bindings' routing key column.") }],
         snippets: [
           {
-            label: "Python · topic kur",
-            code: 'ch.exchange_declare(exchange="events", exchange_type="topic", durable=True)\nfor q, pattern in [("eu-orders", "order.*.eu"), ("all-orders", "order.#"), ("audit", "#")]:\n    ch.queue_declare(queue=q, durable=True)\n    ch.queue_bind(exchange="events", queue=q, routing_key=pattern)',
+            label: "Node.js · topic kur",
+            code: 'await ch.assertExchange("events", "topic");\n// queues declared with assertQueue first\nawait ch.bindQueue("eu-orders", "events", "order.*.eu");\nawait ch.bindQueue("all-orders", "events", "order.#");\nawait ch.bindQueue("audit", "events", "#");\n\nch.publish("events", "order.created.eu", body);',
           },
         ],
       },
@@ -64,7 +64,6 @@ export const topicExchange: Lesson = {
       body: [
         l("`order.created.eu` üç kalıba da uydu ve üç kuyruğa birer kopya düştü. Topic, fanout gibi kopyalayabilir; farkı, sadece **uyan** kuyruklara kopyalamasıdır.", "`order.created.eu` matched all three patterns and each queue got a copy. Like fanout, topic copies; the difference is it copies only to queues that **match**."),
       ],
-      practice: { commands: [], snippets: [{ label: "Python · gönder", code: 'ch.basic_publish(exchange="events", routing_key="order.created.eu", body=b"...")' }] },
     },
     {
       short: l("Eksik kelime", "Missing word"),
@@ -94,7 +93,6 @@ export const topicExchange: Lesson = {
           ),
         },
       ],
-      practice: { commands: [] , snippets: [{ label: "Python · tek yerde tanımla", code: 'def order_key(action, region):\n    return f"order.{action}.{region}"  # order.created.eu' }] },
     },
     {
       short: l("Başka konu", "Other subject"),
@@ -110,7 +108,6 @@ export const topicExchange: Lesson = {
         l("`user.signup.eu` sadece `audit`'e gitti. Kalıplar kelime kelime, soldan sağa eşlenir: ilk kelimesi tutmayan kalıp elenir.", "`user.signup.eu` went only to `audit`. Patterns are matched word by word, left to right: one wrong first word and the pattern is out."),
         l("`#` tek başına her anahtara uyar, yani bir **fanout** gibi davranır. Denetim (audit) ya da loglama kuyrukları için kullanışlı.", "`#` on its own matches every key, so it behaves like **fanout**. Handy for audit or logging queues."),
       ],
-      practice: { commands: [] },
     },
     {
       short: l("Fazla kelime", "Extra word"),
@@ -125,7 +122,6 @@ export const topicExchange: Lesson = {
       body: [
         l("`order.paid.eu.vip`, `all-orders` ve `audit`'e gitti, `eu-orders`'a gitmedi. Esnek olmak istediğin yerde `#`, kesin olmak istediğin yerde `*` kullan.", "`order.paid.eu.vip` went to `all-orders` and `audit`, not `eu-orders`. Use `#` where you want flexibility and `*` where you want precision."),
       ],
-      practice: { commands: [] },
     },
     {
       short: l("Anahtar tasarımı", "Key design"),
@@ -141,10 +137,6 @@ export const topicExchange: Lesson = {
           "So when a new need comes up you do not touch the producer: add a queue and a pattern. Put the most general part of the key first.",
         ),
       ],
-      practice: {
-        commands: [],
-        snippets: [{ label: "Python · yeni ihtiyaç, yeni kalıp", code: 'ch.queue_declare(queue="refunds", durable=True)\nch.queue_bind(exchange="events", queue="refunds", routing_key="*.cancelled.*")' }],
-      },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -174,12 +166,12 @@ export const topicExchange: Lesson = {
       title: l("Şimdi sen yaz: doğru kalıbı bul", "Now you type: find the right pattern"),
       body: [
         l(
-          "Sıra sende. Uygulama `events` topic exchange'ine `order.created.eu`, `order.paid.eu.vip`, `user.signup.eu` gibi key'lerle gönderiyor; `events.py` bunlardan birer tane yollar. Aşağıda **4 senaryo** var: her birinde bir ekip kuyruğuna doğru olayları istiyor.",
-          "Your turn. The app sends to the `events` topic exchange with keys like `order.created.eu`, `order.paid.eu.vip`, `user.signup.eu`; `events.py` sends one of each. Below are **4 scenarios**: in each, a team wants the right events in its queue.",
+          "Sıra sende. Uygulama `events` topic exchange'ine `order.created.eu`, `order.paid.eu.vip`, `user.signup.eu` gibi key'lerle gönderiyor; `events.js` bunlardan birer tane yollar. Aşağıda **4 senaryo** var: her birinde bir ekip kuyruğuna doğru olayları istiyor.",
+          "Your turn. The app sends to the `events` topic exchange with keys like `order.created.eu`, `order.paid.eu.vip`, `user.signup.eu`; `events.js` sends one of each. Below are **4 scenarios**: in each, a team wants the right events in its queue.",
         ),
         l(
-          "`setup.py`'deki kalıbı `nano` ile düzelt, `python setup.py` ile uygula, `python events.py` ile dene. `rabbitmqctl list_queues name messages` neyin nereye düştüğünü gösterir.",
-          "Fix the pattern in `setup.py` with `nano`, apply it with `python setup.py`, try it with `python events.py`. `rabbitmqctl list_queues name messages` shows what landed where.",
+          "`setup.js`'deki kalıbı `nano` ile düzelt, `node setup.js` ile uygula, `node events.js` ile dene. `rabbitmqctl list_queues name messages` neyin nereye düştüğünü gösterir.",
+          "Fix the pattern in `setup.js` with `nano`, apply it with `node setup.js`, try it with `node events.js`. `rabbitmqctl list_queues name messages` shows what landed where.",
         ),
       ],
     },

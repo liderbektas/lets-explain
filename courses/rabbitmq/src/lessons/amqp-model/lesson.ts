@@ -57,12 +57,6 @@ export const amqpModel: Lesson = {
           { cmd: `${CTL} list_connections name user vhost`, note: l("Açık bağlantıları listeler.", "Lists open connections.") },
           { cmd: `${CTL} list_channels connection number`, note: l("Her bağlantının channel'larını listeler.", "Lists every connection's channels.") },
         ],
-        snippets: [
-          {
-            label: "Python · connection ve channel",
-            code: 'import pika\n\nparams = pika.ConnectionParameters(host="localhost", virtual_host="/")\nconn = pika.BlockingConnection(params)   # one TCP connection\nch = conn.channel()                      # a channel inside it',
-          },
-        ],
       },
     },
     {
@@ -82,8 +76,8 @@ export const amqpModel: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · tanımla ve bağla",
-            code: 'ch.exchange_declare(exchange="orders", exchange_type="direct", durable=True)\nch.queue_declare(queue="billing", durable=True)\nch.queue_bind(queue="billing", exchange="orders", routing_key="order.created")',
+            label: "Node.js · tanımla, bağla, gönder",
+            code: 'const key = "order.created";\nawait ch.assertExchange("orders", "direct");\nawait ch.assertQueue("billing");\nawait ch.bindQueue("billing", "orders", key);\n\nch.publish("orders", key, Buffer.from("o1"));',
           },
         ],
         commands: [
@@ -115,10 +109,6 @@ export const amqpModel: Lesson = {
         ),
         l("Exchange'ler mesaj tutmaz; sadece yönlendirir. Mesajların beklediği yer her zaman kuyruktur.", "Exchanges hold nothing; they only route. Messages always wait in queues."),
       ],
-      practice: {
-        snippets: [{ label: "Python · gönder", code: 'ch.basic_publish(exchange="orders", routing_key="order.created", body=b"o1")' }],
-        commands: [],
-      },
     },
     {
       short: l("Kural yok", "No rule"),
@@ -235,12 +225,6 @@ export const amqpModel: Lesson = {
           { cmd: `${CTL} set_permissions -p shop shop_app ".*" ".*" ".*"`, note: l("Sırasıyla configure, write, read izinleri. `.*` her isim demek.", "Configure, write and read, in that order. `.*` means any name.") },
           { cmd: `${CTL} list_permissions -p shop` },
         ],
-        snippets: [
-          {
-            label: "Python · vhost'a bağlan",
-            code: 'creds = pika.PlainCredentials("shop_app", "change-me")\nparams = pika.ConnectionParameters(host="localhost", virtual_host="shop", credentials=creds)\nconn = pika.BlockingConnection(params)',
-          },
-        ],
       },
     },
     {
@@ -267,12 +251,12 @@ export const amqpModel: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Bir mağaza projesi var: `setup.py` bir `shop` exchange'i (direct) ile `billing` ve `shipping` kuyruklarını tanımlar, diğer dosyalar mesaj gönderir. Aşağıda gerçek işten **4 senaryo** var.",
-          "Your turn. There's a shop project: `setup.py` declares a `shop` exchange (direct) and the `billing` and `shipping` queues, and the other files send messages. Below are **4 scenarios** from real work.",
+          "Sıra sende. Bir mağaza projesi var: `setup.js` bir `shop` exchange'i (direct) ile `billing` ve `shipping` kuyruklarını tanımlar, diğer dosyalar mesaj gönderir. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a shop project: `setup.js` declares a `shop` exchange (direct) and the `billing` and `shipping` queues, and the other files send messages. Below are **4 scenarios** from real work.",
         ),
         l(
-          "`rabbitmqctl list_bindings source_name destination_name routing_key` ile neyin neye bağlı olduğuna bak, `nano` ile kodu düzelt, `python` ile çalıştır. Hata çıkarsa oku: RabbitMQ neyi neden reddettiğini söyler.",
-          "Use `rabbitmqctl list_bindings source_name destination_name routing_key` to see what is bound to what, fix the code with `nano`, run it with `python`. If you get an error, read it: RabbitMQ says what it refused and why.",
+          "`rabbitmqctl list_bindings source_name destination_name routing_key` ile neyin neye bağlı olduğuna bak, `nano` ile kodu düzelt, `node` ile çalıştır. Hata çıkarsa oku: RabbitMQ neyi neden reddettiğini söyler.",
+          "Use `rabbitmqctl list_bindings source_name destination_name routing_key` to see what is bound to what, fix the code with `nano`, run it with `node`. If you get an error, read it: RabbitMQ says what it refused and why.",
         ),
       ],
     },
@@ -312,7 +296,7 @@ export const amqpModel: Lesson = {
       reviewStep: 3,
     },
     {
-      question: l("Var olan durable bir kuyruğu `durable=False` ile declare edersen ne olur?", "What happens if you declare an existing durable queue with `durable=False`?"),
+      question: l("Var olan durable bir kuyruğu `durable: false` ile declare edersen ne olur?", "What happens if you declare an existing durable queue with `durable: false`?"),
       options: [l("Kuyruk geçici olur", "The queue becomes transient"), l("Yeni bir kuyruk açılır", "A new queue is created"), l("`PRECONDITION_FAILED` ile reddedilir", "It fails with `PRECONDITION_FAILED`"), l("Kuyruk silinir", "The queue is deleted")],
       answer: 2,
       explain: l("Declare var olan bir kuyruğun ayarlarını değiştiremez; çelişki reddedilir ve channel kapanır.", "Declare cannot change an existing queue's settings; the conflict is refused and the channel closes."),

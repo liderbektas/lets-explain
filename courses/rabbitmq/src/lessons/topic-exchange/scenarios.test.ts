@@ -18,21 +18,21 @@ const addLine = (after: string, line: string): Edit => (t) => {
   if (!t.includes(after)) throw new Error(`the file has no ${after}`);
   return t.replace(after, `${after}\n${line}`);
 };
-const bindLine = (queue: string, pattern: string) => `ch.queue_bind(queue="${queue}", exchange="events", routing_key="${pattern}")`;
-const declared = (queue: string) => `ch.queue_declare(queue="${queue}", durable=True)`;
-const RUN = ["nano setup.py", "python setup.py", "python events.py"];
+const bindLine = (queue: string, pattern: string) => `await ch.bindQueue("${queue}", "events", "${pattern}");`;
+const declared = (queue: string) => `await ch.assertQueue("${queue}");`;
+const RUN = ["nano setup.js", "node setup.js", "node events.js"];
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "eu-worker": { typed: RUN, edits: [swap('routing_key="order.eu"', 'routing_key="order.*.eu"')] },
-  warehouse: { typed: RUN, edits: [swap('routing_key="order.*"', 'routing_key="order.#"')] },
+  "eu-worker": { typed: RUN, edits: [swap('"events", "order.eu");', '"events", "order.*.eu");')] },
+  warehouse: { typed: RUN, edits: [swap('"events", "order.*");', '"events", "order.#");')] },
   audit: { typed: RUN, edits: [addLine(declared("audit"), bindLine("audit", "#"))] },
   "us-marketing": { typed: RUN, edits: [addLine(declared("us-marketing"), `${bindLine("us-marketing", "*.*.us")}\n${bindLine("us-marketing", "user.#")}`)] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "eu-worker": [{ typed: RUN, edits: [swap('routing_key="order.eu"', 'routing_key="order.#.eu"')] }],
+  "eu-worker": [{ typed: RUN, edits: [swap('"events", "order.eu");', '"events", "order.#.eu");')] }],
   audit: [{ typed: RUN, edits: [addLine(declared("audit"), `${bindLine("audit", "order.#")}\n${bindLine("audit", "user.#")}`)] }],
   "us-marketing": [{ typed: RUN, edits: [addLine(declared("us-marketing"), `${bindLine("us-marketing", "#.us")}\n${bindLine("us-marketing", "user.signup.*")}`)] }],
 };
@@ -40,9 +40,9 @@ const alternatives: Record<string, Play[]> = {
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Too wide: user signups in Europe match too.
-  "eu-worker": { typed: RUN, edits: [swap('routing_key="order.eu"', 'routing_key="#.eu"')] },
+  "eu-worker": { typed: RUN, edits: [swap('"events", "order.eu");', '"events", "#.eu");')] },
   // Everything, user events included.
-  warehouse: { typed: RUN, edits: [swap('routing_key="order.*"', 'routing_key="#"')] },
+  warehouse: { typed: RUN, edits: [swap('"events", "order.*");', '"events", "#");')] },
   // Three words only: the four-word VIP key slips through.
   audit: { typed: RUN, edits: [addLine(declared("audit"), bindLine("audit", "*.*.*"))] },
   // `user.*` is exactly two words, so the three-word signup key doesn't match.
@@ -80,7 +80,7 @@ describe("topic-exchange", () => {
 
   for (const s of scenarios) {
     it(`${s.id}: not done at the start`, () => {
-      expect(s.check(typeInto(s.start, ["python events.py"]).ctx)).toBe(false);
+      expect(s.check(typeInto(s.start, ["node events.js"]).ctx)).toBe(false);
     });
 
     it(`${s.id}: the intended commands win in exactly par`, () => {

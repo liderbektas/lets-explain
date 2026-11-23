@@ -3,22 +3,6 @@ import type { Lesson } from "@lets-explain/core/course/types";
 import { scenarios } from "./scenarios";
 import { scene } from "./Scene";
 
-const CONFIRM = `ch.confirm_delivery()
-
-try:
-    ch.basic_publish(
-        exchange="orders",
-        routing_key="order",
-        body=b"o1",
-        properties=pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent),
-        mandatory=True,
-    )
-    print("broker confirmed")
-except pika.exceptions.UnroutableError:
-    print("no queue matched: returned")
-except pika.exceptions.NackError:
-    print("broker refused: send again later")`;
-
 export const publisherConfirms: Lesson = {
   slug: "publisher-confirms",
   title: l("Publisher confirms", "Publisher confirms"),
@@ -44,8 +28,8 @@ export const publisherConfirms: Lesson = {
       title: l("\"Gönderdim\" demek \"ulaştı\" demek değil", "\"I sent it\" is not \"it arrived\""),
       body: [
         l(
-          "`basic_publish` çağrısı döndüğünde mesaj belki hâlâ ağda, belki broker'ın belleğinde, belki diskte. Broker o anda çökerse mesaj gidebilir ve uygulaman bunu hiç fark etmez.",
-          "When `basic_publish` returns, the message may still be on the network, in the broker's memory, or on disk. If the broker crashes right then, the message can be lost and your app never notices.",
+          "`publish` çağrısı döndüğünde mesaj belki hâlâ ağda, belki broker'ın belleğinde, belki diskte. Broker o anda çökerse mesaj gidebilir ve uygulaman bunu hiç fark etmez.",
+          "When `publish` returns, the message may still be on the network, in the broker's memory, or on disk. If the broker crashes right then, the message can be lost and your app never notices.",
         ),
         l(
           "**Publisher confirms** bu boşluğu kapatır: broker, sorumluluğu aldığı her mesaj için producer'a bir **ack**, alamadığı için bir **nack** gönderir.",
@@ -61,16 +45,6 @@ export const publisherConfirms: Lesson = {
           ),
         },
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · confirm modunu aç",
-            code: "ch = conn.channel()\nch.confirm_delivery()",
-            note: l("Bir kez açılır ve o kanaldaki her yayın için geçerlidir. pika'nın BlockingConnection'ında `basic_publish` artık onayı bekler.", "Turned on once, it applies to every publish on that channel. With pika's BlockingConnection, `basic_publish` now waits for the answer."),
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Ack", "Ack"),
@@ -87,7 +61,13 @@ export const publisherConfirms: Lesson = {
         ),
       ],
       practice: {
-        snippets: [{ label: "Python · onaylı gönderim", code: CONFIRM }],
+        snippets: [
+          {
+            label: "Node.js · onaylı gönderim",
+            code: 'const ch = await conn.createConfirmChannel();\nch.on("return", onReturned); // unroutable\n\nch.publish("orders", "order", body, {\n  persistent: true,\n  mandatory: true,\n});\nawait ch.waitForConfirms(); // nack: throws',
+            note: l("Confirm modu kanal açılırken seçilir ve o kanaldaki her yayın için geçerlidir. `mandatory` ile hiçbir kuyruğa gitmeyen mesaj `return` olayıyla geri gelir.", "Confirm mode is chosen when the channel is created and applies to every publish on it. With `mandatory`, a message no queue takes comes back as a `return` event."),
+          },
+        ],
         commands: [],
       },
     },
@@ -121,7 +101,6 @@ export const publisherConfirms: Lesson = {
           "A confirm does not mean \"the message reached a queue\"; it means \"the broker handled it\". It will not tell you about a mistyped routing key.",
         ),
       ],
-      practice: { commands: [] },
     },
     {
       short: l("mandatory", "mandatory"),
@@ -129,12 +108,12 @@ export const publisherConfirms: Lesson = {
       title: l("mandatory: kuyruk yoksa bana geri ver", "mandatory: give it back if there is no queue"),
       body: [
         l(
-          "Bu sefer `r2`'yi `mandatory=True` ile gönderdik. Yine hiçbir kuyruk yok, ama bu sefer broker mesajı **producer'a geri döndürdü** (basic.return).",
-          "This time we sent `r2` with `mandatory=True`. Still no queue, but now the broker **returned it to the producer** (basic.return).",
+          "Bu sefer `r2`'yi `mandatory: true` ile gönderdik. Yine hiçbir kuyruk yok, ama bu sefer broker mesajı **producer'a geri döndürdü** (basic.return).",
+          "This time we sent `r2` with `mandatory: true`. Still no queue, but now the broker **returned it to the producer** (basic.return).",
         ),
         l(
-          "pika'da bu `UnroutableError` olarak gelir. Böylece yanlış key'i ya da eksik binding'i hemen fark edersin.",
-          "In pika this arrives as `UnroutableError`, so you notice a wrong key or a missing binding at once.",
+          "amqplib'de bu, kanalın `return` olayı olarak gelir. Böylece yanlış key'i ya da eksik binding'i hemen fark edersin.",
+          "In amqplib this arrives as the channel's `return` event, so you notice a wrong key or a missing binding at once.",
         ),
       ],
       callouts: [
@@ -146,10 +125,6 @@ export const publisherConfirms: Lesson = {
           ),
         },
       ],
-      practice: {
-        snippets: [{ label: "Python · mandatory", code: 'ch.basic_publish(exchange="orders", routing_key="refund", body=b"r2", mandatory=True)' }],
-        commands: [],
-      },
     },
     {
       short: l("Nack", "Nack"),
@@ -181,10 +156,6 @@ export const publisherConfirms: Lesson = {
           "When you get a nack the message is still yours: wait and resend, save it and retry later, or show the user an error. What matters is that it is not lost silently.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · reject-publish", code: 'ch.queue_declare(\n    queue="limited",\n    durable=True,\n    arguments={"x-max-length": 2, "x-overflow": "reject-publish"},\n)' }],
-        commands: [],
-      },
     },
     {
       short: l("Çoğunluk yok", "No majority"),
@@ -236,15 +207,11 @@ export const publisherConfirms: Lesson = {
         {
           kind: "insight",
           text: l(
-            "Her mesaja benzersiz bir `message_id` koy ve consumer'da \"bunu gördüm mü?\" diye kontrol et. Tekrarı producer'da değil, consumer'da çözmek en sağlam yoldur.",
-            "Put a unique `message_id` on every message and check \"have I seen this?\" in the consumer. Handling duplicates in the consumer, not the producer, is the most robust way.",
+            "Her mesaja benzersiz bir `messageId` koy ve consumer'da \"bunu gördüm mü?\" diye kontrol et. Tekrarı producer'da değil, consumer'da çözmek en sağlam yoldur.",
+            "Put a unique `messageId` on every message and check \"have I seen this?\" in the consumer. Handling duplicates in the consumer, not the producer, is the most robust way.",
           ),
         },
       ],
-      practice: {
-        snippets: [{ label: "Python · message_id", code: 'import uuid\n\nprops = pika.BasicProperties(\n    delivery_mode=pika.DeliveryMode.Persistent,\n    message_id=str(uuid.uuid4()),\n)' }],
-        commands: [],
-      },
     },
     {
       short: l("Gerçekte", "In reality"),
@@ -269,9 +236,6 @@ export const publisherConfirms: Lesson = {
           ),
         },
       ],
-      practice: {
-        commands: [{ cmd: "pip install aio-pika", note: l("Asenkron confirm'ler için asyncio tabanlı istemci; birçok mesajı onay beklemeden gönderebilir.", "An asyncio client for async confirms; it can publish many messages without waiting for each answer.") }],
-      },
     },
     {
       short: l("Sen dene", "Your turn"),
@@ -279,22 +243,22 @@ export const publisherConfirms: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: sessizce kaybolan mesajlar, dolu bir kuyruktan gelen nack, çoğunluğunu kaybetmiş bir cluster ve ack almasına rağmen kaybolan bir sipariş. Script'lerde `ch.confirm_delivery()` açık: broker hayır derse `basic_publish` hata fırlatır.",
-          "Your turn. Below are **4 scenarios** from real work: messages that vanish silently, a nack from a full queue, a cluster that lost its majority, and an order lost despite its ack. The scripts have `ch.confirm_delivery()` on: when the broker says no, `basic_publish` raises.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: sessizce kaybolan mesajlar, dolu bir kuyruktan gelen nack, çoğunluğunu kaybetmiş bir cluster ve ack almasına rağmen kaybolan bir sipariş. Script'ler bir confirm kanalı kullanıyor (`createConfirmChannel`): broker hayır derse `waitForConfirms` hata fırlatır.",
+          "Your turn. Below are **4 scenarios** from real work: messages that vanish silently, a nack from a full queue, a cluster that lost its majority, and an order lost despite its ack. The scripts use a confirm channel (`createConfirmChannel`): when the broker says no, `waitForConfirms` throws.",
         ),
         l(
-          "`nano` ile kodu düzelt, `python` ile çalıştır; `docker ps -a`, `docker start` ve `rabbitmqctl` ile broker'a bak. Az komutla bitirirsen 3 yıldız.",
-          "Fix the code with `nano`, run it with `python`; look at the broker with `docker ps -a`, `docker start` and `rabbitmqctl`. Finish in few commands for 3 stars.",
+          "`nano` ile kodu düzelt, `node` ile çalıştır; `docker ps -a`, `docker start` ve `rabbitmqctl` ile broker'a bak. Az komutla bitirirsen 3 yıldız.",
+          "Fix the code with `nano`, run it with `node`; look at the broker with `docker ps -a`, `docker start` and `rabbitmqctl`. Finish in few commands for 3 stars.",
         ),
       ],
     },
   ],
   recap: [
-    l("`confirm_delivery()` açıkken broker her mesaja ack (aldım) ya da nack (alamadım) ile cevap verir.", "With `confirm_delivery()` on, the broker answers every message with an ack (taken) or a nack (refused)."),
-    l("Hiçbir kuyruğa uymayan mesaj da ack alır ve atılır; `mandatory=True` onu geri döndürür.", "A message matching no queue is acked and dropped too; `mandatory=True` returns it instead."),
+    l("Confirm kanalında (`createConfirmChannel()`) broker her mesaja ack (aldım) ya da nack (alamadım) ile cevap verir.", "On a confirm channel (`createConfirmChannel()`), the broker answers every message with an ack (taken) or a nack (refused)."),
+    l("Hiçbir kuyruğa uymayan mesaj da ack alır ve atılır; `mandatory: true` onu geri döndürür.", "A message matching no queue is acked and dropped too; `mandatory: true` returns it instead."),
     l("Nack, örneğin dolu bir `reject-publish` kuyruğunda ya da çoğunluğu kalmamış bir quorum queue'da gelir.", "A nack comes, for example, from a full `reject-publish` queue or a quorum queue that lost its majority."),
     l("Nack ya da zaman aşımında mesajı yeniden gönder; bu tekrar üretebilir (at-least-once).", "Resend on a nack or a timeout; that can create duplicates (at-least-once)."),
-    l("Tekrarları consumer'da `message_id` ile ayıkla.", "Filter duplicates in the consumer with a `message_id`."),
+    l("Tekrarları consumer'da `messageId` ile ayıkla.", "Filter duplicates in the consumer with a `messageId`."),
   ],
   quiz: [
     {

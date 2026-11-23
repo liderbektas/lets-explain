@@ -19,33 +19,35 @@ const addLine = (after: string, line: string): Edit => (t) => {
 };
 void swap;
 void addLine;
-const NO_OFFSET = "on_message_callback=handle)";
+const NO_OFFSET = "  ch.ack(msg);\n});";
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
-  "from-the-start": { typed: ["nano analytics.py", "python analytics.py"], edits: [swap(NO_OFFSET, 'on_message_callback=handle, arguments={"x-stream-offset": "first"})')] },
-  "no-prefetch": { typed: ["nano billing.py", "python billing.py", "python emit.py"], edits: [swap("ch.basic_consume(", "ch.basic_qos(prefetch_count=100)\nch.basic_consume(")] },
-  replay: { typed: ["pkill -f analytics.py", "python analytics.py"] },
-  "from-an-offset": { typed: ["nano audit.py", "python audit.py"], edits: [swap('"x-stream-offset": "first"', '"x-stream-offset": 2')] },
+  "from-the-start": { typed: ["nano analytics.js", "node analytics.js"], edits: [swap(NO_OFFSET, '  ch.ack(msg);\n}, { arguments: { "x-stream-offset": "first" } });')] },
+  "no-prefetch": { typed: ["nano billing.js", "node billing.js", "node emit.js"], edits: [swap("await ch.consume(", "await ch.prefetch(100);\nawait ch.consume(")] },
+  replay: { typed: ["pkill -f analytics.js", "node analytics.js"] },
+  "from-an-offset": { typed: ["nano audit.js", "node audit.js"], edits: [swap('"x-stream-offset": "first"', '"x-stream-offset": 2')] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
-  "from-the-start": [{ typed: ["cat analytics.py", "nano analytics.py", "python analytics.py"], edits: [swap(NO_OFFSET, 'on_message_callback=handle, arguments={"x-stream-offset": 0})')] }],
-  "no-prefetch": [{ typed: ["python billing.py", "nano billing.py", "python billing.py", "python emit.py"], edits: [swap("ch.basic_consume(", "ch.basic_qos(prefetch_count=10)\nch.basic_consume(")] }],
-  replay: [{ typed: ["jobs", "kill %1", "python analytics.py"] }],
+  "from-the-start": [
+    { typed: ["cat analytics.js", "nano analytics.js", "node analytics.js"], edits: [swap(NO_OFFSET, '  ch.ack(msg);\n}, { noAck: false, arguments: { "x-stream-offset": 0 } });')] },
+  ],
+  "no-prefetch": [{ typed: ["node billing.js", "nano billing.js", "node billing.js", "node emit.js"], edits: [swap("await ch.consume(", "await ch.prefetch(10);\nawait ch.consume(")] }],
+  replay: [{ typed: ["jobs", "kill %1", "node analytics.js"] }],
 };
 
 /** Tempting wrong moves that must not pass. */
 const wrong: Record<string, Play> = {
   // Without an offset the reader only waits for new events.
-  "from-the-start": { typed: ["python analytics.py"] },
+  "from-the-start": { typed: ["node analytics.js"] },
   // Running it as it is: RabbitMQ closes the channel.
-  "no-prefetch": { typed: ["python billing.py", "python emit.py"] },
+  "no-prefetch": { typed: ["node billing.js", "node emit.js"] },
   // A second process next to the old one: two readers, one still with the old code.
-  replay: { typed: ["python analytics.py"] },
+  replay: { typed: ["node analytics.js"] },
   // Reading from the start gets the first two too.
-  "from-an-offset": { typed: ["python audit.py"] },
+  "from-an-offset": { typed: ["node audit.js"] },
 };
 
 describe("streams", () => {

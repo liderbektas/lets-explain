@@ -5,26 +5,24 @@ import { eventsOf, lostSince, projectAfter, script } from "../shared/missionHelp
 
 /* ------------------------------------------------------------ the projects */
 
-const SETUP = script(`ch.queue_declare(queue="orders", durable=True)`);
+const SETUP = script(`await ch.assertQueue("orders");`);
 
-const orders = (...bodies: string[]) => script(`for o in [${bodies.map((b) => `"${b}"`).join(", ")}]:\n    ch.basic_publish(exchange="", routing_key="orders", body=o)`);
+const orders = (...bodies: string[]) => script(`for (const o of [${bodies.map((b) => `"${b}"`).join(", ")}]) {\n  ch.sendToQueue("orders", Buffer.from(o));\n}`);
 
-/** The order worker. `ack` false is the bug where the callback never acks; `slow` adds a sleep per order. */
-export const worker = (opts: { ack?: boolean; slow?: number; prefetch?: number } = {}) => `import pika
-import time
+/** The order worker. `ack` false is the bug where the callback never acks; `slow` adds a sleep (seconds) per order. */
+export const worker = (opts: { ack?: boolean; slow?: number; prefetch?: number } = {}) => `import amqp from "amqplib";
+${opts.slow ? 'import { setTimeout as sleep } from "node:timers/promises";\n' : ""}
+const conn = await amqp.connect("amqp://localhost");
+const ch = await conn.createChannel();
 
-connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-ch = connection.channel()
-
-def handle(ch, method, properties, body):
-    print(f" [x] shipping {body.decode()}")${opts.slow ? `\n    time.sleep(${opts.slow})` : ""}${opts.ack === false ? "" : "\n    ch.basic_ack(delivery_tag=method.delivery_tag)"}
-
-ch.basic_qos(prefetch_count=${opts.prefetch ?? 1})
-ch.basic_consume(queue="orders", on_message_callback=handle)
-ch.start_consuming()`;
+await ch.prefetch(${opts.prefetch ?? 1});
+await ch.consume("orders", async (msg) => {
+  console.log(\` [x] shipping \${msg.content}\`);${opts.slow ? `\n  await sleep(${opts.slow * 1000});` : ""}${opts.ack === false ? "" : "\n  ch.ack(msg);"}
+});
+console.log(" [*] Waiting for messages. To exit press CTRL+C");`;
 
 /** Free play: a few orders and a worker that keeps up. */
-export const FREE = projectAfter({ "setup.py": SETUP, "orders.py": orders("o1", "o2", "o3"), "worker.py": worker() }, ["python setup.py"]);
+export const FREE = projectAfter({ "setup.js": SETUP, "orders.js": orders("o1", "o2", "o3"), "worker.js": worker() }, ["node setup.js"]);
 
 /* ----------------------------------------------------------------- checks */
 
@@ -48,11 +46,11 @@ export const scenarios: RabbitScenario[] = [
       "Customers say their orders haven't shipped. `rabbitmqctl list_queues name messages consumers` tells the whole story: orders are waiting in `orders` and `consumers` is 0. The worker stopped during a deploy last night and nobody noticed.",
     ),
     goal: l("Bekleyen bütün siparişler işlensin (ack'lensin) ve `orders` boşalsın.", "Every waiting order is processed (acked) and `orders` is empty."),
-    start: projectAfter({ "setup.py": SETUP, "orders.py": orders("o1", "o2", "o3"), "worker.py": worker() }, ["python setup.py", "python orders.py"]),
+    start: projectAfter({ "setup.js": SETUP, "orders.js": orders("o1", "o2", "o3"), "worker.js": worker() }, ["node setup.js", "node orders.js"]),
     hints: [
       l("`consumers` 0 olan bir kuyruk sadece büyür. Önce tüketiciyi geri getir.", "A queue with 0 `consumers` only grows. Bring the consumer back first."),
-      l("İşçi `worker.py`; başlatınca arka planda çalışır.", "The worker is `worker.py`; started, it keeps running in the background."),
-      l("`python worker.py`", "`python worker.py`"),
+      l("İşçi `worker.js`; başlatınca arka planda çalışır.", "The worker is `worker.js`; started, it keeps running in the background."),
+      l("`node worker.js`", "`node worker.js`"),
     ],
     par: 1,
     check: (ctx) => depth(ctx.state, "orders").total === 0 && allStartOrdersAcked(ctx),
@@ -61,11 +59,11 @@ export const scenarios: RabbitScenario[] = [
     id: "stuck-worker",
     title: l("Takılan işçi", "The stuck worker"),
     story: l(
-      "İşçi çalışıyor, `consumers` 1, ama `messages_unacknowledged` saatlerdir 2'de duruyor ve kuyruk eriymiyor. `worker.py`'ye bakınca sebep çıkıyor: son değişiklikte callback'teki ack satırı silinmiş. İşçi elindeki iki siparişi bitirdi ama broker bunu hiç duymadı.",
-      "The worker is running, `consumers` is 1, but `messages_unacknowledged` has sat at 2 for hours and the queue doesn't drain. One look at `worker.py` shows why: the last change deleted the ack line in the callback. The worker finished the two orders it holds, but the broker never heard about it.",
+      "İşçi çalışıyor, `consumers` 1, ama `messages_unacknowledged` saatlerdir 2'de duruyor ve kuyruk eriymiyor. `worker.js`'ye bakınca sebep çıkıyor: son değişiklikte callback'teki ack satırı silinmiş. İşçi elindeki iki siparişi bitirdi ama broker bunu hiç duymadı.",
+      "The worker is running, `consumers` is 1, but `messages_unacknowledged` has sat at 2 for hours and the queue doesn't drain. One look at `worker.js` shows why: the last change deleted the ack line in the callback. The worker finished the two orders it holds, but the broker never heard about it.",
     ),
     goal: l("Bütün siparişler ack'lensin, hazır ve onay bekleyen 0 olsun; hiçbir sipariş kaybolmasın.", "Every order is acked, ready and unacked are both 0, and no order is lost."),
-    start: projectAfter({ "setup.py": SETUP, "orders.py": orders("o1", "o2", "o3", "o4"), "worker.py": worker({ ack: false, prefetch: 2 }) }, ["python setup.py", "python worker.py", "python orders.py"]),
+    start: projectAfter({ "setup.js": SETUP, "orders.js": orders("o1", "o2", "o3", "o4"), "worker.js": worker({ ack: false, prefetch: 2 }) }, ["node setup.js", "node worker.js", "node orders.js"]),
     hints: [
       l(
         "`rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers` ile bak. Ack'lenmemiş mesajlar, onları tutan tüketici gidince kuyruğa geri döner.",
@@ -73,8 +71,8 @@ export const scenarios: RabbitScenario[] = [
       ),
       l("Ack satırını geri ekle, sonra eski süreci durdurup düzeltilmiş işçiyi başlat.", "Put the ack line back, then stop the old process and start the fixed worker."),
       l(
-        "`nano worker.py` (`ch.basic_ack(delivery_tag=method.delivery_tag)`), `pkill -f worker.py`, `python worker.py`",
-        "`nano worker.py` (`ch.basic_ack(delivery_tag=method.delivery_tag)`), `pkill -f worker.py`, `python worker.py`",
+        "`nano worker.js` (`ch.ack(msg);`), `pkill -f worker.js`, `node worker.js`",
+        "`nano worker.js` (`ch.ack(msg);`), `pkill -f worker.js`, `node worker.js`",
       ),
     ],
     par: 3,
@@ -89,13 +87,13 @@ export const scenarios: RabbitScenario[] = [
     ),
     goal: l("Bütün siparişler **4 saniye içinde** işlensin: zaman 4 saniye ilerlediğinde `orders` boş olsun.", "Every order is processed **within 4 seconds**: when 4 seconds have passed, `orders` is empty."),
     start: projectAfter(
-      { "setup.py": SETUP, "orders.py": orders("o1", "o2", "o3", "o4", "o5", "o6"), "worker.py": worker({ slow: 2 }) },
-      ["python setup.py", "python orders.py", "python worker.py"],
+      { "setup.js": SETUP, "orders.js": orders("o1", "o2", "o3", "o4", "o5", "o6"), "worker.js": worker({ slow: 2 }) },
+      ["node setup.js", "node orders.js", "node worker.js"],
     ),
     hints: [
       l("Aynı kuyruğa bağlı işçiler işi paylaşır (round-robin). İki kat işçi, iki kat hız.", "Workers on the same queue share the work (round-robin). Twice the workers, twice the speed."),
       l("6 sipariş × 2 saniye = 12 işçi-saniye. 4 saniyede bitirmek için 3 işçi lazım: iki tane daha başlat, sonra zamanın geçmesini bekle.", "6 orders × 2 seconds = 12 worker-seconds. To finish in 4 seconds you need 3 workers: start two more, then let the time pass."),
-      l("`python worker.py`, `python worker.py`, `sleep 4`", "`python worker.py`, `python worker.py`, `sleep 4`"),
+      l("`node worker.js`, `node worker.js`, `sleep 4`", "`node worker.js`, `node worker.js`, `sleep 4`"),
     ],
     par: 3,
     check: (ctx) => depth(ctx.state, "orders").total === 0 && ctx.state.time - ctx.start.time <= 4 && lostSince(ctx).length === 0,
@@ -110,11 +108,11 @@ export const scenarios: RabbitScenario[] = [
     goal: l("`orders-test` boşalsın ama silinmesin; `orders`'taki gerçek siparişlere dokunulmasın.", "`orders-test` is emptied but not deleted; the real orders in `orders` are left alone."),
     start: projectAfter(
       {
-        "setup.py": script(`ch.queue_declare(queue="orders", durable=True)\nch.queue_declare(queue="orders-test", durable=True)`),
-        "orders.py": orders("o1", "o2"),
-        "loadtest.py": script(`for n in range(5):\n    ch.basic_publish(exchange="", routing_key="orders-test", body="junk")`),
+        "setup.js": script(`await ch.assertQueue("orders");\nawait ch.assertQueue("orders-test");`),
+        "orders.js": orders("o1", "o2"),
+        "loadtest.js": script(`for (let n = 0; n < 5; n++) {\n  ch.sendToQueue("orders-test", Buffer.from("junk"));\n}`),
       },
-      ["python setup.py", "python orders.py", "python loadtest.py"],
+      ["node setup.js", "node orders.js", "node loadtest.js"],
     ),
     hints: [
       l("Kuyruğu silmek ile boşaltmak farklı şeyler: silinen kuyruk tanımıyla ve binding'leriyle gider.", "Deleting a queue and emptying it are different: a deleted queue takes its definition and bindings with it."),

@@ -18,29 +18,31 @@ const addLine = (after: string, line: string): Edit => (t) => {
   if (!t.includes(after)) throw new Error(`the file has no ${after}`);
   return t.replace(after, `${after}\n${line}`);
 };
-const declared = (q: string) => `ch.queue_declare(queue="${q}", durable=True)`;
-const bindLine = (q: string, match: string) => `ch.queue_bind(exchange="docs", queue="${q}", arguments={"x-match": "${match}", "format": "pdf", "region": "eu"})`;
-const RUN = ["nano setup.py", "python setup.py", "python upload.py"];
-const DOCS_DECLARE = 'exchange_type="headers", durable=True)';
-const WITH_ALTERNATE = 'exchange_type="headers", durable=True, arguments={"alternate-exchange": "unrouted"})';
-const REFUND = 'body=b"refund for order 1001")';
+const declared = (q: string) => `await ch.assertQueue("${q}");`;
+const bindLine = (q: string, match: string) => `await ch.bindQueue("${q}", "docs", "", { "x-match": "${match}", format: "pdf", region: "eu" });`;
+const RUN = ["nano setup.js", "node setup.js", "node upload.js"];
+const DOCS_DECLARE = 'assertExchange("docs", "headers");';
+const WITH_ALTERNATE = 'assertExchange("docs", "headers", { alternateExchange: "unrouted" });';
+const REFUND = 'Buffer.from("refund for order 1001"));';
+const MANDATORY = 'Buffer.from("refund for order 1001"), { mandatory: true });';
+const CONFIRMS = swap("conn.createChannel()", "conn.createConfirmChannel()");
 
 /** What a reader would type for each scenario: the intended way, in exactly par commands. */
 const solutions: Record<string, Play> = {
   "eu-pdfs": { typed: RUN, edits: [addLine(declared("pdf-eu"), bindLine("pdf-eu", "all"))] },
   "gdpr-review": { typed: RUN, edits: [addLine(declared("review"), bindLine("review", "any"))] },
   "lost-and-found": { typed: RUN, edits: [swap(DOCS_DECLARE, WITH_ALTERNATE)] },
-  "returned-refund": { typed: ["nano send_refund.py", "python send_refund.py"], edits: [swap(REFUND, 'body=b"refund for order 1001", mandatory=True)')] },
+  "returned-refund": { typed: ["nano send_refund.js", "node send_refund.js"], edits: [swap(REFUND, MANDATORY)] },
 };
 
 /** Other ways people really do it, which must count too. */
 const alternatives: Record<string, Play[]> = {
   "eu-pdfs": [{ typed: ["rabbitmqctl list_bindings source_name destination_name arguments", ...RUN], edits: [addLine(declared("pdf-eu"), bindLine("pdf-eu", "all"))] }],
+  // The option given as the arguments amqplib sends for it.
+  "lost-and-found": [{ typed: RUN, edits: [swap(DOCS_DECLARE, 'assertExchange("docs", "headers", { arguments: { "alternate-exchange": "unrouted" } });')] }],
   "returned-refund": [
-    {
-      typed: ["nano send_refund.py", "python send_refund.py"],
-      edits: [(t) => swap(REFUND, 'body=b"refund for order 1001", mandatory=True)')(t).replace("ch = connection.channel()", "ch = connection.channel()\nch.confirm_delivery()")],
-    },
+    // A confirm channel as well: the broker confirms the message after returning it.
+    { typed: ["nano send_refund.js", "node send_refund.js"], edits: [(t) => CONFIRMS(swap(REFUND, MANDATORY)(t))] },
   ],
 };
 
@@ -51,9 +53,9 @@ const wrong: Record<string, Play> = {
   // `all`: only the EU PDF.
   "gdpr-review": { typed: RUN, edits: [addLine(declared("review"), bindLine("review", "all"))] },
   // Running the setup first: the fixed declare is then refused, and the upload loses csv/us.
-  "lost-and-found": { typed: ["python setup.py", "nano setup.py", "python setup.py", "python upload.py"], edits: [swap(DOCS_DECLARE, WITH_ALTERNATE)] },
+  "lost-and-found": { typed: ["node setup.js", "nano setup.js", "node setup.js", "node upload.js"], edits: [swap(DOCS_DECLARE, WITH_ALTERNATE)] },
   // Confirms alone: the broker confirms the drop, and the message is still gone.
-  "returned-refund": { typed: ["nano send_refund.py", "python send_refund.py"], edits: [swap("ch = connection.channel()", "ch = connection.channel()\nch.confirm_delivery()")] },
+  "returned-refund": { typed: ["nano send_refund.js", "node send_refund.js"], edits: [CONFIRMS] },
 };
 
 describe("headers-and-alternate", () => {
@@ -85,11 +87,13 @@ describe("headers-and-alternate", () => {
     expect(out.find((x) => x.includes("inequivalent arg 'alternate-exchange'"))).toContain("PRECONDITION_FAILED");
   });
 
-  it("with confirms on, the returned refund raises UnroutableError in the script", () => {
+  it("with mandatory, the returned refund reaches the script's return listener; without it, nothing comes back", () => {
     const s = scenarios.find((x) => x.id === "returned-refund")!;
-    const alt = alternatives["returned-refund"]![0]!;
-    const out = typeInto(s.start, alt.typed, [...(alt.edits ?? [])]).output;
-    expect(out.at(-1)).toContain("UnroutableError");
+    for (const p of [solutions["returned-refund"]!, alternatives["returned-refund"]![0]!]) {
+      expect(typeInto(s.start, p.typed, [...(p.edits ?? [])]).output).toContain("returned: refund for order 1001");
+    }
+    const w = wrong["returned-refund"]!;
+    expect(typeInto(s.start, w.typed, [...(w.edits ?? [])]).output).toEqual([]);
   });
 
   for (const s of scenarios) {

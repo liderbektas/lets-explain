@@ -40,13 +40,6 @@ export const durability: Lesson = {
       ],
       practice: {
         commands: [{ cmd: LIST, note: l("`durable` sütunu her kuyruğun restart'tan sağ çıkıp çıkmayacağını gösterir.", "The `durable` column shows whether each queue survives a restart.") }],
-        snippets: [
-          {
-            label: "Python · durable ve geçici kuyruk",
-            code: 'ch.queue_declare(queue="orders", durable=True)\nch.queue_declare(queue="temp", durable=False)',
-            note: l("Bir kuyruğun durable ayarı sonradan değişmez: farklı ayarla yeniden tanımlamak `PRECONDITION_FAILED` verir. Değiştirmek için kuyruğu silip yeniden oluşturman gerekir.", "A queue's durable setting cannot change later: declaring it again with another value fails with `PRECONDITION_FAILED`. To change it, delete and recreate the queue."),
-          },
-        ],
       },
     },
     {
@@ -63,10 +56,6 @@ export const durability: Lesson = {
           "Whether a message is persistent is chosen by **the sender**, not the queue. Say nothing when publishing and it is transient.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · geçici mesaj (varsayılan)", code: 'ch.basic_publish(exchange="", routing_key="orders", body=b"t1")' }],
-        commands: [],
-      },
     },
     {
       short: l("Restart", "Restart"),
@@ -115,16 +104,16 @@ export const durability: Lesson = {
           "We declared `temp` again and sent three messages: persistent `p1` and transient `t3` to `orders`, persistent `p2` to `temp`. Persistent messages are sealed mint envelopes.",
         ),
         l(
-          "Persistent işaretli mesajı broker diske de yazar (`delivery_mode=2`). Restart'ta kurtarılabilmesi için bu şart.",
-          "The broker also writes a persistent message to disk (`delivery_mode=2`). That is required for it to be recovered after a restart.",
+          "Persistent işaretli mesajı broker diske de yazar (`persistent: true`, yani delivery mode 2). Restart'ta kurtarılabilmesi için bu şart.",
+          "The broker also writes a persistent message to disk (`persistent: true`, i.e. delivery mode 2). That is required for it to be recovered after a restart.",
         ),
       ],
       practice: {
         snippets: [
           {
-            label: "Python · persistent mesaj",
-            code: 'ch.basic_publish(\n    exchange="",\n    routing_key="orders",\n    body=b"p1",\n    properties=pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent),\n)',
-            note: l("`pika.DeliveryMode.Persistent` 2 değeridir. Eski örneklerde doğrudan `delivery_mode=2` görürsün.", "`pika.DeliveryMode.Persistent` is the value 2. Older examples write `delivery_mode=2` directly."),
+            label: "Node.js · durable kuyruk, persistent mesaj",
+            code: 'await ch.assertQueue("orders", { durable: true });\nch.sendToQueue("orders", Buffer.from("p1"), {\n  persistent: true,\n});',
+            note: l("`persistent: true`, delivery mode 2 demektir. amqplib'de `durable` zaten varsayılan olarak `true`; yine de açıkça yazmak niyeti belli eder. Kuyruğun durable ayarı sonradan değişmez: farklı değerle yeniden tanımlamak `PRECONDITION_FAILED` verir.", "`persistent: true` means delivery mode 2. In amqplib `durable` already defaults to `true`; writing it out still makes the intent clear. A queue's durable setting cannot change later: declaring it again with another value fails with `PRECONDITION_FAILED`."),
           },
         ],
         commands: [],
@@ -152,8 +141,8 @@ export const durability: Lesson = {
           "After the restart only `p1` is left. `temp` vanished again and took persistent `p2` with it.",
         ),
         l(
-          "Kaybetmek istemediğin her mesaj için iki şeyi birlikte yap: kuyruğu `durable=True` tanımla ve mesajı persistent gönder.",
-          "For every message you cannot afford to lose, do both: declare the queue with `durable=True` and publish the message as persistent.",
+          "Kaybetmek istemediğin her mesaj için iki şeyi birlikte yap: kuyruğu `durable: true` tanımla ve mesajı persistent gönder.",
+          "For every message you cannot afford to lose, do both: declare the queue with `durable: true` and publish the message as persistent.",
         ),
       ],
       callouts: [
@@ -181,10 +170,6 @@ export const durability: Lesson = {
           "Quorum queues copy messages to several nodes and are built for safety. We look at them closely in the last lesson of this chapter.",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · quorum queue", code: 'ch.queue_declare(\n    queue="payments",\n    durable=True,\n    arguments={"x-queue-type": "quorum"},\n)' }],
-        commands: [],
-      },
     },
     {
       short: l("Quorum restart", "Quorum restart"),
@@ -259,19 +244,19 @@ export const durability: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: restart'ta kaybolan kuyruklar ve mesajlar, ve canlıdaki bir kuyruğa kod değiştirmeden sınır koymak. Proje klasöründe kurulumu yapan `setup.py` ve mesaj gönderen küçük Python dosyaları var.",
-          "Your turn. Below are **4 scenarios** from real work: queues and messages lost in a restart, and capping a live queue without changing code. The project folder has `setup.py`, which declares the queues, and small Python files that send messages.",
+          "Sıra sende. Aşağıda gerçek işten **4 senaryo** var: restart'ta kaybolan kuyruklar ve mesajlar, ve canlıdaki bir kuyruğa kod değiştirmeden sınır koymak. Proje klasöründe kurulumu yapan `setup.js` ve mesaj gönderen küçük Node.js dosyaları var.",
+          "Your turn. Below are **4 scenarios** from real work: queues and messages lost in a restart, and capping a live queue without changing code. The project folder has `setup.js`, which declares the queues, and small Node.js files that send messages.",
         ),
         l(
-          "`rabbitmqctl list_queues name durable messages` ile bak, `nano` ile kodu düzelt, `python` ile çalıştır, `docker restart rabbitmq` ile broker'ı yeniden başlat. Az komutla bitirirsen 3 yıldız.",
-          "Look with `rabbitmqctl list_queues name durable messages`, fix the code with `nano`, run it with `python`, restart the broker with `docker restart rabbitmq`. Finish in few commands for 3 stars.",
+          "`rabbitmqctl list_queues name durable messages` ile bak, `nano` ile kodu düzelt, `node` ile çalıştır, `docker restart rabbitmq` ile broker'ı yeniden başlat. Az komutla bitirirsen 3 yıldız.",
+          "Look with `rabbitmqctl list_queues name durable messages`, fix the code with `nano`, run it with `node`, restart the broker with `docker restart rabbitmq`. Finish in few commands for 3 stars.",
         ),
       ],
     },
   ],
   recap: [
     l("Durable bir kuyruğun **tanımı** restart'tan sağ çıkar; geçici kuyruk içindekilerle birlikte silinir.", "A durable queue's **definition** survives a restart; a transient queue is deleted with everything in it."),
-    l("Mesajın kalıcılığını gönderen seçer: `delivery_mode=2` (persistent) diske de yazılır.", "The sender chooses persistence: `delivery_mode=2` (persistent) is also written to disk."),
+    l("Mesajın kalıcılığını gönderen seçer: `persistent: true` (delivery mode 2) diske de yazılır.", "The sender chooses persistence: `persistent: true` (delivery mode 2) is also written to disk."),
     l("Kaybetmemek için ikisi birden: durable kuyruk **ve** persistent mesaj.", "To keep a message you need both: a durable queue **and** a persistent message."),
     l("Quorum queue'lar her mesajı diske yazıp kopyalar ve her zaman durable'dır.", "Quorum queues write and replicate every message and are always durable."),
     l("Persistent tek başına garanti değil: broker yazmadan çökebilir. Emin olmak için publisher confirms kullan.", "Persistent alone is no guarantee: the broker can crash before writing. Use publisher confirms to be sure."),
@@ -292,7 +277,7 @@ export const durability: Lesson = {
       reviewStep: 4,
     },
     {
-      question: l("Quorum queue'da `delivery_mode` ayarlanmamış bir mesaj restart'ta ne olur?", "What happens on a restart to a message in a quorum queue that had no `delivery_mode` set?"),
+      question: l("Quorum queue'da `persistent` olarak gönderilmemiş bir mesaj restart'ta ne olur?", "What happens on a restart to a message in a quorum queue that was not sent as `persistent`?"),
       options: [l("Kaybolur", "It is lost"), l("Kalır", "It stays"), l("Dead letter olur", "It is dead-lettered"), l("Producer'a döner", "It goes back to the producer")],
       answer: 1,
       explain: l("Quorum queue'lar her mesajı diske yazar ve kopyalar.", "Quorum queues write and replicate every message."),

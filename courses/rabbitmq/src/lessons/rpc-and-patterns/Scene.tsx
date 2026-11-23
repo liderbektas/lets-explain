@@ -21,7 +21,7 @@ export const ask = (n: number, ttl?: number): BrokerAction => ({
   ttl,
 });
 
-/** A server answers a request: to its reply_to queue, with the same correlation id. */
+/** A server answers a request: to its replyTo queue, with the same correlation id. */
 export const answer = (m: Pick<Message, "replyTo" | "correlationId">): BrokerAction => ({
   type: "publish",
   exchange: "",

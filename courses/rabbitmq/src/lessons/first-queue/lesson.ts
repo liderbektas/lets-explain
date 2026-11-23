@@ -45,14 +45,7 @@ export const firstQueue: Lesson = {
             cmd: "docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management",
             note: l("5672 uygulamaların bağlandığı port, 15672 yönetim paneli: http://localhost:15672 (kullanıcı ve şifre `guest`).", "5672 is the port apps connect to, 15672 is the management UI: http://localhost:15672 (user and password `guest`)."),
           },
-          { cmd: "pip install pika", note: l("Örneklerde kullanacağımız Python istemcisi.", "The Python client the examples use.") },
-        ],
-        snippets: [
-          {
-            label: "Python · kuyruğu tanımla",
-            code: 'import pika\n\nconn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))\nch = conn.channel()\nch.queue_declare(queue="hello", durable=True)',
-            note: l("`queue_declare` kuyruk yoksa oluşturur, varsa hiçbir şey yapmaz. Producer ve consumer ikisi de çağırabilir.", "`queue_declare` creates the queue if it is missing and does nothing otherwise. Producers and consumers can both call it."),
-          },
+          { cmd: "npm install amqplib", note: l("Örneklerde kullanacağımız Node.js istemcisi.", "The Node.js client the examples use.") },
         ],
       },
     },
@@ -81,7 +74,6 @@ export const firstQueue: Lesson = {
       ],
       practice: {
         commands: [{ cmd: LIST, note: l("Kuyrukları ve içlerindeki mesaj sayısını listeler.", "Lists queues and how many messages they hold.") }],
-        snippets: [{ label: "Python · gönder", code: 'ch.basic_publish(exchange="", routing_key="hello", body=b"a1")' }],
       },
     },
     {
@@ -117,9 +109,9 @@ export const firstQueue: Lesson = {
       practice: {
         snippets: [
           {
-            label: "Python · dinle",
-            code: 'def handle(ch, method, props, body):\n    print("got", body)\n    ch.basic_ack(delivery_tag=method.delivery_tag)\n\nch.basic_consume(queue="hello", on_message_callback=handle)\nch.start_consuming()',
-            note: l("İşi bitirdikten **sonra** `basic_ack` çağrılır. Ack'i işten önce göndermek, işçi çökerse mesajı kaybettirir.", "Call `basic_ack` **after** the work is done. Acking first loses the message if the worker crashes."),
+            label: "Node.js · gönder ve dinle",
+            code: 'await ch.assertQueue("hello");\nch.sendToQueue("hello", Buffer.from("a1"));\n\nawait ch.consume("hello", (msg) => {\n  console.log(msg.content.toString());\n  ch.ack(msg); // after the work is done\n}, { noAck: false });',
+            note: l("`assertQueue` kuyruk yoksa oluşturur, varsa hiçbir şey yapmaz. İşi bitirdikten **sonra** `ack` çağrılır; ack'i işten önce göndermek, işçi çökerse mesajı kaybettirir.", "`assertQueue` creates the queue if it is missing and does nothing otherwise. Call `ack` **after** the work is done; acking first loses the message if the worker crashes."),
           },
         ],
         commands: [],
@@ -182,15 +174,6 @@ export const firstQueue: Lesson = {
           ),
         },
       ],
-      practice: {
-        snippets: [
-          {
-            label: "Python · tekrarı fark et",
-            code: 'def handle(ch, method, props, body):\n    if method.redelivered:\n        print("seen before, check first:", body)\n    ...\n    ch.basic_ack(delivery_tag=method.delivery_tag)',
-          },
-        ],
-        commands: [],
-      },
     },
     {
       short: l("Devralma", "Pick up"),
@@ -202,14 +185,10 @@ export const firstQueue: Lesson = {
           "Worker 2 connected. The broker gave it the two returned messages, and Worker 2 acked both at once.",
         ),
         l(
-          "Tek bir ack ile birden fazla mesaj onaylanabilir (`multiple=True`): \"buna kadar olanların hepsi bitti\" demek.",
-          "One ack can cover several messages (`multiple=True`): it means \"everything up to this one is done\".",
+          "Tek bir ack ile birden fazla mesaj onaylanabilir (`ch.ack(msg, true)`): \"buna kadar olanların hepsi bitti\" demek.",
+          "One ack can cover several messages (`ch.ack(msg, true)`): it means \"everything up to this one is done\".",
         ),
       ],
-      practice: {
-        snippets: [{ label: "Python · toplu ack", code: "ch.basic_ack(delivery_tag=method.delivery_tag, multiple=True)" }],
-        commands: [],
-      },
     },
     {
       short: l("Paylaşma", "Share"),
@@ -237,8 +216,8 @@ export const firstQueue: Lesson = {
       practice: {
         intro: l("İki terminalde aynı consumer kodunu çalıştır, sonra mesaj gönder:", "Run the same consumer code in two terminals, then send messages:"),
         commands: [
-          { cmd: "python worker.py", note: l("İlk terminal.", "First terminal.") },
-          { cmd: "python worker.py", note: l("İkinci terminal: mesajlar ikisine sırayla dağılır.", "Second terminal: messages alternate between the two.") },
+          { cmd: "node worker.js", note: l("İlk terminal.", "First terminal.") },
+          { cmd: "node worker.js", note: l("İkinci terminal: mesajlar ikisine sırayla dağılır.", "Second terminal: messages alternate between the two.") },
         ],
       },
     },
@@ -248,12 +227,12 @@ export const firstQueue: Lesson = {
       title: l("Aslında doğrudan kuyruğa göndermedik", "We never really sent straight to the queue"),
       body: [
         l(
-          "RabbitMQ'da producer'lar her zaman bir [[exchange]]'e gönderir. Bu derste kullandığımız `exchange=\"\"`, adı boş olan **default exchange**: her kuyruğa, kuyruğun kendi adıyla otomatik bağlıdır.",
-          "In RabbitMQ producers always send to an [[exchange]]. The `exchange=\"\"` we used is the **default exchange**, the one with an empty name: every queue is bound to it automatically by its own name.",
+          "RabbitMQ'da producer'lar her zaman bir [[exchange]]'e gönderir. Bu derste kullandığımız `sendToQueue`, adı boş (`\"\"`) olan **default exchange**'e gönderir: o exchange her kuyruğa, kuyruğun kendi adıyla otomatik bağlıdır.",
+          "In RabbitMQ producers always send to an [[exchange]]. The `sendToQueue` we used sends to the **default exchange**, the one with an empty name (`\"\"`): every queue is bound to it automatically by its own name.",
         ),
         l(
-          "Yani `routing_key=\"hello\"` demek, \"`hello` kuyruğuna koy\" demek. Kısayol olarak güzel, ama gerçek projelerde mesajları adı olan exchange'lere gönderip kuralları onlara bırakırız. Sonraki bölüm tam olarak bu.",
-          "So `routing_key=\"hello\"` means \"put it in the `hello` queue\". Handy as a shortcut, but real projects send to named exchanges and leave the rules to them. That is the next chapter.",
+          "Yani `ch.sendToQueue(\"hello\", …)`, yani `ch.publish(\"\", \"hello\", …)` demek, \"`hello` kuyruğuna koy\" demek. Kısayol olarak güzel, ama gerçek projelerde mesajları adı olan exchange'lere gönderip kuralları onlara bırakırız. Sonraki bölüm tam olarak bu.",
+          "So `ch.sendToQueue(\"hello\", …)`, which is `ch.publish(\"\", \"hello\", …)`, means \"put it in the `hello` queue\". Handy as a shortcut, but real projects send to named exchanges and leave the rules to them. That is the next chapter.",
         ),
       ],
       callouts: [
@@ -275,12 +254,12 @@ export const firstQueue: Lesson = {
       title: l("Şimdi sen yaz", "Now you type"),
       body: [
         l(
-          "Sıra sende. Bir fotoğraf servisi var: `send.py` `tasks` kuyruğuna iş gönderir, `worker.py` her işi bitirince ack'ler. Aşağıda gerçek işten **4 senaryo** var.",
-          "Your turn. There's a photo service: `send.py` sends work to the `tasks` queue, and `worker.py` acks each task once it's done. Below are **4 scenarios** from real work.",
+          "Sıra sende. Bir fotoğraf servisi var: `send.js` `tasks` kuyruğuna iş gönderir, `worker.js` her işi bitirince ack'ler. Aşağıda gerçek işten **4 senaryo** var.",
+          "Your turn. There's a photo service: `send.js` sends work to the `tasks` queue, and `worker.js` acks each task once it's done. Below are **4 scenarios** from real work.",
         ),
         l(
-          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged` kuyruğun durumunu gösterir. İşçiler arka planda çalışır: `jobs` listeler, `pkill -f worker.py` durdurur. Az komutla bitirirsen 3 yıldız.",
-          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows the queue's state. Workers run in the background: `jobs` lists them, `pkill -f worker.py` stops them. Few commands earn 3 stars.",
+          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged` kuyruğun durumunu gösterir. İşçiler arka planda çalışır: `jobs` listeler, `pkill -f worker.js` durdurur. Az komutla bitirirsen 3 yıldız.",
+          "`rabbitmqctl list_queues name messages_ready messages_unacknowledged` shows the queue's state. Workers run in the background: `jobs` lists them, `pkill -f worker.js` stops them. Few commands earn 3 stars.",
         ),
       ],
     },
@@ -301,7 +280,7 @@ export const firstQueue: Lesson = {
       reviewStep: 4,
     },
     {
-      question: l("`basic_ack` işi bitirmeden **önce** çağrılırsa ve işçi o sırada çökerse ne olur?", "What happens if `basic_ack` is called **before** the work and the worker then crashes?"),
+      question: l("`ack` işi bitirmeden **önce** çağrılırsa ve işçi o sırada çökerse ne olur?", "What happens if `ack` is called **before** the work and the worker then crashes?"),
       options: [l("Mesaj tekrar teslim edilir", "The message is redelivered"), l("Mesaj kaybolur", "The message is lost"), l("Broker çöker", "The broker crashes"), l("Hiçbir şey", "Nothing")],
       answer: 1,
       explain: l("Broker ack'i aldığı an mesajı siler. İş yarım kaldıysa onu geri getirecek kimse yok.", "The broker deletes the message the moment it gets the ack. If the work was unfinished, nothing brings it back."),
@@ -315,7 +294,7 @@ export const firstQueue: Lesson = {
       reviewStep: 6,
     },
     {
-      question: l("`exchange=\"\"` ve `routing_key=\"hello\"` ile gönderilen mesaj nereye gider?", "Where does a message sent with `exchange=\"\"` and `routing_key=\"hello\"` go?"),
+      question: l("`ch.publish(\"\", \"hello\", …)` ile, yani boş exchange adı ve `hello` routing key'iyle gönderilen mesaj nereye gider?", "Where does a message sent with `ch.publish(\"\", \"hello\", …)`, an empty exchange name and the routing key `hello`, go?"),
       options: [l("Hiçbir yere, exchange adı boş", "Nowhere, the exchange has no name"), l("`hello` adlı kuyruğa", "To the queue named `hello`"), l("Bütün kuyruklara", "To every queue"), l("`hello` adlı exchange'e", "To an exchange named `hello`")],
       answer: 1,
       explain: l("Default exchange her kuyruğa adıyla bağlıdır: routing key kuyruğun adıdır.", "The default exchange is bound to every queue by name: the routing key is the queue's name."),
