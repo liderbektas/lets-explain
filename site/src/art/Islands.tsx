@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { pts, rel } from "@lets-explain/core/iso/geometry";
-import { Belt, IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes";
+import { IsoBox, Parcel, type Shades } from "@lets-explain/core/iso/shapes";
+import { SCENES } from "./scenes";
 
 /**
  * One small floating island per technology, in the same isometric sticker style as the
@@ -24,9 +25,6 @@ export const ISLAND_TINT: Record<IslandId, { top: string; soft: string }> = {
 const GROUND: Shades = ["#fffdf8", "#efe5d2", "#ddd0b8"];
 const SKY: Shades = ["var(--sky)", "var(--sky-mid)", "var(--sky-deep)"];
 const LILAC: Shades = ["var(--lilac)", "#a993ee", "var(--lilac-deep)"];
-const SUN: Shades = ["var(--sun)", "#f2bd3a", "#d9a826"];
-const PEACH: Shades = ["var(--peach)", "var(--peach-mid)", "var(--peach-deep)"];
-const CORAL: Shades = ["var(--coral)", "#f08770", "var(--coral-deep)"];
 
 /** The slab every island stands on, plus a soft shadow far below so it seems to float. */
 function Slab({ s, w = 3.4, d = 3.4, tint }: { s: number; w?: number; d?: number; tint: string }) {
@@ -44,41 +42,6 @@ function Slab({ s, w = 3.4, d = 3.4, tint }: { s: number; w?: number; d?: number
 function at(s: number, x: number, y: number, z = 0, child: ReactNode) {
   const [px, py] = rel(s, x, y, z);
   return <g transform={`translate(${px} ${py})`}>{child}</g>;
-}
-
-/* ------------------------------------------------------------------ Kafka */
-
-function KafkaTop({ s }: { s: number }) {
-  return (
-    <g>
-      <Belt s={s} from={-1.35} to={1.35} slot={0.9} />
-      {[0, 1, 2].map((i) => at(s, -0.9 + i * 0.9, 0, 0, <Parcel key={i} s={s} label={i} size={0.62} />))}
-    </g>
-  );
-}
-
-/* --------------------------------------------------------------- RabbitMQ */
-
-function RabbitTop({ s }: { s: number }) {
-  const from = rel(s, -0.6, 0, 0.45);
-  const lanes = [-0.95, 0, 0.95];
-  return (
-    <g>
-      {lanes.map((y) => {
-        const to = rel(s, 0.45, y, 0.12);
-        return <path key={y} d={`M${from[0]} ${from[1]} L${to[0]} ${to[1]}`} className="island-wire" />;
-      })}
-      {lanes.map((y, i) => (
-        <g key={y}>
-          <IsoBox s={s} at={[0.35, y - 0.3, 0]} size={[1.1, 0.6, 0.12]} shades={GROUND} />
-          {at(s, 0.75, y, 0.12, <Parcel s={s} size={0.42} kind={i === 1 ? "cancel" : "order"} />)}
-          {i !== 2 && at(s, 1.2, y, 0.12, <Parcel s={s} size={0.42} kind="order" />)}
-        </g>
-      ))}
-      <IsoBox s={s} at={[-1.35, -0.45, 0]} size={[0.9, 0.9, 0.85]} shades={PEACH} />
-      {at(s, -0.9, 0, 0.85, <IsoBox s={s} at={[-0.25, -0.25, 0]} size={[0.5, 0.5, 0.18]} shades={CORAL} />)}
-    </g>
-  );
 }
 
 /* ------------------------------------------------------------- Kubernetes */
@@ -116,34 +79,6 @@ function KubeTop({ s }: { s: number }) {
   );
 }
 
-/* --------------------------------------------------------------------- Git */
-
-function GitTop({ s }: { s: number }) {
-  const main = [-1.2, -0.4, 0.4, 1.2].map((x) => rel(s, x, 0.55, 0.02));
-  const side = [-0.4, 0.4].map((x) => rel(s, x, -0.6, 0.02));
-  const line = (a: [number, number], b: [number, number], k: string) => (
-    <path key={k} d={`M${a[0]} ${a[1]} L${b[0]} ${b[1]}`} className="island-branch" />
-  );
-  return (
-    <g>
-      {line(main[0]!, main[3]!, "main")}
-      {line(main[0]!, side[0]!, "out")}
-      {line(side[0]!, side[1]!, "side")}
-      {line(side[1]!, main[3]!, "in")}
-      {main.map(([x, y], i) => (
-        <g key={`m${i}`} transform={`translate(${x} ${y})`}>
-          <IsoBox s={s} at={[-0.2, -0.2, 0]} size={[0.4, 0.4, 0.32]} shades={SUN} />
-        </g>
-      ))}
-      {side.map(([x, y], i) => (
-        <g key={`s${i}`} transform={`translate(${x} ${y})`}>
-          <IsoBox s={s} at={[-0.2, -0.2, 0]} size={[0.4, 0.4, 0.32]} shades={LILAC} />
-        </g>
-      ))}
-    </g>
-  );
-}
-
 /* ------------------------------------------------------- DB transactions */
 
 function DbTop({ s }: { s: number }) {
@@ -169,82 +104,31 @@ function DbTop({ s }: { s: number }) {
   );
 }
 
-/* ------------------------------------------------------------- Docker */
-
-function DockerTop({ s }: { s: number }) {
-  // Shipping containers: two on the ground, one stacked on top.
-  return (
-    <g className="island-ctr">
-      <IsoBox s={s} at={[-1.35, -1.2, 0]} size={[1.25, 2.3, 0.75]} shades={CORAL} />
-      <IsoBox s={s} at={[0.1, -1.2, 0]} size={[1.25, 2.3, 0.75]} shades={SKY} />
-      <IsoBox s={s} at={[-0.62, -1.2, 0.75]} size={[1.25, 2.3, 0.75]} shades={SUN} />
-    </g>
-  );
-}
-
-/* ------------------------------------------------------------- CI/CD */
-
-const MINT: Shades = ["var(--mint)", "var(--mint-mid)", "var(--mint-deep)"];
-
-function CicdTop({ s }: { s: number }) {
-  // A belt carrying a commit past three check stations; the last one is lit green.
-  return (
-    <g>
-      <Belt s={s} from={-1.4} to={1.4} slot={0.7} />
-      {[-0.95, 0, 0.95].map((x, i) => (
-        <g key={x}>{at(s, x, -1.0, 0, <IsoBox s={s} at={[-0.25, -0.25, 0]} size={[0.5, 0.5, 0.55 + i * 0.12]} shades={i === 2 ? MINT : i === 1 ? SUN : SKY} />)}</g>
-      ))}
-      {at(s, 0.35, 0, 0, <Parcel s={s} size={0.55} kind="order" />)}
-    </g>
-  );
-}
-
-/* ---------------------------------------------------------- WebSocket */
-
-function WsTop({ s }: { s: number }) {
-  // A client tower and a server tower with one open pipe between them, a message on its way.
-  const a = rel(s, -1.0, 0.75, 0.75);
-  const b = rel(s, 0.75, -1.0, 0.95);
-  const mid = rel(s, -0.12, -0.12, 0.85);
-  return (
-    <g>
-      <IsoBox s={s} at={[-1.3, 0.45, 0]} size={[0.6, 0.6, 0.9]} shades={SKY} />
-      <IsoBox s={s} at={[0.45, -1.3, 0]} size={[0.6, 0.6, 1.1]} shades={MINT} />
-      <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} className="island-pipe" />
-      <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} className="island-pipe-shine" />
-      <g transform={`translate(${mid[0]} ${mid[1] + s * 0.25})`}>
-        <Parcel s={s} size={0.42} kind="order" />
-      </g>
-    </g>
-  );
-}
-
-const TOPS: Record<IslandId, (p: { s: number }) => ReactNode> = {
-  kafka: KafkaTop,
-  rabbitmq: RabbitTop,
+/** Planned courses keep the simple slab-and-landmark island until their course is written. */
+const TOPS: Record<"kubernetes" | "transactions", (p: { s: number }) => ReactNode> = {
   kubernetes: KubeTop,
-  git: GitTop,
   transactions: DbTop,
-  docker: DockerTop,
-  cicd: CicdTop,
-  websocket: WsTop,
 };
 
-/** A whole island: slab plus its landmark. */
+/** A whole island: a live course's scene, or a slab plus its landmark. */
 export function Island({ id, s = 22 }: { id: IslandId; s?: number }) {
-  const Top = TOPS[id];
-  return (
-    <g className="island">
-      <Slab s={s} tint={ISLAND_TINT[id].top} />
-      <Top s={s} />
-    </g>
-  );
+  if (id === "kubernetes" || id === "transactions") {
+    const Top = TOPS[id];
+    return (
+      <g className="island">
+        <Slab s={s} tint={ISLAND_TINT[id].top} />
+        <Top s={s} />
+      </g>
+    );
+  }
+  return <g className="island">{SCENES[id](s)}</g>;
 }
 
-/** One island framed for a course card header. */
+/** One island framed for a course card header. Live scenes are larger, so they get a wider frame. */
 export function IslandCard({ id }: { id: IslandId }) {
+  const live = id !== "kubernetes" && id !== "transactions";
   return (
-    <svg className="island-svg" viewBox="-96 -84 192 132" aria-hidden="true">
+    <svg className="island-svg" viewBox={live ? "-118 -108 236 158" : "-96 -84 192 132"} aria-hidden="true">
       <g className="float">
         <Island id={id} s={24} />
       </g>

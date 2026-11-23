@@ -2891,3 +2891,11 @@ button.nc-badge.is-paused {
     transition: none;
   }
 }
+
+/* Labels painted on the hub's course scenes (wagon numbers, HEAD sign). */
+.scene-text {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  fill: var(--ink);
+  stroke: none;
+}
