@@ -3,7 +3,7 @@ import { useTicker } from "@lets-explain/core/lib/playback";
 import { freshWorld, simulate, type CiAction, type Workflow } from "./engine/ci";
 import { BUILD, PREP, LINT, TEST, step } from "./engine/presets";
 import { EnvStrip } from "./iso/panels";
-import { RunStage } from "./iso/RunStage";
+import { AssemblyStage } from "./iso/AssemblyLine";
 import { HOLD_MS } from "./iso/replay";
 
 const WF: Workflow = {
@@ -28,7 +28,7 @@ export function CicdHero() {
   const run = w.runs[w.runs.length - 1];
   return (
     <svg className="stage-svg" viewBox="0 0 860 470" aria-hidden="true">
-      <RunStage run={run} box={{ x: 20, y: 14, w: 820, h: 330 }} />
+      <AssemblyStage run={run} box={{ x: 20, y: 14, w: 820, h: 330 }} />
       <EnvStrip world={w} box={{ x: 260, y: 350, w: 340, h: 100 }} />
     </svg>
   );

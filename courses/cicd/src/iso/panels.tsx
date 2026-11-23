@@ -1,9 +1,9 @@
 import { motion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useLang } from "@lets-explain/core/i18n";
-import { Building, Flag, Parcel, TINTS } from "@lets-explain/core/iso/shapes";
+import { Barrier, BELT, Crate, crateW, OBox, THIN } from "./factory";
 import { checkName, checksFor, commitOf, fmt, type JobRun, type Run, type World } from "../engine/ci";
-import { statusText } from "./RunStage";
+import { statusText } from "./runner";
 import { cut, STATUS_FILL, StatusDot, Sticker, Terminal, type Box } from "./parts";
 import { appearAt, LEAD_MS, stepTimes, useReplay, visibleBetween } from "./replay";
 
@@ -121,9 +121,10 @@ function Settle({ at, k, children }: { at: number; k?: string; children: ReactNo
 }
 
 /**
- * A pull request as GitHub shows it: its checks, which are required, and the merge button. When
- * the PR's newest run is played back, each of its checks stays pending until its job has ended,
- * and the merge button only settles after the last one.
+ * A pull request as GitHub shows it: its checks with their lamps, which are required, and the
+ * merge gate: the PR waits on a short belt in front of a barrier that rises only when every
+ * required check passed. When the PR's newest run is played back, each check stays pending
+ * until its job has ended, and the gate only settles after the last one.
  */
 export function PrPanel({ world, pr, box }: { world: World; pr: number; box: Box }) {
   const { lang } = useLang();
@@ -161,7 +162,7 @@ export function PrPanel({ world, pr, box }: { world: World; pr: number; box: Box
             {tr ? "Bu PR'da hiç check çalışmadı." : "No checks ran on this PR."}
           </text>
         )}
-        {checks.slice(0, Math.floor((box.h - 140) / rowH)).map((c, i) => {
+        {checks.slice(0, Math.max(1, Math.floor((box.h - 150) / rowH) + 1)).map((c, i) => {
           const y = box.y + 88 + i * rowH;
           const label =
             c.state === "expected"
@@ -209,20 +210,54 @@ export function PrPanel({ world, pr, box }: { world: World; pr: number; box: Box
             </g>
           );
         })}
-        {allSettle > 0 && !merged && (
-          <motion.g key={`${replay!.key}-merge-wait`} {...visibleBetween(0, allSettle)}>
-            <rect x={box.x + 16} y={box.y + box.h - 54} width={box.w - 32} height={38} rx={12} className="sticker" style={{ fill: "var(--sun-soft)" }} />
-            <text x={box.x + box.w / 2} y={box.y + box.h - 30} textAnchor="middle" className="title" style={{ fontSize: 14 }}>
-              {tr ? "Check'ler çalışıyor…" : "Checks are running…"}
-            </text>
-          </motion.g>
-        )}
-        <Settle at={merged ? 0 : allSettle} k={replay?.key}>
-          <rect x={box.x + 16} y={box.y + box.h - 54} width={box.w - 32} height={38} rx={12} className="sticker" style={{ fill: merged ? "var(--lilac)" : blocked ? "#e9e5ec" : "#3fd07f" }} />
-          <text x={box.x + box.w / 2} y={box.y + box.h - 30} textAnchor="middle" className="title" style={{ fontSize: 14 }}>
-            {merged ? (tr ? "Merge edildi" : "Merged") : blocked ? (tr ? "Merge engellendi: zorunlu check'ler geçmedi" : "Merging is blocked: required checks not passing") : tr ? "Merge pull request" : "Merge pull request"}
-          </text>
-        </Settle>
+        {(() => {
+          // The merge gate along the bottom.
+          const y0 = box.y + box.h - 52;
+          const gx = box.x + 112;
+          const crate = (past: boolean) => (
+            <g transform={`translate(${past ? gx + 14 : box.x + 22} ${y0 + 24})`}>
+              <Crate label={`PR #${p.id}`} tone={merged ? "node" : "code"} size={11} />
+            </g>
+          );
+          const words = (title: string, sub?: string) => (
+            <g>
+              <text x={gx + 104} y={sub ? y0 + 18 : y0 + 27} className="title" style={{ fontSize: 14 }}>
+                {title}
+              </text>
+              {sub && (
+                <text x={gx + 104} y={y0 + 36} className="sub" style={{ fontSize: 11 }}>
+                  {cut(sub, Math.floor((box.w - 226) / 6.8))}
+                </text>
+              )}
+            </g>
+          );
+          const final = (
+            <g>
+              <g transform={`translate(${gx} ${y0 + 40}) scale(0.78) translate(${-gx} ${-(y0 + 40)})`}>
+                <Barrier x={gx} y={y0 + 40} open={merged || !blocked} lamp={merged || !blocked ? "success" : "failure"} />
+              </g>
+              {crate(merged)}
+              {merged ? words(tr ? "Merge edildi" : "Merged") : blocked ? words(tr ? "Merge engellendi" : "Merging is blocked", tr ? "zorunlu check'ler geçmedi" : "required checks not passing") : words(tr ? "Merge açık" : "Ready to merge", "Merge pull request")}
+            </g>
+          );
+          return (
+            <g>
+              <OBox x={box.x + 14} y={y0 + 32} w={gx - box.x + 70} h={8} d={14} {...BELT} thin />
+              {allSettle > 0 && !merged && (
+                <motion.g key={`${replay!.key}-merge-wait`} {...visibleBetween(0, allSettle)}>
+                  <g transform={`translate(${gx} ${y0 + 40}) scale(0.78) translate(${-gx} ${-(y0 + 40)})`}>
+                    <Barrier x={gx} y={y0 + 40} open={false} lamp="waiting" />
+                  </g>
+                  {crate(false)}
+                  {words(tr ? "Check'ler çalışıyor…" : "Checks are running…")}
+                </motion.g>
+              )}
+              <Settle at={merged ? 0 : allSettle} k={replay?.key}>
+                {final}
+              </Settle>
+            </g>
+          );
+        })()}
       </Sticker>
     </g>
   );
@@ -253,7 +288,8 @@ export function Timeline({ rows, box, title, from, to }: { rows: TimelineRow[]; 
   const replay = useReplay(clock);
   const t0 = from ?? Math.min(...rows.map((r) => r.start), 0);
   const t1 = Math.max(to ?? 0, ...rows.map((r) => r.end), t0 + 60);
-  const left = box.x + 130;
+  // The labels' column is as wide as the longest label needs.
+  const left = box.x + Math.max(96, 32 + Math.min(15, Math.max(0, ...rows.map((r) => r.label.length))) * 7.2);
   const right = box.x + box.w - 64;
   const xs = (t: number) => left + ((t - t0) / (t1 - t0)) * (right - left);
   const top = box.y + (title ? 54 : 30);
@@ -385,10 +421,11 @@ interface Frame {
 const deployRun = (w: World) => [...w.runs].reverse().find((r) => r.jobs.some((j) => j.environment || j.steps.some((st) => st.delivered)));
 
 /**
- * Each environment as a little building; its flag shows the commit running there. When a run
- * is played back, every deploy arrives as a parcel at the moment its step finished and the flag
- * changes; a rollback puts the previous flag back. A build that answers 500 makes the building
- * smoke. A job waiting for approval stands at a closed gate in front of it.
+ * Each environment as a pad: the version it runs stands on it as a crate with the commit on it,
+ * and a mast beside it shows whether it answers (200) or crashes (500). When a run is played
+ * back, every deploy lands as a crate at the moment its step finished; a rollback puts the
+ * previous crate back. A pad that needs an approval has a reviewer's booth; a job waiting for
+ * that approval stands at a closed barrier in front of it.
  */
 export function EnvStrip({ world, box, names, lit }: { world: World; box: Box; names?: string[]; lit?: string }) {
   const { lang } = useLang();
@@ -404,7 +441,6 @@ export function EnvStrip({ world, box, names, lit }: { world: World; box: Box; n
     seen.current = { shas: now, key: replay?.key ?? null, before };
   });
 
-  const tints = [TINTS.sky, TINTS.sun, TINTS.coral, TINTS.lilac];
   const colW = box.w / Math.max(list.length, 1);
   const crashes = (sha: string | null) => Boolean(sha) && commitOf(world, sha!).bugs.includes("crash");
 
@@ -432,18 +468,32 @@ export function EnvStrip({ world, box, names, lit }: { world: World; box: Box; n
         const waiting = run?.jobs.some((j) => j.status === "waiting" && j.environment === e.name);
         return (
           <g key={e.name} className={lit === e.name ? "is-lit" : undefined}>
+            {/* The pad, its health mast, and a reviewer's booth when it needs an approval. */}
+            <OBox x={cx - 58} y={by - 8} w={104} h={14} d={30} front="#efe5d2" top="var(--paper-2)" side="#ddd0b8" />
+            <line x1={cx - 50} x2={cx - 50} y1={by - 54} y2={by - 12} style={{ stroke: "var(--ink)", strokeWidth: 2.4 }} />
+            {e.approval && (
+              <g>
+                <OBox x={cx + 52} y={by - 48} w={14} h={30} d={8} front={waiting ? "var(--sun)" : "var(--sun-soft)"} top="#fffdf8" side="#e8c25a" thin />
+                <rect x={cx + 55} y={by - 43} width={8} height={7} style={{ fill: "#fffdf8", ...THIN }} />
+              </g>
+            )}
             {shown.map((f, k) => {
               const until = shown[k + 1]?.at;
+              const bad = crashes(f.sha);
+              const label = f.sha ? `${f.back ? "↩ " : ""}${f.sha.slice(0, 7)}` : "";
               const body = (
                 <>
-                  <g transform={`translate(${cx} ${by})`}>
-                    <Building s={20} roof={tints[i % tints.length]!} status={crashes(f.sha) ? "down" : "ok"} />
-                  </g>
-                  <g transform={`translate(${cx + 34} ${by - 34})`}>
-                    <Flag tint={f.sha ? TINTS.mint : TINTS.grey} label={f.sha ? f.sha.slice(0, 4) : "—"} height={40} muted={!f.sha} />
-                  </g>
-                  <text x={cx} y={box.y + box.h + 12} textAnchor="middle" className="sub" style={{ fontSize: 10.5 }}>
-                    {f.sha ? `${f.sha}${crashes(f.sha) ? " · 500" : ""}` : tr ? "boş" : "empty"}
+                  {f.sha && (
+                    <g transform={`translate(${cx - crateW(label, 12) / 2 + 4} ${by - 22})`}>
+                      <Crate label={label} tone={bad ? "bad" : f.back ? "cache" : "node"} size={12} />
+                    </g>
+                  )}
+                  <StatusDot status={!f.sha ? "skipped" : bad ? "failure" : "success"} x={cx - 50} y={by - 62} r={7} />
+                  <text x={cx - 40} y={by - 66} className="sub" style={{ fontSize: 11, fill: bad ? "var(--red)" : undefined }}>
+                    {f.sha ? (bad ? "500" : "200") : ""}
+                  </text>
+                  <text x={cx} y={box.y + box.h + 13} textAnchor="middle" className="sub" style={{ fontSize: 11 }}>
+                    {f.sha ? `${f.sha}${bad ? " · 500" : ""}` : tr ? "boş" : "empty"}
                   </text>
                 </>
               );
@@ -470,20 +520,18 @@ export function EnvStrip({ world, box, names, lit }: { world: World; box: Box; n
             {animated &&
               shown.slice(1).map((f, k) => (
                 // The delivery itself: a parcel drops into the building.
-                <motion.g key={`${replay!.key}-p${k}`} initial={{ x: cx, y: by - 110 }} animate={{ x: cx, y: by - 26 }} transition={{ delay: (f.at - DROP_MS) / 1000, duration: DROP_MS / 1000 }}>
+                <motion.g key={`${replay!.key}-p${k}`} initial={{ x: cx - 30, y: by - 110 }} animate={{ x: cx - 30, y: by - 22 }} transition={{ delay: (f.at - DROP_MS) / 1000, duration: DROP_MS / 1000 }}>
                   <motion.g {...visibleBetween(f.at - DROP_MS, f.at + 60)}>
-                  <Parcel s={12} size={0.8} kind={f.back ? "neutral" : "order"} />
+                    <Crate label={f.sha ? f.sha.slice(0, 7) : ""} tone={f.back ? "cache" : "node"} size={12} />
                   </motion.g>
                 </motion.g>
               ))}
             {waiting && (
               <g>
-                {/* The gate: a reviewer has to approve before the deploy job may enter. */}
-                <line x1={cx - 52} x2={cx - 52} y1={by - 30} y2={by + 4} className="edge" />
-                <rect x={cx - 64} y={by - 22} width={26} height={7} rx={2} className="sticker" style={{ fill: "var(--sun)", strokeWidth: 1.3 }} />
-                <g transform={`translate(${cx - 76} ${by - 2})`}>
-                  <Parcel s={10} size={0.8} kind="neutral" />
-                </g>
+                {/* The barrier: a reviewer has to approve before the deploy job may go on. */}
+                <rect x={cx - 76} y={by - 44} width={6} height={44} style={{ fill: "#fffdf8", ...THIN }} />
+                <rect x={cx - 104} y={by - 40} width={30} height={7} rx={2} style={{ fill: "var(--sun)", ...THIN }} />
+                <StatusDot status="waiting" x={cx - 73} y={by - 52} r={5.5} />
               </g>
             )}
             <text x={cx} y={box.y + box.h - 4} textAnchor="middle" className="env-name">

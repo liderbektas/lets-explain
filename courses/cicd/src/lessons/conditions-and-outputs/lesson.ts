@@ -148,8 +148,8 @@ export const conditionsAndOutputs: Lesson = {
       title: l("Kırılsa da devam et", "Carry on even if it fails"),
       body: [
         l(
-          "Lint kırıldı (kartta uyarı işaretiyle), ama testler ve build çalıştı ve commit staging'e çıktı. Yeni bir lint kuralını ekibe yavaş yavaş tanıtırken ya da isteğe bağlı bir kontrol eklerken işe yarar.",
-          "Lint failed (marked with a warning on the card), but tests and build ran and the commit went to staging. Useful while rolling out a new lint rule or for an optional check.",
+          "Lint kırıldı (kapısında uyarı işaretiyle), ama testler ve build çalıştı ve commit staging'e çıktı. Yeni bir lint kuralını ekibe yavaş yavaş tanıtırken ya da isteğe bağlı bir kontrol eklerken işe yarar.",
+          "Lint failed (marked with a warning at its gate), but tests and build ran and the commit went to staging. Useful while rolling out a new lint rule or for an optional check.",
         ),
         l(
           "Dikkat: hata görmezden gelinen her adım, zamanla kimsenin bakmadığı bir adım olur. Testlere asla koyma.",

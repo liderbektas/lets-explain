@@ -115,8 +115,8 @@ export const buildOnce: Lesson = {
           "The coupons feature (`a07c6e1`) landed on main. CI passed the tests and `sha-a07c6e1` went into the registry. But this commit has a bug the tests did not catch. Nobody touched staging; it still runs the tested `5d9b3f2`.",
         ),
         l(
-          "Registry'ye bak: her commit'in kendi image'ı var ve hiçbiri yerinden oynamaz. Hangi ortamın hangi image'ı çalıştırdığı satırın yanında yazıyor.",
-          "Look at the registry: every commit has its own image and none of them ever moves. Next to each row you see which environment runs it.",
+          "Registry'ye bak: her commit'in kendi image'ı var ve hiçbiri yerinden oynamaz. Hangi ortamın hangi image'ı çalıştırdığı rafın yanında yazıyor.",
+          "Look at the registry: every commit has its own image and none of them ever moves. Next to each shelf you see which environment runs it.",
         ),
       ],
     },

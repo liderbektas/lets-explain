@@ -50,8 +50,8 @@ export const triggers: Lesson = {
       title: l("branches: hangi branch'lerin sayılacağını seçer", "branches: picks which branches count"),
       body: [
         l(
-          "Sağdaki listede yeni `feature` push'u \"run başlamadı\" diyor. Olaylar listesinde de sebebi yazar: branch filtresine uymuyor.",
-          "In the list on the right, the new `feature` push says \"no run started\". The event list gives the reason: the branch filter does not match.",
+          "Sağdaki listede yeni `feature` push'u \"run başlamadı\" diyor. Üstteki kollarda da sebebi yazar: branch filtresine uymuyor.",
+          "In the list on the right, the new `feature` push says \"no run started\". The levers on top give the reason: the branch filter does not match.",
         ),
         l(
           "`branches` glob da kabul eder: `release/**` bütün `release/` branch'lerini yakalar. Tersi için `branches-ignore` vardır.",

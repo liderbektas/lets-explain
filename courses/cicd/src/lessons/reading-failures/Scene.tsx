@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { freshWorld, latestRun, type CiAction, type Run, type Workflow, type World } from "../../engine/ci";
 import { ciWorkflow } from "../../engine/presets";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { LogPanel } from "../../iso/panels";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -39,13 +39,13 @@ export const scene = makeSimScene({
   sim: ciSim,
   start: START,
   steps,
-  label: l("Solda run, sağda kırılan job'ın logu: adımlar ve kırılan adımın çıktısı", "The run on the left, the failed job's log on the right: its steps and the failing step's output"),
+  label: l("Üstte run, altta kırılan job'ın logu: adımlar ve kırılan adımın çıktısı", "The run on top, the failed job's log below: its steps and the failing step's output"),
   view: (w, info) => {
     const run = focusRun(w, info);
     return (
       <g>
-        <RunStage run={run} box={{ x: 16, y: 14, w: 330, h: 444 }} />
-        <LogPanel run={run} box={{ x: 362, y: 14, w: 484, h: 444 }} />
+        <AssemblyStage run={run} box={{ x: 16, y: 10, w: 828, h: 186 }} />
+        <LogPanel run={run} box={{ x: 16, y: 212, w: 828, h: 246 }} />
       </g>
     );
   },

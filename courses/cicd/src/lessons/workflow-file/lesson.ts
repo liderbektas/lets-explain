@@ -65,8 +65,8 @@ export const workflowFile: Lesson = {
           "Checkout, set up Node, `npm ci`, `npm test`: four steps, run top to bottom. Run #2 is green; the test step took 70 seconds.",
         ),
         l(
-          "Job kartının altındaki tezgah, job'ın çalıştığı makine. Boş başlıyor; her adım koyduğu şeyi oraya bırakıyor: checkout kodu, setup-node Node'u, `npm ci` `node_modules`'ı. Job bitince makine silindiği için tezgah da boşalıyor.",
-          "The bench under the job card is the machine the job runs on. It starts empty, and each step leaves what it made there: checkout the code, setup-node Node, `npm ci` the `node_modules`. When the job ends the machine is deleted, so the bench is cleared.",
+          "İstasyondaki \"runner'ın diski\" rafı, job'ın çalıştığı makinenin diski. Boş başlıyor; her adım koyduğu şeyi oraya bırakıyor: checkout kodu, setup-node Node'u, `npm ci` `node_modules`'ı. Job bitince makine silindiği için disk de boşalıyor.",
+          "The \"runner's disk\" shelf at the station is the disk of the machine the job runs on. It starts empty, and each step leaves what it made there: checkout the code, setup-node Node, `npm ci` the `node_modules`. When the job ends the machine is deleted, so the disk is cleared.",
         ),
       ],
       callouts: [

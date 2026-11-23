@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { commitOf, freshWorld, SHAS, type CiAction, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, focusRun, runMetrics } from "../shared/ci";
 import { ciTyped } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -47,7 +47,7 @@ export const scene = makeSimScene({
   ),
   view: (w, info) => (
     <g>
-      <RunStage run={focusRun(w, info)} box={{ x: 16, y: 10, w: 828, h: 318 }} focus="deploy" />
+      <AssemblyStage run={focusRun(w, info)} box={{ x: 16, y: 10, w: 828, h: 318 }} focus="deploy" />
       <EnvStrip world={w} box={{ x: 250, y: 336, w: 360, h: 108 }} names={["staging"]} />
     </g>
   ),

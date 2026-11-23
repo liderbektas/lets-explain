@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { commitOf, SHAS, type CiAction, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { RegistryCard } from "../build-once/RegistryCard";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { makeSimScene, resolveSteps } from "../shared/SimScene";
@@ -42,7 +42,7 @@ export const scene = makeSimScene({
     if (!info.sandbox && info.step === 4) return <MigrationPanel kind="expand" />;
     return (
       <g>
-        <RunStage run={focusRun(w, info)} box={{ x: 16, y: 10, w: 828, h: 292 }} />
+        <AssemblyStage run={focusRun(w, info)} box={{ x: 16, y: 10, w: 828, h: 292 }} />
         <RegistryCard world={w} box={{ x: 16, y: 318, w: 330, h: 140 }} />
         <EnvStrip world={w} box={{ x: 430, y: 322, w: 360, h: 116 }} names={["production"]} />
       </g>

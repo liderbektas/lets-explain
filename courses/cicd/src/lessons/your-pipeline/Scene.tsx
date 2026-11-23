@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { freshWorld, type CiAction, type Workflow, type World } from "../../engine/ci";
 import { EnvStrip, PrPanel } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, ciTyped, focusRun, runMetrics } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { scenarios } from "./scenarios";
@@ -48,7 +48,7 @@ export const scene = makeSimScene({
     if (showPr) {
       return (
         <g>
-          <RunStage run={run} box={{ x: 16, y: 8, w: 828, h: 246 }} />
+          <AssemblyStage run={run} box={{ x: 16, y: 8, w: 828, h: 246 }} />
           <PrPanel world={w} pr={1} box={{ x: 16, y: 260, w: 500, h: 202 }} />
           <EnvStrip world={w} box={{ x: 540, y: 310, w: 300, h: 108 }} names={[PAGES]} />
         </g>
@@ -56,7 +56,7 @@ export const scene = makeSimScene({
     }
     return (
       <g>
-        <RunStage run={run} box={{ x: 16, y: 10, w: 828, h: 318 }} empty={w.workflows.length ? undefined : info.lang === "tr" ? "Henüz bir workflow yok: push'lar hiçbir şey başlatmıyor." : "No workflow yet: pushes start nothing."} />
+        <AssemblyStage run={run} box={{ x: 16, y: 10, w: 828, h: 318 }} empty={w.workflows.length ? undefined : info.lang === "tr" ? "Henüz bir workflow yok: push'lar hiçbir şey başlatmıyor." : "No workflow yet: pushes start nothing."} />
         <EnvStrip world={w} box={{ x: 250, y: 336, w: 360, h: 108 }} names={[PAGES]} />
       </g>
     );

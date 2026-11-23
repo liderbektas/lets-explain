@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { type CiAction, type Workflow, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, ciTyped, focusRun, runMetrics, startedNothing } from "../shared/ci";
 import { deskOf } from "../../engine/desk";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -39,7 +39,7 @@ export const scene = makeSimScene({
   view: (w, info) => (
     <g>
       <CommitLane world={w} box={{ x: 16, y: 14, w: 300, h: 444 }} />
-      <RunStage run={startedNothing(info) ? undefined : focusRun(w, info)} blocked={startedNothing(info)} box={{ x: 332, y: 14, w: 514, h: 316 }} empty={info.lang === "tr" ? "Workflow yok: push'lar hiçbir şey başlatmıyor." : "No workflow: pushes start nothing."} />
+      <AssemblyStage run={startedNothing(info) ? undefined : focusRun(w, info)} blocked={startedNothing(info)} box={{ x: 332, y: 14, w: 514, h: 316 }} empty={info.lang === "tr" ? "Workflow yok: push'lar hiçbir şey başlatmıyor." : "No workflow: pushes start nothing."} />
       <EnvStrip world={w} box={{ x: 420, y: 342, w: 340, h: 100 }} />
     </g>
   ),

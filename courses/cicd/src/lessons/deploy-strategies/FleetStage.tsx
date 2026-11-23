@@ -1,14 +1,17 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useLang } from "@lets-explain/core/i18n";
-import { Building, IsoBox, Person, Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { Person, Pill, TINTS } from "@lets-explain/core/iso/shapes";
+import { METAL, OBox, THIN } from "../../iso/factory";
+import { StatusDot } from "../../iso/parts";
 import { Sticker } from "../../iso/parts";
 import { phaseText, STRATEGY_NAME, weights, type Fleet, type Server } from "./model";
 
 /**
- * Users on the left, a load balancer in the middle, servers on the right. Blue servers sit on
- * the top row, green (or the canary) on the bottom row. A line's thickness is the traffic it
- * carries; each server's roof says its version, and a broken v2 that gets traffic shows 500.
+ * Users on the left, a load balancer in the middle, servers on the right. Blue servers stand in
+ * the left column, green (or the canary) in the right one. A line's thickness is the traffic it
+ * carries; each server is a machine with its version on its screen, and a broken v2 that gets
+ * traffic shows a red lamp and 500.
  * Requests travel as dots: users to the balancer, then down each line in proportion to its
  * share (red on a server that answers 500). A server that changes version is replaced in place.
  */
@@ -32,7 +35,24 @@ function Flow({ d, n, bad, dur = 1.4 }: { d: string; n: number; bad?: boolean; d
 const ROUTER: [number, number] = [300, 262];
 const COLS = { left: 540, right: 720 };
 const ROWS = [140, 215, 290, 365];
-const roofOf = (s: Server, bad: boolean) => (s.version === 1 ? TINTS.sky : bad ? TINTS.coral : TINTS.mint);
+const faceOf = (s: Server, bad: boolean) => (s.version === 1 ? "var(--sky-soft)" : bad ? "var(--coral-soft)" : "var(--mint-soft)");
+
+/** A server as a machine on the line: its version on the screen, a lamp for how it answers. */
+function ServerBox({ s, bad }: { s: Server; bad: boolean }) {
+  return (
+    <g opacity={s.up ? 1 : 0.55}>
+      <OBox x={-24} y={-36} w={44} h={34} d={14} front={faceOf(s, bad)} top={METAL.top} side={METAL.side} />
+      <rect x={-20} y={-32} width={30} height={15} rx={3} style={{ fill: "#2b2a33", ...THIN }} />
+      <text x={-5} y={-20.5} textAnchor="middle" className="mono-light" style={{ fontSize: 11 }}>
+        {s.up ? `v${s.version}` : "—"}
+      </text>
+      <StatusDot status={!s.up ? "skipped" : s.version === 2 && bad ? "failure" : "success"} x={-12} y={-9} r={5} />
+      {[0, 1].map((v) => (
+        <line key={v} x1={0} x2={14} y1={-10 + v * 4} y2={-10 + v * 4} style={{ stroke: "#8f86a0", strokeWidth: 1.4 }} />
+      ))}
+    </g>
+  );
+}
 
 function place(f: Fleet, s: Server): [number, number] {
   const blues = f.servers.filter((x) => x.group === "blue");
@@ -79,11 +99,11 @@ export function FleetStage({ fleet }: { fleet: Fleet }) {
       </Sticker>
 
       {/* row labels */}
-      <text x={COLS.left} y={98} textAnchor="middle" className="sub" style={{ fontSize: 12 }}>
+      <text x={COLS.left} y={84} textAnchor="middle" className="sub" style={{ fontSize: 12 }}>
         {fleet.strategy === "blue-green" ? (fleet.live === "blue" ? (tr ? "blue (canlı)" : "blue (live)") : "blue") : tr ? "sunucular" : "servers"}
       </text>
       {hasRow2 && (
-        <text x={COLS.right} y={98} textAnchor="middle" className="sub" style={{ fontSize: 12 }}>
+        <text x={COLS.right} y={84} textAnchor="middle" className="sub" style={{ fontSize: 12 }}>
           {fleet.strategy === "blue-green" ? (fleet.live === "green" ? (tr ? "green (canlı)" : "green (live)") : "green") : "canary"}
         </text>
       )}
@@ -121,8 +141,12 @@ export function FleetStage({ fleet }: { fleet: Fleet }) {
       </text>
 
       {/* load balancer */}
+      {/* The load balancer: a splitter that sends each request down one of the lines. */}
       <g transform={`translate(${ROUTER[0]} ${ROUTER[1]})`}>
-        <IsoBox s={20} at={[-0.9, -0.9, 0]} size={[1.8, 1.8, 0.7]} shades={["var(--lilac)", "#a993ee", "var(--lilac-deep)"]} />
+        <OBox x={-34} y={-30} w={60} h={30} d={18} front="var(--lilac)" top="var(--lilac-soft)" side="var(--lilac-deep)" />
+        {[0, 1, 2].map((v) => (
+          <circle key={v} cx={-22 + v * 14} cy={-15} r={4} style={{ fill: "#fffdf8", ...THIN }} />
+        ))}
       </g>
       <text x={ROUTER[0]} y={ROUTER[1] + 40} textAnchor="middle" className="sub" style={{ fontSize: 11.5 }}>
         load balancer
@@ -137,11 +161,15 @@ export function FleetStage({ fleet }: { fleet: Fleet }) {
           <g key={s.id}>
             {/* A new version (or a stop/start) replaces the server in place. */}
             <motion.g key={`${s.id}-${s.version}-${s.up}`} initial={mounted.current ? { x, y: y - 14, opacity: 0 } : { x, y, opacity: 1 }} animate={{ x, y, opacity: 1 }} transition={{ duration: 0.4 }}>
-              <Building s={16} roof={roofOf(s, fleet.bad)} status={s.up ? "ok" : "down"} />
+              <g transform="translate(0 8) scale(1.25)">
+                <ServerBox s={s} bad={fleet.bad} />
+              </g>
             </motion.g>
-            <text x={x + 34} y={y - 2} className="mono" style={{ fontSize: 12.5 }}>
-              {s.up ? `v${s.version}` : tr ? "kapalı" : "stopped"}
-            </text>
+            {!s.up && (
+              <text x={x + 34} y={y - 2} className="mono" style={{ fontSize: 12.5 }}>
+                {tr ? "kapalı" : "stopped"}
+              </text>
+            )}
             {share > 0 && <Pill x={x + 92} y={y - 6} text={`${Math.round(share)}%`} tone={errors ? "danger" : "plain"} size={11} animate={false} />}
             {errors && <Pill x={x + 92} y={y + 20} text="500" tone="danger" size={10} animate={false} />}
           </g>

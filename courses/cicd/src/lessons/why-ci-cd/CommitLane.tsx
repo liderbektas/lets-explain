@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useLang } from "@lets-explain/core/i18n";
 import type { World } from "../../engine/ci";
-import { statusText } from "../../iso/RunStage";
+import { statusText } from "../../iso/runner";
 import { cut, StatusDot, Sticker, type Box } from "../../iso/parts";
 import { appearAt, useReplay, visibleBetween } from "../../iso/replay";
 

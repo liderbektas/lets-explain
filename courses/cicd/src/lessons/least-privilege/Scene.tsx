@@ -37,6 +37,42 @@ function Row({ x, y, ok, text }: { x: number; y: number; ok: boolean | null; tex
   );
 }
 
+/** The door a right opens: write opens it both ways, read only lets you look in, none keeps it shut. */
+const RIGHT_FILL = { write: "var(--coral)", read: "var(--sky)", none: "#e9e5ec" } as const;
+
+/**
+ * A job's keycard: the doors its GITHUB_TOKEN opens. One slot per door (the repository's
+ * contents, the package registry), coloured by the right on the card.
+ */
+function KeyCard({ x, y, job, sc, ok }: { x: number; y: number; job: string; sc: { contents: string; packages: string }; ok: boolean }) {
+  const w = 208;
+  const slot = (dx: number, name: string, right: string) => (
+    <g>
+      <rect x={x + dx} y={y + 25} width={90} height={32} rx={5} style={{ fill: RIGHT_FILL[right as keyof typeof RIGHT_FILL], stroke: "var(--ink)", strokeWidth: 1.3, strokeDasharray: right === "none" ? "3 3" : undefined }} />
+      <text x={x + dx + 8} y={y + 37} className="sub" style={{ fontSize: 10 }}>
+        {name}
+      </text>
+      <text x={x + dx + 8} y={y + 52} className="mono" style={{ fontSize: 12.5, fill: right === "none" ? "var(--ink-3)" : undefined }}>
+        {right}
+      </text>
+    </g>
+  );
+  return (
+    <g>
+      <rect x={x} y={y + 3} width={w} height={62} rx={9} className="sticker-shadow" />
+      <rect x={x} y={y} width={w} height={62} rx={9} className="sticker" style={{ fill: "var(--card)" }} />
+      <rect x={x + 1} y={y + 1} width={8} height={60} rx={4} style={{ fill: "var(--lilac)" }} />
+      <circle cx={x + 22} cy={y + 14} r={4} style={{ fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: 1.2 }} />
+      <text x={x + 34} y={y + 18} className="mono" style={{ fontSize: 12.5 }}>
+        {job}
+      </text>
+      <StatusDot status={ok ? "success" : "failure"} x={x + w - 16} y={y + 14} r={7} />
+      {slot(14, "contents", sc.contents)}
+      {slot(108, "packages", sc.packages)}
+    </g>
+  );
+}
+
 /**
  * The action's repository as two commits and a tag. `v1` is just a pointer: when the attacker
  * moves it, it slides from the known commit to the bad one. The workflow's reference follows the
@@ -102,15 +138,15 @@ function View({ s, info }: { s: LP; info: ViewInfo<LP, LpAction, LpEvent> }) {
         <TagDiagram s={s} x={x} y={84} tr={tr} />
       </Sticker>
 
-      <Sticker x={x} y={140} w={w} h={112} head="var(--sun-soft)" headH={32}>
-        <text x={x + 16} y={162} className="title" style={{ fontSize: 14 }}>
+      <Sticker x={x} y={136} w={w} h={118} head="var(--sun-soft)" headH={32}>
+        <text x={x + 16} y={158} className="title" style={{ fontSize: 14 }}>
           GITHUB_TOKEN
         </text>
-        <text x={x + w - 14} y={162} textAnchor="end" className="sub">
+        <text x={x + w - 14} y={158} textAnchor="end" className="sub">
           permissions: {s.perms}
         </text>
-        <Row x={x + 14} y={192} ok={lint.contents === "read" && lint.packages !== "write"} text={`lint:    contents ${lint.contents}, packages ${lint.packages}`} />
-        <Row x={x + 14} y={220} ok={pub.packages === "write"} text={`publish: contents ${pub.contents}, packages ${pub.packages}`} />
+        <KeyCard x={x + 14} y={180} job="lint" sc={lint} ok={lint.contents === "read" && lint.packages !== "write"} />
+        <KeyCard x={x + w / 2 + 4} y={180} job="publish" sc={pub} ok={pub.packages === "write"} />
       </Sticker>
 
       <Sticker x={x} y={266} w={w} h={192} head={run ? (run.attack?.repo || run.attack?.registry ? "var(--red-soft)" : run.publish === "denied" ? "var(--sun-soft)" : "var(--mint-soft)") : "var(--paper-2)"} headH={32}>

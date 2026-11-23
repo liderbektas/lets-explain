@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { type CiAction, type Workflow, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { deskOf } from "../../engine/desk";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -36,7 +36,7 @@ export const scene = makeSimScene({
   label: l("Üstte pipeline'ın son run'ı, altta staging ve production'da çalışan commit'ler", "The pipeline's latest run on top, the commits staging and production run below"),
   view: (w, info) => (
     <g>
-      <RunStage run={focusRun(w, info)} box={{ x: 20, y: 14, w: 820, h: 300 }} />
+      <AssemblyStage run={focusRun(w, info)} box={{ x: 20, y: 14, w: 820, h: 300 }} />
       <EnvStrip world={w} box={{ x: 230, y: 330, w: 400, h: 108 }} names={["staging", "production"]} lit={info.last.some((e) => e.type === "deployed" && e.env === "production") ? "production" : undefined} />
     </g>
   ),

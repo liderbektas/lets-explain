@@ -1,8 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
-import { freshWorld, type CiAction, type Workflow, type World } from "../../engine/ci";
-import { jobRows, runRows, Timeline } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
-import { ciSim, ciTyped, focusRun, runMetrics, YamlAndRun } from "../shared/ci";
+import { freshWorld, type CiAction, type Run, type Workflow, type World } from "../../engine/ci";
+import { workflowFile, workflowYaml } from "../../engine/yaml";
+import { AssemblyStage } from "../../iso/AssemblyLine";
+import { jobRows, runRows, Timeline, YamlPanel } from "../../iso/panels";
+import { ciSim, ciTyped, focusRun, runMetrics } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { ONE, split } from "./model";
 import { scenarios } from "./scenarios";
@@ -16,6 +17,18 @@ const roomy = (rows: { end: number }[]) => Math.max(60, ...rows.map((r) => r.end
 const set = (w: Workflow): CiAction => ({ type: "setWorkflow", workflow: w });
 
 export const START: World = freshWorld();
+
+/** The workflow file on the left (changed lines lit), its run as an assembly line on the right. */
+function YamlAndLine({ world, prev, run }: { world: World; prev?: World; run?: Run }) {
+  const wf = world.workflows[0];
+  const old = wf && prev ? prev.workflows.find((x) => x.name === wf.name) : undefined;
+  return (
+    <g>
+      {wf && <YamlPanel yaml={workflowYaml(wf)} prev={old ? workflowYaml(old) : undefined} box={{ x: 16, y: 14, w: 312, h: 444 }} title={workflowFile(wf)} />}
+      <AssemblyStage run={run} box={{ x: 342, y: 14, w: 504, h: 444 }} />
+    </g>
+  );
+}
 
 const specs: Spec<World, CiAction>[][] = [
   [set(ONE), { type: "push", message: "add product page" }],
@@ -40,15 +53,15 @@ export const scene = makeSimScene({
   view: (w, info) => {
     const tr = info.lang === "tr";
     const run = focusRun(w, info);
-    if ((!info.sandbox && (info.step === 0 || info.step === 2)) || (info.sandbox && !run)) return <YamlAndRun world={w} prev={info.prev} run={run} />;
+    if ((!info.sandbox && (info.step === 0 || info.step === 2)) || (info.sandbox && !run)) return <YamlAndLine world={w} prev={info.prev} run={run} />;
     if (!info.sandbox && info.step === 1) {
       const rs = runRows(w.runs, tr);
       return <Timeline rows={rs} to={roomy(rs)} box={{ x: 20, y: 14, w: 820, h: 300 }} title={tr ? "Aynı workflow, üç run" : "One workflow, three runs"} />;
     }
     return (
       <g>
-        <RunStage run={run} box={{ x: 20, y: 14, w: 820, h: 262 }} />
-        <Timeline rows={jobRows(run)} to={roomy(jobRows(run))} box={{ x: 20, y: 292, w: 820, h: 166 }} title={tr ? "Job'lar zamanda" : "Jobs over time"} />
+        <AssemblyStage run={run} box={{ x: 20, y: 14, w: 820, h: 290 }} />
+        <Timeline rows={jobRows(run)} to={roomy(jobRows(run))} box={{ x: 20, y: 314, w: 820, h: 144 }} title={tr ? "Job'lar zamanda" : "Jobs over time"} />
       </g>
     );
   },

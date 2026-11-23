@@ -181,8 +181,8 @@ export const ciVsCd: Lesson = {
           "Your turn. Below is the shop's pipeline and **4 scenarios** from real work: a deploy that slips past the approval rule, builds copied to production by hand, a commit that breaks the tests, production racing staging. The pipeline lives in `.github/workflows/pipeline.yml`; **edit it yourself** with `nano` and send it with `git push`.",
         ),
         l(
-          "Alttaki şerit staging ve production'da hangi commit'in çalıştığını gösterir; `gh run view` hangi job'ın onay beklediğini söyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
-          "The strip below shows which commit staging and production run; `gh run view` tells you which job is waiting for an approval. Hints open one at a time; finish in few commands for 3 stars.",
+          "Alttaki rampalar staging ve production'da hangi commit'in çalıştığını gösterir; `gh run view` hangi job'ın onay beklediğini söyler. İpuçları adım adım açılır; az komutla bitirirsen 3 yıldız alırsın.",
+          "The pads below show which commit staging and production run; `gh run view` tells you which job is waiting for an approval. Hints open one at a time; finish in few commands for 3 stars.",
         ),
       ],
     },

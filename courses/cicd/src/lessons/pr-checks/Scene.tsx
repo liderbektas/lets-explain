@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
 import { blockingChecks, freshWorld, latestRun, type CiAction, type Workflow, type World } from "../../engine/ci";
 import { ciWorkflow, withJob } from "../../engine/presets";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { PrPanel } from "../../iso/panels";
-import { Sticker } from "../../iso/parts";
+import { StatusDot, Sticker, type Box } from "../../iso/parts";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { FREE, scenarios } from "./scenarios";
@@ -36,25 +36,25 @@ export const scene = makeSimScene({
   sim: ciSim,
   start: START,
   steps,
-  label: l("Solda pull request ve check'leri, sağda son run", "The pull request and its checks on the left, the latest run on the right"),
+  label: l("Üstte son run; altta pull request, check'leri ve main", "The latest run on top; below, the pull request with its checks, and main"),
   view: (w, info) => {
     const pr = w.prs[w.prs.length - 1];
     const tr = info.lang === "tr";
     return (
       <g>
+        <AssemblyStage run={focusRun(w, info)} box={{ x: 16, y: 10, w: 828, h: 196 }} />
         {pr ? (
-          <PrPanel world={w} pr={pr.id} box={{ x: 16, y: 14, w: 420, h: 300 }} />
+          <PrPanel world={w} pr={pr.id} box={{ x: 16, y: 226, w: 470, h: 232 }} />
         ) : (
           <g className="ci">
-            <Sticker x={16} y={14} w={420} h={90} fill="var(--paper-2)">
-              <text x={226} y={66} textAnchor="middle" className="muted">
+            <Sticker x={16} y={226} w={470} h={90} fill="var(--paper-2)">
+              <text x={251} y={278} textAnchor="middle" className="muted">
                 {tr ? "Henüz açık bir pull request yok." : "No pull request yet."}
               </text>
             </Sticker>
           </g>
         )}
-        <MainCard world={w} tr={tr} />
-        <RunStage run={focusRun(w, info)} box={{ x: 452, y: 14, w: 394, h: 444 }} />
+        <MainCard world={w} tr={tr} box={{ x: 504, y: 226, w: 342, h: 232 }} />
       </g>
     );
   },
@@ -72,25 +72,29 @@ export const scene = makeSimScene({
 });
 
 /** A small card for main: the latest run on main and what is merged. */
-function MainCard({ world, tr }: { world: World; tr: boolean }) {
+function MainCard({ world, tr, box }: { world: World; tr: boolean; box: Box }) {
   const main = [...world.runs].reverse().find((r) => r.branch === "main" && r.event === "push");
   const merged = world.prs.filter((p) => p.state === "merged").map((p) => `#${p.id}`);
   const red = main?.status === "failure";
+  const { x, y, w } = box;
   return (
     <g className="ci">
-      <Sticker x={16} y={334} w={420} h={124} head={main ? (red ? "var(--red-soft)" : "var(--mint-soft)") : "var(--paper-2)"} headH={40}>
-        <text x={34} y={334 + 26} className="title">
+      <Sticker x={x} y={y} w={w} h={box.h} head={main ? (red ? "var(--red-soft)" : "var(--mint-soft)") : "var(--paper-2)"} headH={40}>
+        <text x={x + 16} y={y + 26} className="title">
           main · {world.heads.main}
         </text>
-        <text x={420} y={334 + 26} textAnchor="end" className="sub">
+        <StatusDot status={main ? main.status : "expected"} x={x + w - 22} y={y + 20} r={8} />
+        <text x={x + 16} y={y + 66} className="sub">
           {main ? (red ? (tr ? `kırmızı (run #${main.id})` : `red (run #${main.id})`) : tr ? `yeşil (run #${main.id})` : `green (run #${main.id})`) : tr ? "henüz run yok" : "no run yet"}
         </text>
-        <text x={34} y={334 + 70} className="muted">
+        <text x={x + 16} y={y + 96} className="muted">
           {merged.length ? (tr ? `Merge edilen PR'lar: ${merged.join(", ")}` : `Merged PRs: ${merged.join(", ")}`) : tr ? "Henüz merge edilen PR yok." : "No PR merged yet."}
         </text>
-        <text x={34} y={334 + 96} className="muted">
-          {red ? (tr ? "Herkes kırık bir main'den branch açıyor." : "Everyone now branches off a broken main.") : tr ? "main'den açılan her branch sağlam başlıyor." : "Every branch off main starts healthy."}
-        </text>
+        {(red ? (tr ? ["Herkes kırık bir main'den", "branch açıyor."] : ["Everyone now branches off", "a broken main."]) : tr ? ["main'den açılan her branch", "sağlam başlıyor."] : ["Every branch off main", "starts healthy."]).map((line, i) => (
+          <text key={i} x={x + 16} y={y + 126 + i * 20} className="muted">
+            {line}
+          </text>
+        ))}
       </Sticker>
     </g>
   );

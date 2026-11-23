@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { l } from "@lets-explain/core/i18n";
-import { cut, Sticker, Terminal, type Box } from "../../iso/parts";
+import { Crate, crateW } from "../../iso/factory";
+import { cut, Terminal, type Box } from "../../iso/parts";
 import { makeSimScene, resolveSteps, type Spec, type ViewInfo } from "../shared/SimScene";
 import { scenarios } from "./scenarios";
 import { rwTyped } from "./shell";
@@ -69,14 +70,17 @@ function MiniYaml({ text, prev, box, title, node, max = 12 }: { text: string; pr
   );
 }
 
+/** An empty foundation where a shared module could stand. */
 function Missing({ box, text }: { box: Box; text: string }) {
   return (
     <g className="ci">
-      <Sticker x={box.x} y={box.y} w={box.w} h={box.h} fill="var(--paper-2)">
-        <text x={box.x + box.w / 2} y={box.y + box.h / 2 + 4} textAnchor="middle" className="muted">
-          {text}
-        </text>
-      </Sticker>
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={8} style={{ fill: "var(--paper-2)", stroke: "#b9b2c2", strokeWidth: 2, strokeDasharray: "8 6" }} />
+      {[0, 1, 2, 3].map((i) => (
+        <circle key={i} cx={i % 2 ? box.x + box.w - 14 : box.x + 14} cy={i < 2 ? box.y + 14 : box.y + box.h - 14} r={4} style={{ fill: "#e9e5ec", stroke: "#b9b2c2", strokeWidth: 1.5 }} />
+      ))}
+      <text x={box.x + box.w / 2} y={box.y + box.h / 2 + 4} textAnchor="middle" className="muted">
+        {text}
+      </text>
     </g>
   );
 }
@@ -109,10 +113,9 @@ function Links({ s, info }: { s: RW; info: ViewInfo<RW, RwAction, RwEvent> }) {
             <path d={`M${x1} ${y1} L${x2} ${y2}`} className="edge is-dim" />
             {runNow && (
               <motion.g key={`run-${info.played.length}-${wf}`} initial={{ x: x2, y: y2, opacity: 0 }} animate={{ x: x1, y: y1, opacity: [0, 1, 1, 0] }} transition={{ delay: (chain ? 0.5 : 0) + i * 0.12, duration: 0.6 }}>
-                <rect x={-34} y={-9} width={68} height={18} rx={6} className="sticker" style={{ fill: src === "test" ? "var(--sky-soft)" : "var(--lilac-soft)", strokeWidth: 1.3 }} />
-                <text y={4} textAnchor="middle" className="mono" style={{ fontSize: 10 }}>
-                  {src === "test" ? "test.yml" : "action.yml"}
-                </text>
+                <g transform={`translate(${-crateW(src === "test" ? "test.yml" : "action.yml", 10.5) / 2} 0)`}>
+                  <Crate label={src === "test" ? "test.yml" : "action.yml"} tone={src === "test" ? "image" : "deps"} size={10.5} />
+                </g>
               </motion.g>
             )}
           </g>
@@ -123,10 +126,9 @@ function Links({ s, info }: { s: RW; info: ViewInfo<RW, RwAction, RwEvent> }) {
           <path d={`M${SHARED_ANCHOR.test[0] - 204} ${SHARED_ANCHOR.test[1] + 90} L${SHARED_ANCHOR.composite[0] + 204} ${SHARED_ANCHOR.composite[1] + 90}`} className="edge is-dim" />
           {runNow && (
             <motion.g key={`run-${info.played.length}-chain`} initial={{ x: SHARED_ANCHOR.composite[0] + 204, y: SHARED_ANCHOR.composite[1] + 90, opacity: 0 }} animate={{ x: SHARED_ANCHOR.test[0] - 204, y: SHARED_ANCHOR.test[1] + 90, opacity: [0, 1, 1, 0] }} transition={{ duration: 0.5 }}>
-              <rect x={-34} y={-9} width={68} height={18} rx={6} className="sticker" style={{ fill: "var(--lilac-soft)", strokeWidth: 1.3 }} />
-              <text y={4} textAnchor="middle" className="mono" style={{ fontSize: 10 }}>
-                action.yml
-              </text>
+              <g transform={`translate(${-crateW("action.yml", 10.5) / 2} 0)`}>
+                <Crate label="action.yml" tone="deps" size={10.5} />
+              </g>
             </motion.g>
           )}
         </g>

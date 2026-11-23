@@ -111,8 +111,8 @@ export const pipelineAnatomy: Lesson = {
           "`lint` and `test` started together again; `build` started at minute 2, once both were done. The run took longer (3 minutes 31 seconds), but now the build only happens for code that passed the checks.",
         ),
         l(
-          "Sahnede oklar bu bağları gösteriyor. Hızla güvenlik arasında seçim yapıyorsun: paralel olan her şey zaman kazandırır, `needs` ile bağlanan her şey boşa iş yapmayı önler.",
-          "On stage the arrows show these links. You are choosing between speed and safety: everything in parallel saves time, everything chained with `needs` avoids wasted work.",
+          "Sahnede kablolar ve bariyerler bu bağları gösteriyor. Hızla güvenlik arasında seçim yapıyorsun: paralel olan her şey zaman kazandırır, `needs` ile bağlanan her şey boşa iş yapmayı önler.",
+          "On stage the cables and barriers show these links. You are choosing between speed and safety: everything in parallel saves time, everything chained with `needs` avoids wasted work.",
         ),
       ],
       practice: { commands: [], snippets: [{ label: ".github/workflows/ci.yml", code: workflowYaml(split(["lint", "test"])) }] },

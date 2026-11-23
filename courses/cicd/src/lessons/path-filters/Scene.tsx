@@ -3,7 +3,7 @@ import { blockingChecks, freshWorld, latestRun, type CiAction, type Workflow, ty
 import { PREP, TEST, ciWorkflow, step } from "../../engine/presets";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
 import { PrPanel, YamlPanel } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, ciTyped, focusRun, runMetrics, type CiInfo } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { scenarios } from "./scenarios";
@@ -77,14 +77,14 @@ function View({ w, info }: { w: World; info: CiInfo }) {
       <g>
         {yaml}
         <PrPanel world={w} pr={1} box={{ x: 384, y: 14, w: 462, h: 210 }} />
-        <RunStage run={skipped ? undefined : run} blocked={skipped} box={{ x: 384, y: 244, w: 462, h: 214 }} empty={empty ?? (tr ? "Bu PR'da CI hiç çalışmadı." : "CI never ran on this PR.")} />
+        <AssemblyStage run={skipped ? undefined : run} blocked={skipped} box={{ x: 384, y: 244, w: 462, h: 214 }} empty={empty ?? (tr ? "Bu PR'da CI hiç çalışmadı." : "CI never ran on this PR.")} />
       </g>
     );
   }
   return (
     <g>
       {yaml}
-      <RunStage run={skipped ? undefined : focusRun(w, info)} blocked={skipped} box={{ x: 384, y: 14, w: 462, h: 444 }} empty={empty} />
+      <AssemblyStage run={skipped ? undefined : focusRun(w, info)} blocked={skipped} box={{ x: 384, y: 14, w: 462, h: 444 }} empty={empty} />
     </g>
   );
 }

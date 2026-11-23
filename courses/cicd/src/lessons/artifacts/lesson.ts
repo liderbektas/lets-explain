@@ -62,8 +62,8 @@ export const artifacts: Lesson = {
           "We added `actions/upload-artifact` at the end of the build job: it left `dist/` with the run under the name `dist`. We added `actions/download-artifact` at the start of the deploy job: it took it back by the same name. These files are called an [[artifact]].",
         ),
         l(
-          "Run #2 yeşil ve staging artık bu commit'i çalıştırıyor. Sağdaki kartta run #2'nin `dist` artifact'ini görüyorsun.",
-          "Run #2 is green and staging now runs this commit. The card on the right shows run #2's `dist` artifact.",
+          "Run #2 yeşil ve staging artık bu commit'i çalıştırıyor. Alttaki artifact rafında run #2'nin `dist` artifact'ini görüyorsun.",
+          "Run #2 is green and staging now runs this commit. The artifact shelf below shows run #2's `dist` artifact.",
         ),
       ],
       practice: { commands: [], snippets: [{ label: ".github/workflows/ci.yml", code: workflowYaml(wf({ upload: true, download: true, rebuild: false })) }] },
@@ -165,8 +165,8 @@ export const artifacts: Lesson = {
           "Below are **4 scenarios** from real work; in each, `dist/` can't get from one job to the next. Read what was not found with `gh run view --log-failed` first, then fix the workflow with `nano .github/workflows/ci.yml` and send it with `git commit` and `git push`.",
         ),
         l(
-          "Hedef hep aynı: staging'e giden build, test edilen build olsun ve run'da bir kez derlensin. Sağdaki kart her run'ın hangi artifact'leri tuttuğunu gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
-          "The aim is always the same: the build that reaches staging is the build that was tested, made once per run. The card on the right shows which artifacts each run holds. Finish in few commands for 3 stars.",
+          "Hedef hep aynı: staging'e giden build, test edilen build olsun ve run'da bir kez derlensin. Alttaki raflar her run'ın hangi artifact'leri tuttuğunu gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "The aim is always the same: the build that reaches staging is the build that was tested, made once per run. The shelves below show which artifacts each run holds. Finish in few commands for 3 stars.",
         ),
       ],
     },

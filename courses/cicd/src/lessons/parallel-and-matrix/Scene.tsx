@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { fmt, freshWorld, latestRun, type CiAction, type JobDef, type StepKind, type Workflow, type World } from "../../engine/ci";
 import { PREP, step } from "../../engine/presets";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { jobRows, Timeline } from "../../iso/panels";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -53,14 +53,14 @@ export const scene = makeSimScene({
   sim: ciSim,
   start: START,
   steps,
-  label: l("Solda run'ın job'ları ve aralarındaki needs okları, sağda her job'ın ne zaman başlayıp bittiği", "The run's jobs and their needs arrows on the left, when each job started and ended on the right"),
+  label: l("Solda run'ın job istasyonları ve aralarındaki needs kabloları, sağda her job'ın ne zaman başlayıp bittiği", "The run's job stations and their needs cables on the left, when each job started and ended on the right"),
   view: (w, info) => {
     const run = focusRun(w, info);
     const tr = info.lang === "tr";
     return (
       <g>
-        <RunStage run={run} box={{ x: 16, y: 14, w: 520, h: 444 }} />
-        <Timeline rows={jobRows(run)} box={{ x: 552, y: 14, w: 294, h: 444 }} title={tr ? "Zaman çizelgesi" : "Timeline"} from={0} to={run ? Math.round((run.end - run.start) * 1.3) : 60} />
+        <AssemblyStage run={run} box={{ x: 16, y: 14, w: 574, h: 444 }} />
+        <Timeline rows={jobRows(run)} box={{ x: 606, y: 14, w: 240, h: 444 }} title={tr ? "Zaman çizelgesi" : "Timeline"} from={0} to={run ? Math.round((run.end - run.start) * 1.3) : 60} />
       </g>
     );
   },

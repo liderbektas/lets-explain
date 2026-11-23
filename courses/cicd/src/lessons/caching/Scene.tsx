@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { l } from "@lets-explain/core/i18n";
 import { fmt, freshWorld, latestRun, lockHash, type CiAction, type Run, type StepDef, type Workflow, type World } from "../../engine/ci";
 import { CHECKOUT, INSTALL, SETUP, TEST, step } from "../../engine/presets";
+import { Crate, crateW, METAL, OBox } from "../../iso/factory";
 import { cut, Sticker } from "../../iso/parts";
 import { appearAt, stepTimes, useReplay, visibleBetween } from "../../iso/replay";
 import { ciSim, ciTyped, focusRun, YamlAndRun } from "../shared/ci";
@@ -89,11 +90,12 @@ export const scene = makeSimScene({
   sandbox: { typed: ciTyped(scenarios) },
 });
 
-/** The repository's cache: every key with the lockfile its folder came from. */
 /**
- * The repository's cache. When a run is played back, a key it restored lights up at the moment
- * its cache step read it, and a key it saved appears when its job ended (actions/cache saves in a
- * post step, and only when the job passed).
+ * The repository's cache, drawn as a warehouse shelf that outlives the runners: every key is a
+ * crate on it, marked current or from an old lockfile. When a run is played back, a key it
+ * restored lights up at the moment its cache step read it (a copy goes down to the runner), and
+ * a key it saved appears when its job ended (actions/cache saves in a post step, and only when
+ * the job passed).
  */
 function CacheCard({ world, run, tr }: { world: World; run?: Run; tr: boolean }) {
   const keys = Object.entries(world.cache);
@@ -111,33 +113,40 @@ function CacheCard({ world, run, tr }: { world: World; run?: Run; tr: boolean })
     }
     return {};
   };
+  const X = 16;
+  const Y = 330;
   return (
     <g className="ci">
-      <Sticker x={16} y={330} w={350} h={128} head="var(--sky-soft)" headH={34}>
-        <text x={32} y={330 + 23} className="title" style={{ fontSize: 14 }}>
+      <Sticker x={X} y={Y} w={350} h={128} head="var(--sky-soft)" headH={34}>
+        <text x={X + 16} y={Y + 23} className="title" style={{ fontSize: 14 }}>
           {tr ? "Repodaki cache" : "Repository cache"}
         </text>
-        <text x={352} y={330 + 23} textAnchor="end" className="sub" style={{ fontSize: 11 }}>
+        <text x={X + 336} y={Y + 23} textAnchor="end" className="sub" style={{ fontSize: 11 }}>
           lockfile: {lockHash(head.lock)}
         </text>
+        {/* The shelves: they stay between runs. */}
+        {[0, 1, 2].map((i) => (
+          <OBox key={i} x={X + 10} y={Y + 62 + i * 28} w={318} h={4} d={10} {...METAL} thin />
+        ))}
         {keys.length === 0 && (
-          <text x={32} y={330 + 62} className="muted">
+          <text x={X + 22} y={Y + 56} className="muted">
             {tr ? "Henüz kayıt yok." : "Nothing stored yet."}
           </text>
         )}
         {keys.slice(-3).map(([k, v], i) => {
           const stale = v.lock !== head.lock;
           const { hit, saved } = timing(k);
+          const y = Y + 50 + i * 28;
+          const label = cut(k, 22);
           return (
             <motion.g key={saved ? `${replay!.key}-${k}` : k} {...(saved ? appearAt(saved) : {})}>
-            {hit !== undefined && <motion.rect key={`${replay!.key}-hit-${k}`} x={24} y={330 + 58 + i * 22 - 15} width={334} height={20} rx={6} style={{ fill: "var(--mint)" }} {...visibleBetween(hit, hit + 700)} />}
-            <text x={32} y={330 + 58 + i * 22} className="mono" style={{ fontSize: 11.5, fill: stale ? "var(--ink-3)" : undefined }}>
-              {cut(`${k}`, 24)}
-              <tspan className="sub" style={{ fontSize: 10.5 }}>
-                {"  "}
-                {stale ? (tr ? `(eski lockfile ${lockHash(v.lock)})` : `(old lockfile ${lockHash(v.lock)})`) : tr ? "(güncel)" : "(current)"}
-              </tspan>
-            </text>
+              {hit !== undefined && <motion.rect key={`${replay!.key}-hit-${k}`} x={X + 14} y={y - 14} width={crateW(label, 11) + 14} height={28} rx={6} style={{ fill: "var(--mint)", stroke: "#3fd07f", strokeWidth: 2 }} {...visibleBetween(hit, hit + 700)} />}
+              <g transform={`translate(${X + 20} ${y})`} opacity={stale ? 0.55 : 1}>
+                <Crate label={label} tone={stale ? "cache" : "deps"} size={11} />
+              </g>
+              <text x={X + 30 + crateW(label, 11) + 10} y={y + 4} className="sub" style={{ fontSize: 11, fill: stale ? "var(--ink-3)" : undefined }}>
+                {stale ? (tr ? `eski lockfile ${lockHash(v.lock)}` : `old lockfile ${lockHash(v.lock)}`) : tr ? "güncel" : "current"}
+              </text>
             </motion.g>
           );
         })}

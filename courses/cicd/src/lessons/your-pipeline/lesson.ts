@@ -206,8 +206,8 @@ export const yourPipeline: Lesson = {
       title: l("Kırık test main'in kapısında kaldı", "The broken test stayed outside main"),
       body: [
         l(
-          "PR'ın run'ında build job'ı `npm test`'te kırıldı, deploy atlandı. Merge'e bastık ve GitHub reddetti: `Pages / build` geçmedi. Sağdaki PR kartında zorunlu check'i ve kilitli düğmeyi görüyorsun.",
-          "In the PR's run the build job failed at `npm test` and the deploy was skipped. We pressed merge and GitHub refused: `Pages / build` did not pass. The PR card on the right shows the required check and the locked button.",
+          "PR'ın run'ında build job'ı `npm test`'te kırıldı, deploy atlandı. Merge'e bastık ve GitHub reddetti: `Pages / build` geçmedi. Alttaki PR panelinde zorunlu check'i ve inik merge bariyerini görüyorsun.",
+          "In the PR's run the build job failed at `npm test` and the deploy was skipped. We pressed merge and GitHub refused: `Pages / build` did not pass. The PR panel below shows the required check and the lowered merge barrier.",
         ),
       ],
       practice: {

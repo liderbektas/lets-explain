@@ -207,8 +207,8 @@ export const caching: Lesson = {
           "Below are **4 scenarios** from real work: a slow `npm ci`, a new dependency, a stale `node_modules`, and a cache that never hits. Edit the workflow with `nano .github/workflows/ci.yml` and send it with `git commit` and `git push`; `gh run rerun <number>` runs the same commit again.",
         ),
         l(
-          "Run'ın logunda cache adımı ne bulduğunu söyler (`Cache restored` ya da `Cache not found`), `npm ci` satırı da kaç saniye sürdüğünü. Soldaki kart hangi anahtarların saklandığını gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
-          "A run's log says what the cache step found (`Cache restored` or `Cache not found`), and the `npm ci` line how long it took. The card on the left shows which keys are stored. Finish in few commands for 3 stars.",
+          "Run'ın logunda cache adımı ne bulduğunu söyler (`Cache restored` ya da `Cache not found`), `npm ci` satırı da kaç saniye sürdüğünü. Soldaki cache rafı hangi anahtarların saklandığını gösterir. Az komutla bitirirsen 3 yıldız alırsın.",
+          "A run's log says what the cache step found (`Cache restored` or `Cache not found`), and the `npm ci` line how long it took. The cache shelf on the left shows which keys are stored. Finish in few commands for 3 stars.",
         ),
       ],
     },

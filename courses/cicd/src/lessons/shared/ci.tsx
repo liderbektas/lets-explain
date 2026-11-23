@@ -3,7 +3,7 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { apply, fmt, globMatch, latestRun, totalMinutes, type CiAction, type CiEvent, type Run, type Workflow, type World } from "../../engine/ci";
 import { describeCi } from "../../engine/describe";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { HOLD_MS } from "../../iso/replay";
 import { YamlPanel } from "../../iso/panels";
 import type { Box } from "../../iso/parts";
@@ -99,7 +99,7 @@ export function YamlAndRun({ world, prev, workflow, run, focus, blocked, yamlBox
   return (
     <g>
       {wf && <YamlPanel yaml={workflowYaml(wf)} prev={old ? workflowYaml(old) : undefined} box={yamlBox} title={workflowFile(wf)} />}
-      {blocked ? <RunStage box={runBox} blocked empty={blocked} /> : <RunStage run={run ?? (wf ? latestRun(world, wf.name) : latestRun(world))} box={runBox} focus={focus} />}
+      {blocked ? <AssemblyStage box={runBox} blocked empty={blocked} /> : <AssemblyStage run={run ?? (wf ? latestRun(world, wf.name) : latestRun(world))} box={runBox} focus={focus} />}
     </g>
   );
 }

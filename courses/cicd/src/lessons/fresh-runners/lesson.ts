@@ -54,8 +54,8 @@ export const freshRunners: Lesson = {
         ],
         answer: 1,
         why: l(
-          "`deploy` job'ı başka bir makinede, boş bir diskle başladı. `dist/` ilk makinede kaldı ve o makine job bitince silindi. Sahnede bunu tezgahlarda görüyorsun: `build`'in tezgahı `dist/` ile dolu ama job bitince silindi, `deploy`'un tezgahına `dist/` hiç gelmedi.",
-          "The `deploy` job started on another machine with an empty disk. `dist/` stayed on the first machine, and that machine was deleted when its job ended. You can see it on the benches: `build`'s bench held `dist/` but was cleared when the job ended, and `dist/` never reached `deploy`'s bench.",
+          "`deploy` job'ı başka bir makinede, boş bir diskle başladı. `dist/` ilk makinede kaldı ve o makine job bitince silindi. Sahnede bunu runner'ların disklerinde görüyorsun: `build`'in diski `dist/` ile dolu ama job bitince silindi, `deploy`'un diskine `dist/` hiç gelmedi.",
+          "The `deploy` job started on another machine with an empty disk. `dist/` stayed on the first machine, and that machine was deleted when its job ended. You can see it on the runners' disks: `build`'s disk held `dist/` but was wiped when the job ended, and `dist/` never reached `deploy`'s disk.",
         ),
       },
       title: l("Yeni job, yeni makine", "New job, new machine"),

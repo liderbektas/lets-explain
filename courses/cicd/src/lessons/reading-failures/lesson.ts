@@ -46,8 +46,8 @@ export const readingFailures: Lesson = {
       title: l("Kırılan ilk adımı bul, aşağıdan yukarı oku", "Find the first failing step, read it bottom up"),
       body: [
         l(
-          "Sağda job'ın logu var. Adımlar sırayla listeleniyor: checkout, Node, `npm ci` ve lint yeşil, `npm test` kırmızı, build atlandı. Bakman gereken yer **ilk kırmızı adım**; ondan sonrakiler zaten çalışmadı.",
-          "On the right is the job's log. The steps are listed in order: checkout, Node, `npm ci` and lint are green, `npm test` is red, the build was skipped. The place to look is the **first red step**; the ones after it never ran.",
+          "Altta job'ın logu var. Adımlar sırayla listeleniyor: checkout, Node, `npm ci` ve lint yeşil, `npm test` kırmızı, build atlandı. Bakman gereken yer **ilk kırmızı adım**; ondan sonrakiler zaten çalışmadı.",
+          "Below is the job's log. The steps are listed in order: checkout, Node, `npm ci` and lint are green, `npm test` is red, the build was skipped. The place to look is the **first red step**; the ones after it never ran.",
         ),
         l(
           "Logu aşağıdan yukarı oku. En altta `Process completed with exit code 1` var: bu sadece \"komut başarısız oldu\" demek. Biraz yukarısında asıl mesaj: hangi test (`src/cart.test.ts > total adds VAT`) ve neden (`expected 118 to be 120`).",

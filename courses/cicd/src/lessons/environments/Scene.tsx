@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { commitOf, freshWorld, SHAS, type CiAction, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { RegistryCard } from "../build-once/RegistryCard";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -53,7 +53,7 @@ export const scene = makeSimScene({
     const waitingJob = run?.jobs.find((j) => j.status === "waiting");
     return (
       <g>
-        <RunStage run={run} box={{ x: 16, y: 10, w: 828, h: 292 }} focus={waitingJob?.key} />
+        <AssemblyStage run={run} box={{ x: 16, y: 10, w: 828, h: 292 }} focus={waitingJob?.key} />
         <RegistryCard world={w} box={{ x: 16, y: 318, w: 270, h: 140 }} />
         <EnvStrip world={w} box={{ x: 300, y: 322, w: 544, h: 116 }} names={ENVS} lit={waitingJob ? "production" : undefined} />
       </g>

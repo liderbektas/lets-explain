@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { type CiAction, type Workflow, type World } from "../../engine/ci";
 import { EnvStrip } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, ciTyped, focusRun, runMetrics, YamlAndRun } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { fresh, ONE_JOB, split } from "./model";
@@ -46,7 +46,7 @@ export const scene = makeSimScene({
     }
     return (
       <g>
-        <RunStage run={focusRun(w, info)} box={{ x: 20, y: 14, w: 820, h: 320 }} />
+        <AssemblyStage run={focusRun(w, info)} box={{ x: 20, y: 14, w: 820, h: 320 }} />
         <EnvStrip world={w} box={{ x: 260, y: 344, w: 340, h: 100 }} />
       </g>
     );

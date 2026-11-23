@@ -2,7 +2,7 @@ import { l } from "@lets-explain/core/i18n";
 import { freshWorld, latestRun, type CiAction, type Workflow, type World } from "../../engine/ci";
 import { workflowFile, workflowYaml } from "../../engine/yaml";
 import { LogPanel, YamlPanel } from "../../iso/panels";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { ciSim, ciTyped, focusRun, runMetrics, type CiInfo } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
 import { LEAKED, relWf } from "./workflow";
@@ -49,8 +49,8 @@ function View({ w, info }: { w: World; info: CiInfo }) {
   return (
     <g>
       {wf && <YamlPanel yaml={workflowYaml(wf)} prev={old ? workflowYaml(old) : undefined} box={{ x: 16, y: 14, w: 350, h: 444 }} title={workflowFile(wf)} />}
-      <RunStage run={run} box={{ x: 384, y: 14, w: 462, h: 214 }} empty={tr ? "Henüz run yok." : "No runs yet."} />
-      <LogPanel run={run} job={job} box={{ x: 384, y: 244, w: 462, h: 214 }} />
+      <AssemblyStage run={run} box={{ x: 384, y: 14, w: 462, h: 236 }} empty={tr ? "Henüz run yok." : "No runs yet."} />
+      <LogPanel run={run} job={job} box={{ x: 384, y: 266, w: 462, h: 192 }} />
     </g>
   );
 }

@@ -3,8 +3,9 @@ import { l } from "@lets-explain/core/i18n";
 import { freshWorld, latestRun, type CiAction, type JobDef, type Run, type StepDef, type Workflow, type World } from "../../engine/ci";
 import { BUILD, PREP, step } from "../../engine/presets";
 import { EnvStrip } from "../../iso/panels";
+import { Crate, METAL, OBox } from "../../iso/factory";
 import { Sticker } from "../../iso/parts";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { appearAt, stepTimes, useReplay, visibleBetween } from "../../iso/replay";
 import { ciSim, ciTyped, focusRun } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -79,7 +80,7 @@ export const scene = makeSimScene({
     const run = focusRun(w, info);
     return (
       <g>
-        <RunStage run={run} box={{ x: 16, y: 14, w: 828, h: 296 }} />
+        <AssemblyStage run={run} box={{ x: 16, y: 14, w: 828, h: 296 }} />
         <ArtifactCard world={w} focus={run} tr={info.lang === "tr"} />
         <EnvStrip world={w} box={{ x: 560, y: 318, w: 286, h: 118 }} />
       </g>
@@ -98,8 +99,11 @@ export const scene = makeSimScene({
   sandbox: { typed: ciTyped(scenarios) },
 });
 
-/** Each recent run with the artifacts it holds. */
-/** Each recent run's artifact storage. A run being played back shows its artifact once the upload has landed. */
+/**
+ * Each recent run's artifact store: a shelf of its own, labelled with the run, holding the crates
+ * its jobs uploaded. A run being played back shows its crate once the upload has landed. Runs do
+ * not share shelves: a crate on #4's shelf is not on #5's.
+ */
 function ArtifactCard({ world, focus, tr }: { world: World; focus?: Run; tr: boolean }) {
   const runs = world.runs.slice(-3);
   const replay = useReplay(focus);
@@ -127,28 +131,32 @@ function ArtifactCard({ world, focus, tr }: { world: World; focus?: Run; tr: boo
         )}
         {runs.map((r, i) => {
           const list = world.artifacts[r.id] ?? [];
-          const y = Y + 58 + i * 26;
+          const y = Y + 60 + i * 26;
           const lit = focus?.id === r.id;
+          const sx = X + 250;
+          const crates = (
+            <g>
+              {list.map((name, k) => (
+                <g key={name} transform={`translate(${sx + 6 + k * 70} ${y - 3})`}>
+                  <Crate label={name} tone="dist" size={11} />
+                </g>
+              ))}
+            </g>
+          );
           return (
             <g key={r.id}>
-              {lit && <rect x={X + 8} y={y - 16} width={W - 16} height={24} rx={8} style={{ fill: "var(--tangerine-soft)" }} />}
+              {lit && <rect x={X + 8} y={y - 17} width={W - 16} height={26} rx={7} style={{ fill: "var(--tangerine-soft)" }} />}
               <text x={X + 18} y={y + 1} className="mono" style={{ fontSize: 12 }}>
                 #{r.id} {r.workflow} · {r.sha}
               </text>
-              {uploadedAt(r) ? (
-                <>
-                  <motion.text key={`${replay!.key}-none`} x={X + W - 18} y={y + 1} textAnchor="end" className="sub" style={{ fontSize: 11.5, fill: "var(--ink-3)" }} {...visibleBetween(0, uploadedAt(r))}>
-                    {tr ? "yok" : "none"}
-                  </motion.text>
-                  <motion.text key={`${replay!.key}-list`} x={X + W - 18} y={y + 1} textAnchor="end" className="sub" style={{ fontSize: 11.5, fill: "var(--ink)" }} {...appearAt(uploadedAt(r))}>
-                    {list.join(", ")}
-                  </motion.text>
-                </>
-              ) : (
-                <text x={X + W - 18} y={y + 1} textAnchor="end" className="sub" style={{ fontSize: 11.5, fill: list.length ? "var(--ink)" : "var(--ink-3)" }}>
-                  {list.length ? list.join(", ") : tr ? "yok" : "none"}
-                </text>
-              )}
+              {/* This run's shelf. */}
+              <OBox x={sx} y={y + 7} w={W - (sx - X) - 28} h={4} d={10} {...METAL} thin />
+              {list.length === 0 || uploadedAt(r) ? (
+                <motion.text key={uploadedAt(r) ? `${replay!.key}-none` : "none"} x={sx + 12} y={y + 1} className="sub" style={{ fontSize: 11.5, fill: "var(--ink-3)" }} {...(uploadedAt(r) ? visibleBetween(0, uploadedAt(r)) : {})}>
+                  {tr ? "boş" : "empty"}
+                </motion.text>
+              ) : null}
+              {list.length > 0 && (uploadedAt(r) ? <motion.g key={`${replay!.key}-list`} {...appearAt(uploadedAt(r))}>{crates}</motion.g> : crates)}
             </g>
           );
         })}

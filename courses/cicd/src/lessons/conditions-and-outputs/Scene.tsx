@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { freshWorld, latestRun, type CiAction, type Run, type Workflow, type World } from "../../engine/ci";
 import { jobYaml } from "../../engine/yaml";
-import { RunStage } from "../../iso/RunStage";
+import { AssemblyStage } from "../../iso/AssemblyLine";
 import { cut, Sticker, Terminal } from "../../iso/parts";
 import { ciSim, ciTyped, focusRun, runMetrics, type CiInfo } from "../shared/ci";
 import { makeSimScene, resolveSteps, type Spec } from "../shared/SimScene";
@@ -74,14 +74,14 @@ function View({ w, info }: { w: World; info: CiInfo }) {
   const old = info.prev.workflows[0] ? new Set(keyLines(info.prev.workflows[0])) : null;
   const lastNote = [...w.runs].reverse().flatMap((r) => (r.jobs.find((j) => j.id === "notify" && j.status === "success") ? [r] : []))[0];
   const summary = resolvedSummary(run);
-  const lh = Math.min(15, 104 / Math.max(lines.length, 1));
+  const lh = Math.min(15, 92 / Math.max(lines.length, 1));
   const size = Math.min(11.5, lh * 0.85);
   return (
     <g className="ci">
-      <RunStage run={run} box={{ x: 20, y: 12, w: 820, h: 284 }} />
-      <Terminal box={{ x: 20, y: 310, w: 410, h: 148 }} title={tr ? "ci-cd.yml · koşullar" : "ci-cd.yml · conditions"}>
+      <AssemblyStage run={run} box={{ x: 20, y: 10, w: 820, h: 300 }} />
+      <Terminal box={{ x: 20, y: 326, w: 410, h: 132 }} title={tr ? "ci-cd.yml · koşullar" : "ci-cd.yml · conditions"}>
         {lines.map((line, i) => {
-          const y = 310 + 44 + i * lh;
+          const y = 326 + 44 + i * lh;
           const fresh = old && !old.has(line);
           return (
             <g key={i}>
@@ -93,21 +93,21 @@ function View({ w, info }: { w: World; info: CiInfo }) {
           );
         })}
       </Terminal>
-      <Sticker x={446} y={310} w={394} h={148} head="var(--sky-soft)" headH={32}>
-        <text x={462} y={332} className="title" style={{ fontSize: 14 }}>
+      <Sticker x={446} y={326} w={394} h={132} head="var(--sky-soft)" headH={32}>
+        <text x={462} y={348} className="title" style={{ fontSize: 14 }}>
           {tr ? "Run'ın sonuçları" : "What the run left"}
         </text>
-        <text x={462} y={360} className="sub">
+        <text x={462} y={374} className="sub">
           staging: {w.envs.staging?.sha ?? "—"}
           {w.envs.staging?.sha ? ` (${w.commits.find((c) => c.sha === w.envs.staging!.sha)!.branch})` : ""}
         </text>
-        <text x={462} y={384} className="sub">
+        <text x={462} y={396} className="sub">
           {cut(`${tr ? "Sohbet" : "Chat"}: ${lastNote ? `#${lastNote.id} ${tr ? "mesaj attı" : "posted"}: "${w.workflows[0]?.name} failed on ${lastNote.branch}"` : "—"}`, 54)}
         </text>
-        <text x={462} y={408} className="sub">
+        <text x={462} y={418} className="sub">
           {cut(`Summary: ${summary.length ? summary[summary.length - 1] : "—"}`, 54)}
         </text>
-        <text x={462} y={432} className="muted" style={{ fontSize: 11.5 }}>
+        <text x={462} y={440} className="muted" style={{ fontSize: 11.5 }}>
           {run ? cut(`${tr ? "build çıktısı" : "build output"}: version=${run.jobs.find((j) => j.id === "build")?.outputs.version ?? "—"}`, 56) : ""}
         </text>
       </Sticker>
