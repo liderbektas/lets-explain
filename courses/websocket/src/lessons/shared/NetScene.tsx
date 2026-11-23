@@ -7,7 +7,8 @@ import { usePlayback } from "@lets-explain/core/lib/playback";
 import { wsShell } from "../../engine/cli";
 import { describeNet, personName, type Tone } from "../../engine/describe";
 import { simulate, type Net, type NetAction, type NetEvent, type Run } from "../../engine/net";
-import { NET_STAGE, type StageLabels } from "../../iso/NetStage";
+import { STAGE } from "../../iso/kit";
+import type { StageLabels } from "../../iso/PhoneStage";
 
 /**
  * The shared shell for every WebSocket lesson: it plays each step's actions through the model,
@@ -40,6 +41,8 @@ export interface ViewInfo {
   last: NetEvent[];
   /** Counts actions, so a repeated motion plays again. */
   beat: number;
+  /** The step's last action (or the try-it step): its motion may take as long as it needs. */
+  final: boolean;
   /** Where the current step (or the try-it step) began. */
   from: Net;
   t: (x: L) => string;
@@ -135,6 +138,7 @@ export function makeNetScene(config: NetSceneConfig): NetScene {
     let shown: NetEvent[];
     let beat: number;
     let from: Net;
+    let final = true;
     if (typed.run) {
       state = typed.run.states[typed.run.states.length - 1]!;
       last = [...typed.run.events].reverse().find((e) => e.length > 0) ?? [];
@@ -148,8 +152,9 @@ export function makeNetScene(config: NetSceneConfig): NetScene {
       shown = run.events.slice(s0, s0 + cursor).flat();
       beat = s0 + cursor;
       from = run.states[s0]!;
+      final = cursor >= count;
     }
-    const info: ViewInfo = { step, sandbox, last, beat, from, t, lang };
+    const info: ViewInfo = { step, sandbox, last, beat, final, from, t, lang };
 
     const lines = shown.map((e) => describeNet(e, state, lang)).filter((x): x is NonNullable<typeof x> => x !== null);
     const eventList = (
@@ -176,8 +181,8 @@ export function makeNetScene(config: NetSceneConfig): NetScene {
         controls={controls}
         legend={config.legend?.(t) ?? []}
         paused={paused}
-        width={NET_STAGE.width}
-        height={NET_STAGE.height}
+        width={STAGE.width}
+        height={STAGE.height}
         label={t(config.label)}
         footer={
           sandbox ? (

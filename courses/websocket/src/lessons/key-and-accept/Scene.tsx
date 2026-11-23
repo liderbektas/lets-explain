@@ -2,7 +2,7 @@ import { l } from "@lets-explain/core/i18n";
 import { acceptFor, sha1, toHex, utf8, WS_GUID } from "../../engine/bytes";
 import { runLine } from "../../engine/cli";
 import { createNet, header, type Net, type NetAction } from "../../engine/net";
-import { AcceptStage, HandshakeStage, type AcceptRow } from "../../iso/NetStage";
+import { AcceptStage, HandshakeStage, type AcceptRow } from "../../iso/HandshakeStage";
 import { handshakeMetrics } from "../handshake/Scene";
 import { makeNetScene, type ViewInfo } from "../shared/NetScene";
 import { browserSocket, curlUpgrade } from "../shared/requests";
@@ -71,7 +71,13 @@ function view(net: Net, info: ViewInfo) {
       ex={last}
       beat={info.beat}
       verdict={verdict}
+      device={!info.sandbox && last?.client === "browser" ? "phone" : "laptop"}
+      showKey
       labels={{
+        opened: t(l("bağlantı açık", "connection open")),
+        refused: t(l("reddetti", "refused")),
+        acceptOk: t(l("✓ key'den beklenen accept", "✓ the accept the key calls for")),
+        acceptBad: t(l("✗ key'le uyuşmayan accept", "✗ not the accept the key calls for")),
         request: t(l("İstek: istemci → sunucu", "Request: client → server")),
         response: t(l("Cevap: sunucu → istemci", "Response: server → client")),
         client: t(info.sandbox ? l("Sen (terminal)", "You (terminal)") : info.step === 4 ? l("Tarayıcı", "Browser") : l("curl", "curl")),

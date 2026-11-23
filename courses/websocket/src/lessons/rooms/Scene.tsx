@@ -31,7 +31,7 @@ export const scene = makeNetScene({
   start: START,
   steps,
   label: l("Odalara ayrılmış istemciler: #genel ve #ops", "Clients in rooms: #genel and #ops"),
-  view: (net, info) => socketView(net, info, { clients: info.sandbox ? undefined : ["browser", "laptop", "phone"] }),
+  view: (net, info) => socketView(net, info, { clients: info.sandbox ? undefined : ["browser", "laptop", "phone"], rooms: true }),
   metrics: (net, t, info) => socketMetrics(net, t, info.from),
   scenarios,
   freeStart: FREE,

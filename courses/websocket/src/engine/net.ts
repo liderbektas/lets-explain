@@ -285,6 +285,8 @@ export type NetEvent =
   | { type: "procExited"; pid: number; code: number }
   | { type: "procLog"; pid: number; text: string }
   | { type: "captured"; pid: number; lines: string[] }
+  /** A Redis PUBLISH: who sent it (null: redis-cli) and the processes subscribed to that channel. */
+  | { type: "published"; from: number | null; channel: string; to: number[] }
   | { type: "blocked"; port: number; on: boolean }
   | { type: "nginx"; ok: boolean; text: string }
   | { type: "note"; text: string };
@@ -553,7 +555,7 @@ function makeRt(net: Net): Rt {
       rt.redis.push({ pid, client });
       return true;
     },
-    redisPublish: (channel, message) => publish(rt, channel, message),
+    redisPublish: (channel, message, pid) => publish(rt, channel, message, pid),
     readFile: (path) => rt.net.files[path.replace(/^\/home\/you\/chat\//, "").replace(/^\.\//, "")] ?? rt.net.files[path],
     writeFile: (path, text) => {
       rt.net.files[path.replace(/^\/home\/you\/chat\//, "").replace(/^\.\//, "")] = text;
@@ -1594,13 +1596,16 @@ function chatReply(rt: Rt, c: WsConn, text: string) {
   post(rt, "you", m.text, "ws");
 }
 
-function publish(rt: Rt, channel: string, message: string): number {
+function publish(rt: Rt, channel: string, message: string, from: number | null = null): number {
   let n = 0;
+  const to: number[] = [];
   for (const { pid, client } of rt.redis) {
     if (!client.channels.has(channel) || client.status !== "ready" || !procOf(rt.net, pid)?.alive) continue;
     n++;
+    to.push(pid);
     schedule(rt, rt.net.now, () => guard(rt.host, pid, () => client.emit("message", channel, message)), pid);
   }
+  rt.ev.push({ type: "published", from, channel, to });
   return n;
 }
 
@@ -1624,7 +1629,29 @@ function nextAt(net: Net, rt: Rt, limit: number): number | null {
 }
 
 /** Everything due at the current time, in order. */
+/**
+ * When each event happened, in model time. Events are stamped as time moves (see settle); the
+ * events of an action that takes no time carry no stamp and happen when the action does.
+ */
+export const EVENT_AT = new WeakMap<NetEvent, number>();
+
+function stampEvents(rt: Rt) {
+  for (let i = rt.ev.length - 1; i >= 0; i--) {
+    const e = rt.ev[i]!;
+    if (EVENT_AT.has(e)) break;
+    EVENT_AT.set(e, rt.net.now);
+  }
+}
+
 function settle(net: Net, rt: Rt) {
+  try {
+    settleNow(net, rt);
+  } finally {
+    stampEvents(rt);
+  }
+}
+
+function settleNow(net: Net, rt: Rt) {
   // Code that keeps scheduling work for the very same moment (a reconnect with no delay) would never
   // let time move; the sandbox stops it after a while, as a real machine would grind on.
   for (let n = 0; n < 20_000; n++) {

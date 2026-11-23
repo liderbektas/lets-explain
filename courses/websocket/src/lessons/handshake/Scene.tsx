@@ -1,6 +1,6 @@
 import { l } from "@lets-explain/core/i18n";
 import { createNet, header, type Net, type NetAction } from "../../engine/net";
-import { HandshakeStage } from "../../iso/NetStage";
+import { HandshakeStage } from "../../iso/HandshakeStage";
 import { makeNetScene, type ViewInfo } from "../shared/NetScene";
 import { browserSocket, curlUpgrade } from "../shared/requests";
 import { FREE, scenarios } from "./scenarios";
@@ -43,7 +43,12 @@ export function handshakeView(net: Net, info: ViewInfo) {
     <HandshakeStage
       ex={info.sandbox && net.exchanges.length === info.from.exchanges.length ? undefined : ex}
       beat={info.beat}
+      device={!info.sandbox && info.step < 2 ? "phone" : "laptop"}
       labels={{
+        opened: t(l("bağlantı açık", "connection open")),
+        refused: t(l("reddetti", "refused")),
+        acceptOk: t(l("✓ key'den beklenen accept", "✓ the accept the key calls for")),
+        acceptBad: t(l("✗ key'le uyuşmayan accept", "✗ not the accept the key calls for")),
         request: t(l("İstek: istemci → sunucu", "Request: client → server")),
         response: t(l("Cevap: sunucu → istemci", "Response: server → client")),
         client: t(client),
@@ -76,7 +81,10 @@ export const scene = makeNetScene({
   slug: SLUG,
   start: START,
   steps,
-  label: l("Solda giden isteğin metni, sağda gelen cevabın metni; altta istemci ve sunucu", "The request's text on the left, the response's text on the right, the client and server below"),
+  label: l(
+    "Üstte solda giden isteğin metni, sağda gelen cevabın metni. Altta istemci (tarayıcılı telefon ya da curl çalışan dizüstü) ve sunucu kabini; istek ve cevap aradaki kesik çizgide zarf olarak gider, 101 gelirse WebSocket kablosu takılır.",
+    "Top left the request's text, top right the response's text. Below, the client (a phone with the browser, or a laptop running curl) and the server's rack; request and answer travel the dashed lane between them as envelopes, and a 101 plugs the WebSocket cable in.",
+  ),
   view: handshakeView,
   metrics: (net, t) => handshakeMetrics(net, t),
   scenarios,

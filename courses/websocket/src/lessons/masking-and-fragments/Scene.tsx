@@ -3,7 +3,7 @@ import { OP } from "../../engine/frames";
 import { createNet, type Net, type NetAction } from "../../engine/net";
 import { makeNetScene, type ViewInfo } from "../shared/NetScene";
 import { browserSocket } from "../shared/requests";
-import { frameView, lastFrame, remote, send, socketMetrics, socketView } from "../shared/sockets";
+import { frameView, remote, send, socketMetrics, socketView } from "../shared/sockets";
 import { ECHO, LOGS, STREAM } from "./code";
 import { FREE, scenarios } from "./scenarios";
 
@@ -28,8 +28,8 @@ export const steps: NetAction[][] = [
 
 function view(net: Net, info: ViewInfo) {
   if (info.sandbox || info.step >= 3) return socketView(net, info);
-  if (info.step === 2) return frameView(lastFrame(net, (f) => f.dir === "in" && f.opcode === OP.text), info, () => socketView(net, info));
-  return frameView(lastFrame(net, (f) => f.dir === "out" && f.opcode === OP.text), info, () => socketView(net, info));
+  if (info.step === 2) return frameView(net, (f) => f.dir === "in" && f.opcode === OP.text, info, () => socketView(net, info));
+  return frameView(net, (f) => f.dir === "out" && f.opcode === OP.text, info, () => socketView(net, info), { xor: true });
 }
 
 export const scene = makeNetScene({

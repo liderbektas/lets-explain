@@ -32,7 +32,7 @@ export const scene = makeNetScene({
   start: START,
   steps,
   label: l("Sohbet sunucusu, uygulamanın kendi sayfası ve evil.example", "The chat server, the app's own page, and evil.example"),
-  view: (net, info) => socketView(net, info),
+  view: (net, info) => socketView(net, info, { showOrigin: true }),
   metrics: (net, t, info) => {
     const evilIn = net.conns.some((c) => c.client === "evil" && c.closedAt === null);
     return [

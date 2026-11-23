@@ -120,6 +120,7 @@ export function describeNet(e: NetEvent, net: Net, lang: Lang): Line | null {
       return { tone: "bad", text: e.text };
     case "procLog":
     case "captured":
+    case "published":
       return null;
   }
 }

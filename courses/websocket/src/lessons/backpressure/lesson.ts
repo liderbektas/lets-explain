@@ -104,8 +104,8 @@ export const backpressure: Lesson = {
           "Your turn. `board.js` sends a 32 KB board every second; a laptop and a phone on a weak signal are connected (both reconnect on their own when cut). There are **3 scenarios**.",
         ),
         l(
-          "Kodu `nano board.js` ile değiştir, `pkill -f board.js` ve `node board.js &` ile yeniden başlat, `sleep` ile zaman geçir. Sahnede her istemcinin kuyruğu sarı etiketle görünür.",
-          "Change the code with `nano board.js`, restart with `pkill -f board.js` and `node board.js &`, let time pass with `sleep`. On stage, each client's queue shows as a yellow label.",
+          "Kodu `nano board.js` ile değiştir, `pkill -f board.js` ve `node board.js &` ile yeniden başlat, `sleep` ile zaman geçir. Sahnede her istemcinin kuyruğu, sunucu kabinindeki soketinin yanında dolan bir kovayla ve altındaki KB etiketiyle görünür.",
+          "Change the code with `nano board.js`, restart with `pkill -f board.js` and `node board.js &`, let time pass with `sleep`. On stage, each client's queue shows as a bin filling up next to its socket on the server's rack, with its size in KB under it.",
         ),
       ],
     },

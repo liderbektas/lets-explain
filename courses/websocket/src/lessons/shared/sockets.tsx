@@ -4,7 +4,7 @@ import { l, type L } from "@lets-explain/core/i18n";
 import { TINTS } from "@lets-explain/core/iso/shapes";
 import type { Net, NetAction, WsFrame } from "../../engine/net";
 import { FrameView, type FrameViewLabels } from "../../iso/FrameView";
-import { SocketStage, type SocketStageLabels } from "../../iso/SocketStage";
+import { portOf, SocketStage, type SocketStageLabels } from "../../iso/SocketStage";
 import type { ViewInfo } from "./NetScene";
 
 /** A named client somewhere on the network (a phone, a second tab) opening a WebSocket. */
@@ -52,14 +52,20 @@ export function socketLabels(net: Net, t: (x: L) => string, lang: "tr" | "en"): 
     client: (id) => (NAMES[id] ? t(NAMES[id]!) : id.startsWith("proc:") ? procName(Number(id.slice(5))) : id),
     server: (id) => {
       if (id === "chat") return ":8081 chat";
-      const pid = Number(id.slice(5));
-      const p = net.procs.find((x) => x.pid === pid);
-      return `${p?.ports[0] ?? p?.env.PORT ? `:${p?.ports[0] ?? p?.env.PORT} ` : ""}${procName(pid)}`;
+      const port = portOf(net, id);
+      return `${port ? `:${port} ` : ""}${procName(Number(id.slice(5)))}`;
     },
     nginx: "nginx :80",
     redis: "redis :6379",
     clock: (s) => (lang === "tr" ? `saat ${s} sn` : `clock ${s} s`),
     halfOpen: t(l("yarı açık", "half open")),
+    open: t(l("açık", "open")),
+    closed: (code) => (code === null ? t(l("kapalı", "closed")) : `${t(l("kapalı", "closed"))} ${code}`),
+    connecting: t(l("bağlanmadı", "not connected")),
+    noNet: t(l("ağ yok", "no network")),
+    queue: (kb) => t(l(`kuyrukta ${kb} KB`, `${kb} KB queued`)),
+    originCheck: t(l("Origin kontrolü", "Origin check")),
+    missing: (a, b) => (a === b ? t(l(`#${a} gelmedi`, `#${a} never came`)) : t(l(`#${a}–#${b} gelmedi`, `#${a}–#${b} never came`))),
   };
 }
 
@@ -71,16 +77,19 @@ export const TINT_OF: Record<string, (typeof TINTS)[keyof typeof TINTS]> = {
   evil: TINTS.grey,
 };
 
-export function socketView(net: Net, info: ViewInfo, extra: { clients?: string[]; showQueues?: boolean } = {}) {
+export function socketView(net: Net, info: ViewInfo, extra: { clients?: string[]; showQueues?: boolean; showOrigin?: boolean; rooms?: boolean } = {}) {
   return (
     <SocketStage
       net={net}
       last={info.last}
       beat={info.beat}
+      final={info.final}
       labels={socketLabels(net, info.t, info.lang)}
       clients={extra.clients}
       tint={(c) => TINT_OF[c] ?? (c.startsWith("proc:") ? TINTS.mint : TINTS.sky)}
       showQueues={extra.showQueues}
+      showOrigin={extra.showOrigin}
+      rooms={extra.rooms}
     />
   );
 }
@@ -99,6 +108,11 @@ export function frameLabels(t: (x: L) => string): FrameViewLabels {
     unmasked: t(l("maske çözülünce", "unmasked")),
     total: (n) => t(l(`${n} bayt`, `${n} bytes`)),
     more: (n) => t(l(`… ve ${n} bayt daha`, `… and ${n} more bytes`)),
+    xorData: t(l("veri", "data")),
+    xorKey: t(l("anahtar", "key")),
+    xorWire: t(l("kabloda", "on the wire")),
+    client: "",
+    server: "",
   };
 }
 
@@ -111,8 +125,14 @@ export const lastFrame = (net: Net, pick: (f: WsFrame) => boolean): WsFrame | un
   return undefined;
 };
 
-export function frameView(frame: WsFrame | undefined, info: ViewInfo, fallback: () => ReactNode) {
-  return frame ? <FrameView frame={frame} beat={info.beat} labels={frameLabels(info.t)} /> : fallback();
+/** The newest frame that matches, magnified over the cable it rides; `fallback` when there is none yet. */
+export function frameView(net: Net, pick: (f: WsFrame) => boolean, info: ViewInfo, fallback: () => ReactNode, opts: { xor?: boolean } = {}) {
+  const frame = lastFrame(net, pick);
+  if (!frame) return fallback();
+  const conn = net.conns.find((c) => c.frames.includes(frame))!;
+  const names = socketLabels(net, info.t, info.lang);
+  const labels = { ...frameLabels(info.t), client: names.client(conn.client), server: names.server(conn.server) };
+  return <FrameView frame={frame} beat={info.beat} labels={labels} xor={opts.xor} />;
 }
 
 /** Counters for socket lessons: open connections on the server side, and frames so far. */

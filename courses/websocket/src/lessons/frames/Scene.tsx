@@ -39,7 +39,7 @@ const picks: Record<number, (f: { dir: string; opcode: number }) => boolean> = {
 function view(net: Net, info: ViewInfo) {
   const pick = picks[info.step];
   if (info.sandbox || !pick) return socketView(net, info);
-  return frameView(lastFrame(net, pick), info, () => socketView(net, info));
+  return frameView(net, pick, info, () => socketView(net, info));
 }
 
 export const scene = makeNetScene({

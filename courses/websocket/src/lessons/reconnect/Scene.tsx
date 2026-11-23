@@ -32,7 +32,7 @@ export const scene = makeNetScene({
   slug: SLUG,
   start: START,
   steps,
-  label: l("Bir sunucu ve ona bağlanan sekmeler; her nokta bir sekme", "A server and the tabs connected to it; each dot is a tab"),
+  label: l("Bir sunucu kabini ve ona bağlanan sekmeler; her küçük ekran bir sekme, bağlıyken kabine ince bir kabloyla bağlı", "A server rack and the tabs connected to it; each small screen is a tab, wired to the rack by a thin cable while it is connected"),
   view: (net, info) => socketView(net, info),
   metrics: (net, t, info) => {
     const made = net.exchanges.slice(info.from.exchanges.length).filter((e) => e.kind === "upgrade" && e.client.startsWith("proc:"));

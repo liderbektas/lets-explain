@@ -31,7 +31,7 @@ export interface Host {
   terminate(conn: number, from: "client" | "server"): void;
   buffered(conn: number, from: "client" | "server"): number;
   redisConnect(pid: number, client: RedisClient): boolean;
-  redisPublish(channel: string, message: string): number;
+  redisPublish(channel: string, message: string, pid: number): number;
   readFile(path: string): string | undefined;
   writeFile(path: string, text: string): void;
   exit(pid: number, code: number): void;
@@ -422,7 +422,7 @@ export class RedisClient extends Emitter {
       else this.host.log(this.pid, `[ioredis] Unhandled error event: ${err.message}`);
       return Promise.resolve(0);
     }
-    const n = this.host.redisPublish(String(channel), typeof message === "string" ? message : String(message));
+    const n = this.host.redisPublish(String(channel), typeof message === "string" ? message : String(message), this.pid);
     if (cb) this.host.timer(this.pid, 0, () => cb(null, n), false);
     return Promise.resolve(n);
   }

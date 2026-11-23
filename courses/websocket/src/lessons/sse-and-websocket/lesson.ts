@@ -170,8 +170,8 @@ export const sseAndWebsocket: Lesson = {
           "The browser closed the stream and opened a WebSocket with `new WebSocket(\"ws://localhost:8081\")`. The first request is an HTTP request; once the server accepts it, the connection turns into a WebSocket. We go through that handshake line by line in the next lesson.",
         ),
         l(
-          "Sonra iki şey aynı borudan geçti: tarayıcının \"On my way\" mesajı yukarı, Mert'in mesajı aşağı. Arada yeni bir istek yok.",
-          "Then two things went through the same pipe: the browser's \"On my way\" going up, Mert's message coming down. No new request in between.",
+          "Sonra iki şey aynı kablodan geçti: tarayıcının \"On my way\" mesajı yukarı, Mert'in mesajı aşağı. Arada yeni bir istek yok.",
+          "Then two things went through the same cable: the browser's \"On my way\" going up, Mert's message coming down. No new request in between.",
         ),
       ],
       practice: {

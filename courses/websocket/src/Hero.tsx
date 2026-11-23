@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { useLang } from "@lets-explain/core/i18n";
+import { l, useLang } from "@lets-explain/core/i18n";
 import { useTicker } from "@lets-explain/core/lib/playback";
 import { createNet, simulate, type NetAction } from "./engine/net";
-import { NET_STAGE, NetStage } from "./iso/NetStage";
-import { stageLabels } from "./lessons/shared/NetScene";
+import { STAGE } from "./iso/kit";
+import { PhoneStage } from "./iso/PhoneStage";
+import { phoneLabels } from "./lessons/shared/phone";
 import { browserSocket, wait } from "./lessons/shared/requests";
 
 const lines: NetAction[] = [
@@ -23,8 +24,8 @@ export function WsHero() {
   const run = useMemo(() => simulate(lines, createNet()), []);
   const at = 1 + (tick % (run.states.length - 1));
   return (
-    <svg className="stage-svg" viewBox={`0 0 ${NET_STAGE.width} ${NET_STAGE.height}`} aria-hidden="true">
-      <NetStage net={run.states[at]!} last={run.events[at - 1] ?? []} beat={tick} labels={stageLabels(t, lang)} ports={[8081]} />
+    <svg className="stage-svg" viewBox={`0 0 ${STAGE.width} ${STAGE.height}`} aria-hidden="true">
+      <PhoneStage net={run.states[at]!} last={run.events[at - 1] ?? []} beat={tick} labels={phoneLabels(t, lang, l("Tarayıcı", "Browser"))} device="phone" />
     </svg>
   );
 }

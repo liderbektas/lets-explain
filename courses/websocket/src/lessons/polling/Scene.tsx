@@ -1,8 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
 import { createNet, type NetAction } from "../../engine/net";
-import { NetStage } from "../../iso/NetStage";
+import { PhoneStage } from "../../iso/PhoneStage";
 import { flowMetrics } from "../shared/metrics";
-import { makeNetScene, stageLabels } from "../shared/NetScene";
+import { makeNetScene } from "../shared/NetScene";
+import { phoneLabels } from "../shared/phone";
 import { browserGet, wait } from "../shared/requests";
 import { FREE, scenarios } from "./scenarios";
 
@@ -45,14 +46,17 @@ export const scene = makeNetScene({
   slug: SLUG,
   start: START,
   steps,
-  label: l("Solda tarayıcı, sağda sohbet sunucusu; sağ üstte mesaj yazan ekip arkadaşları", "The browser on the left, the chat server on the right, teammates who write at the top right"),
+  label: l(
+    "Solda tarayıcının açık olduğu telefon, sağda sohbet sunucusunun kabini, sağ üstte mesaj yazan ekip arkadaşları. Her istek kesik çizgide giden bir zarf, cevabı geri dönen bir zarf.",
+    "The phone running the browser on the left, the chat server's rack on the right, teammates who write at the top right. Each request is an envelope going along the dashed lane; its answer is an envelope coming back.",
+  ),
   view: (net, info) => (
-    <NetStage
+    <PhoneStage
       net={net}
       last={info.last}
       beat={info.beat}
-      labels={stageLabels(info.t, info.lang, info.sandbox ? l("Sen (terminal)", "You (terminal)") : l("Tarayıcı", "Browser"))}
-      ports={[8080]}
+      device={info.sandbox ? "laptop" : "phone"}
+      labels={phoneLabels(info.t, info.lang, info.sandbox ? l("Sen (terminal)", "You (terminal)") : l("Tarayıcı", "Browser"))}
     />
   ),
   metrics: (net, t, info) => flowMetrics(net, info.from, t),
