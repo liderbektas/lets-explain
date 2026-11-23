@@ -189,8 +189,8 @@ export const undoLocal: Lesson = {
           "We cleaned up README.md, updated app.js and committed. But the message says \"gncellendi\". That commit is now part of the history.",
         ),
         l(
-          "Sahne artık commit grafiğini gösteriyor: her küp bir commit, en sağdaki yazım hatalı olan.",
-          "The scene now shows the commit graph: each cube is a commit, and the rightmost one has the typo.",
+          "Sahne artık commit grafiğini gösteriyor: her istasyon bir commit, en sağdaki yazım hatalı olan.",
+          "The scene now shows the commit graph: each station is a commit, and the rightmost one has the typo.",
         ),
       ],
     },
@@ -220,8 +220,8 @@ export const undoLocal: Lesson = {
           "Amend **replaces** the last commit: same parent, fixed message, new id. main now points at the new commit.",
         ),
         l(
-          "Eski commit soluk bir küp olarak duruyor. Silinmedi, sadece hiçbir branch onu göstermiyor. Böyle commit'leri reflog dersinde geri getireceğiz.",
-          "The old commit is still there as a faded cube. It is not deleted; no branch points at it any more. The reflog lesson shows how to bring such commits back.",
+          "Eski commit soluk bir istasyon olarak duruyor. Silinmedi, sadece hiçbir branch onu göstermiyor. Böyle commit'leri reflog dersinde geri getireceğiz.",
+          "The old commit is still there as a faded station. It is not deleted; no branch points at it any more. The reflog lesson shows how to bring such commits back.",
         ),
       ],
       practice: {

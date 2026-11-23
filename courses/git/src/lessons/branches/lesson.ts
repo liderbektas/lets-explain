@@ -65,8 +65,8 @@ export const branches: Lesson = {
       title: l("git switch -c: aç ve geç", "git switch -c: create and switch"),
       body: [
         l(
-          "Aynı commit'in üstünde artık iki bayrak var: `main` ve `login`. HEAD sekmesi `login`'e geçti, yani bundan sonraki commit'ler login'e gidecek.",
-          "There are now two flags on the same commit: `main` and `login`. The HEAD tab moved to `login`, so the next commits go to login.",
+          "Aynı commit'te artık iki tabela var: `main` ve `login`. HEAD tabelası `login`'e geçti, yani bundan sonraki commit'ler login'e gidecek.",
+          "There are now two signs at the same commit: `main` and `login`. The HEAD sign moved to `login`, so the next commits go to login.",
         ),
         l(
           "`-c` \"create\" demek: branch'i oluşturur ve hemen ona geçer. Sadece oluşturup geçmemek için `git branch login` yeter.",
@@ -234,8 +234,8 @@ export const branches: Lesson = {
       title: l("Güvenli silme: git branch -d", "Safe delete: git branch -d"),
       body: [
         l(
-          "Git silmeyi reddetti: \"The branch 'login' is not fully merged\". `login` bayrağı yerinde duruyor, commit'leri de.",
-          "Git refused: \"The branch 'login' is not fully merged\". The `login` flag is still there, and so are its commits.",
+          "Git silmeyi reddetti: \"The branch 'login' is not fully merged\". `login` tabelası yerinde duruyor, commit'leri de.",
+          "Git refused: \"The branch 'login' is not fully merged\". The `login` sign is still there, and so are its commits.",
         ),
         l(
           "Bir branch'i silmek commit'leri silmez, sadece ismi kaldırır. Ama isimsiz kalan commit'ler kaybolmuş sayılır. `-d` bu yüzden seni korur.",

@@ -1,92 +1,10 @@
-/* The Git course's drawings: the commit graph and the three areas. */
+/* The Git course's drawings beside the metro map: the three areas and shared text styles. */
 
 .graph-title {
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 800;
   fill: var(--ink);
-}
-
-.graph-edge {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 3;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.graph-edge.is-merge {
-  stroke-dasharray: 2 6;
-}
-
-.graph-edge.is-ghost {
-  stroke: var(--ink-3);
-  stroke-dasharray: 5 5;
-  stroke-width: 2;
-}
-
-.commit .iso polygon {
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-
-.commit.is-ghost .iso polygon {
-  stroke: var(--ink-3);
-  stroke-dasharray: 4 3;
-}
-
-.commit.is-ghost text {
-  fill: var(--ink-3);
-}
-
-.commit.is-lit .iso polygon {
-  stroke-width: 3;
-}
-
-.commit.is-lit {
-  filter: drop-shadow(0 0 6px rgba(255, 148, 102, 0.9));
-}
-
-.commit-id {
-  font-family: var(--font-mono);
-  font-weight: 800;
-  fill: var(--ink);
-}
-
-.commit-msg {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  fill: var(--ink-2);
-}
-
-.ref {
-  stroke: var(--ink);
-  stroke-width: 2;
-  fill: var(--card);
-}
-
-.ref-current {
-  fill: var(--tangerine);
-}
-
-.ref-branch {
-  fill: var(--card);
-}
-
-.ref-tag {
-  fill: var(--sun);
-}
-
-.ref-remote {
-  fill: var(--paper-2);
-  stroke-dasharray: 4 3;
-}
-
-.ref-head {
-  fill: var(--ink);
-  stroke: var(--ink);
-  stroke-width: 2;
 }
 
 .ref-text {
@@ -96,18 +14,15 @@
   fill: var(--ink);
 }
 
-.ref-head-text {
-  font-family: var(--font-display);
-  font-size: 11.5px;
-  font-weight: 800;
-  fill: var(--card);
-}
-
 /* Three areas */
 
 .area-tray {
   stroke: var(--ink);
   stroke-width: 2;
+}
+
+.area-shadow {
+  fill: var(--ink);
 }
 
 .area-title {
@@ -124,9 +39,154 @@
   fill: var(--ink-3);
 }
 
-.file-card rect.sheet {
+.area-icon path,
+.area-icon rect {
   stroke: var(--ink);
   stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* The working tree: a desk. */
+.desk-top {
+  fill: #f8e7cd;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.desk-edge {
+  fill: var(--peach-mid);
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.desk-grain {
+  fill: none;
+  stroke: #e9cfa8;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.desk-leg {
+  fill: var(--peach-deep);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* The staging area: a station platform. */
+.platform-top {
+  fill: var(--mint-soft);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.platform-face {
+  fill: var(--mint-mid);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.platform-edge {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 5;
+  stroke-dasharray: 10 6;
+  stroke-linecap: round;
+}
+
+.platform-paving {
+  fill: none;
+  stroke: #cdeedf;
+  stroke-width: 2;
+}
+
+/* The repository: a metro map. */
+.map-board {
+  fill: var(--lilac-soft);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.map-grid {
+  stroke: var(--card);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.map-line-outline,
+.map-line {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.map-line-outline {
+  stroke: var(--ink);
+  stroke-width: 11;
+}
+
+.map-line {
+  stroke: #ffd66b;
+  stroke-width: 7;
+}
+
+/* The track from the platform to the map, and the commit's train. */
+.rail-line {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 2;
+}
+
+.rail-sleeper {
+  stroke: var(--peach-deep);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.train-body {
+  fill: var(--tangerine);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.train-window {
+  fill: var(--sky-soft);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.train-wheel {
+  fill: var(--ink-2);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.train-sheet {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.train-text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.file-card .sheet {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.sheet-fold {
+  fill: var(--paper-2);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 .file-name {
@@ -175,31 +235,57 @@
   fill: var(--ink-3);
 }
 
-.iso-icon .iso polygon {
+/* The stash: a depot with crates on its shelves. */
+.depot-wall {
+  fill: var(--lilac-soft);
   stroke: var(--ink);
-  stroke-width: 1.6;
+  stroke-width: 2;
+}
+
+.depot-roof {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 2;
   stroke-linejoin: round;
 }
 
-.ref-stem {
+.depot-roof-stripe {
+  fill: var(--card);
+  opacity: 0.85;
+}
+
+.depot-roof-line {
+  fill: none;
   stroke: var(--ink);
   stroke-width: 2;
-  stroke-dasharray: 2 3;
+  stroke-linejoin: round;
 }
 
-.graph-edge.is-stub {
-  stroke: var(--ink-3);
-  stroke-dasharray: 3 5;
-  stroke-width: 2.5;
+.depot-sign {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.5;
 }
 
-/* A commit fades to a ghost after the ref that kept it has moved away. */
-.commit .iso polygon {
-  transition: fill 0.45s ease 0.6s, stroke 0.45s ease 0.6s;
+.depot-shelf {
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .commit .iso polygon {
-    transition: none;
-  }
+.crate {
+  fill: var(--peach);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.crate-slat {
+  stroke: var(--peach-deep);
+  stroke-width: 2;
+}
+
+.crate-label {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.2;
 }

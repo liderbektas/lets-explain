@@ -98,8 +98,8 @@ export const bisect: Lesson = {
       title: l("Git ortadaki commit'i açar", "Git checks out the middle commit"),
       body: [
         l(
-          "Git ortadaki commit'i, \"math sadeleşti\"yi açtı. HEAD artık bir branch'te değil, doğrudan o commit'te (detached). Parlayan küpler hâlâ aday olanlar.",
-          "Git checked out the middle commit, \"math sadeleşti\". HEAD is no longer on a branch but straight on that commit (detached). The glowing cubes are the remaining candidates.",
+          "Git ortadaki commit'i, \"math sadeleşti\"yi açtı. HEAD artık bir branch'te değil, doğrudan o commit'te (detached). Parlayan istasyonlar hâlâ aday olanlar.",
+          "Git checked out the middle commit, \"math sadeleşti\". HEAD is no longer on a branch but straight on that commit (detached). The glowing stations are the remaining candidates.",
         ),
         l(
           "Üstteki Test sayacı \"kaldı\" diyor: bu commit'te `math.js` hatalı.",

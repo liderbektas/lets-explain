@@ -54,8 +54,8 @@ export const workflows: Lesson = {
       title: l("Her iş kendi branch'inde", "Every piece of work on its own branch"),
       body: [
         l(
-          "Giriş ekranını yapacağız. main'de değil, ona özel bir branch'te: `git switch -c feature/login`. Turuncu bayrak artık bu branch'te, main yerinde duruyor.",
-          "We will build the login screen, not on main but on a branch of its own: `git switch -c feature/login`. The orange flag is now on that branch, and main stays where it was.",
+          "Giriş ekranını yapacağız. main'de değil, ona özel bir branch'te: `git switch -c feature/login`. Turuncu tabela artık bu branch'te, main yerinde duruyor.",
+          "We will build the login screen, not on main but on a branch of its own: `git switch -c feature/login`. The orange sign is now on that branch, and main stays where it was.",
         ),
         l(
           "Branch adında ne yaptığını söyle: `feature/login`, `fix/takvim-tarihi`, `docs/kurulum`. Ekipteki herkes listeye bakınca neyin üzerinde çalışıldığını anlar.",
@@ -155,8 +155,8 @@ export const workflows: Lesson = {
       title: l("main senin haberin olmadan ilerledi", "main moved on without you knowing"),
       body: [
         l(
-          "Sağda origin'in main'ine Bora'nın commit'i eklendi. Solda hiçbir şey değişmedi: senin main'in ve `origin/main` etiketin hâlâ eski yerde.",
-          "On the right, Bora's commit landed on origin's main. Nothing changed on the left: your main and your `origin/main` label are still in the old place.",
+          "Sağda origin'in main'ine Bora'nın commit'i eklendi. Solda hiçbir şey değişmedi: senin main'in ve `origin/main` tabelan hâlâ eski yerde.",
+          "On the right, Bora's commit landed on origin's main. Nothing changed on the left: your main and your `origin/main` sign are still in the old place.",
         ),
         l(
           "Senin PR'ın artık eski bir main'den başlıyor. Birleştirmeden önce onu güncel main'e taşımak iyi olur; böylece testler en son kodla çalışır.",
@@ -239,7 +239,7 @@ export const workflows: Lesson = {
           { cmd: "git switch main" },
           { cmd: "git pull", note: l("Birleşen PR'ı yerel main'e al.", "Bring the merged PR into your local main.") },
           { cmd: "git branch -d feature/login", note: l("Birleşmiş branch'i yerelde sil.", "Delete the merged branch locally.") },
-          { cmd: "git fetch --prune", note: l("Uzakta silinmiş branch'lerin etiketlerini de temizler.", "Also cleans up labels of branches deleted on the remote.") },
+          { cmd: "git fetch --prune", note: l("Uzakta silinmiş branch'lerin tabelalarını da temizler.", "Also cleans up signs of branches deleted on the remote.") },
         ],
       },
     },

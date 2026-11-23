@@ -264,16 +264,16 @@ export const collaboration: Lesson = {
           "Your teammates reviewed and approved the PR. GitHub's \"Merge\" button does what we did here: switch to main, merge feature, push.",
         ),
         l(
-          "İş bittiği için yerel `feature` branch'ini sildik (`git branch -d feature`). Commit'ler main'de duruyor; branch sadece bir etiketti.",
-          "With the work done, we deleted the local `feature` branch (`git branch -d feature`). The commits stay on main; the branch was only a label.",
+          "İş bittiği için yerel `feature` branch'ini sildik (`git branch -d feature`). Commit'ler main'de duruyor; branch sadece bir tabelaydı.",
+          "With the work done, we deleted the local `feature` branch (`git branch -d feature`). The commits stay on main; the branch was only a sign.",
         ),
       ],
       callouts: [
         {
           kind: "reality",
           text: l(
-            "GitHub'da merge'i düğmeyle yaparsan kendi bilgisayarında `git switch main` ve `git pull` ile main'i güncellemen gerekir. Uzaktaki branch'i GitHub'daki \"Delete branch\" düğmesi ya da `git push origin --delete feature` siler. Bu sahnede origin'deki feature etiketi bu yüzden duruyor.",
-            "If you merge with the button on GitHub, update main on your computer with `git switch main` and `git pull`. The remote branch is deleted with GitHub's \"Delete branch\" button or `git push origin --delete feature`; that is why the feature label is still on origin in this scene.",
+            "GitHub'da merge'i düğmeyle yaparsan kendi bilgisayarında `git switch main` ve `git pull` ile main'i güncellemen gerekir. Uzaktaki branch'i GitHub'daki \"Delete branch\" düğmesi ya da `git push origin --delete feature` siler. Bu sahnede origin'deki feature tabelası bu yüzden duruyor.",
+            "If you merge with the button on GitHub, update main on your computer with `git switch main` and `git pull`. The remote branch is deleted with GitHub's \"Delete branch\" button or `git push origin --delete feature`; that is why the feature sign is still on origin in this scene.",
           ),
         },
       ],

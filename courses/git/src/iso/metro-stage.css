@@ -1,0 +1,416 @@
+/* The Git course's commit graph as a metro map (MetroStage). */
+
+.metro {
+  --board: var(--lilac-soft);
+  --board-deep: var(--lilac-deep);
+}
+
+.metro.tone-sky {
+  --board: var(--sky-soft);
+  --board-deep: var(--sky-deep);
+}
+
+.metro-board {
+  fill: var(--board);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.metro-board-shadow {
+  fill: var(--ink);
+}
+
+.metro-track-outline,
+.metro-track,
+.metro-track-merge,
+.metro-stub {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.metro-track-outline {
+  stroke: var(--ink);
+}
+
+.metro-track-outline.is-ghost {
+  stroke: var(--ink-3);
+  stroke-dasharray: 6 6;
+}
+
+.metro-track-merge {
+  stroke: var(--card);
+  stroke-width: 3;
+  stroke-dasharray: 1 7;
+}
+
+.metro-stub {
+  stroke: var(--ink-3);
+  stroke-width: 3;
+  stroke-dasharray: 4 6;
+}
+
+.metro-shadow {
+  fill: rgba(43, 42, 51, 0.13);
+}
+
+.metro-side {
+  fill: var(--card);
+}
+
+.metro-side,
+.metro-band,
+.metro-top,
+.metro-ring {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.metro-ring {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.metro-station .metro-top,
+.metro-station .metro-band {
+  transition: fill 0.45s ease 0.6s, stroke 0.45s ease 0.6s;
+}
+
+.metro-station.is-ghost .metro-side,
+.metro-station.is-ghost .metro-band,
+.metro-station.is-ghost .metro-top {
+  stroke: var(--ink-3);
+  stroke-dasharray: 4 3;
+}
+
+.metro-station.is-ghost text {
+  fill: var(--ink-3);
+}
+
+.metro-station.is-lit {
+  filter: drop-shadow(0 0 7px rgba(255, 148, 102, 0.95));
+}
+
+.metro-station.is-lit .metro-top {
+  stroke-width: 3;
+}
+
+.metro-id {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.metro-caption {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  fill: var(--ink-2);
+  paint-order: stroke;
+  stroke: var(--board);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.metro-post {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.metro-foot {
+  fill: var(--ink-2);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.metro-board-ink {
+  fill: var(--ink);
+}
+
+.metro-sign {
+  stroke: var(--ink);
+  stroke-width: 2;
+  fill: var(--card);
+}
+
+.metro-sign-current {
+  fill: var(--tangerine);
+}
+
+.metro-sign-tag {
+  fill: var(--sun);
+}
+
+.metro-sign-remote {
+  fill: var(--paper-2);
+  stroke-dasharray: 4 3;
+}
+
+.metro-sign-text {
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.metro-head {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.metro-head-dot {
+  fill: var(--tangerine);
+}
+
+.metro-head-text {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  fill: var(--card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metro-station .metro-top,
+  .metro-station .metro-band {
+    transition: none;
+  }
+}
+
+.metro-grid {
+  stroke: var(--card);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.metro-time {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 800;
+  fill: var(--board-deep);
+}
+
+.metro-time-arrow {
+  fill: none;
+  stroke: var(--board-deep);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.metro-title-plate {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.metro-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.metro-tag-hole {
+  fill: var(--board);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+/* Plaques hung on stations. */
+.metro-plaque {
+  stroke: var(--ink);
+  stroke-width: 2;
+  fill: var(--card);
+}
+
+.metro-plaque.is-good {
+  fill: var(--mint);
+}
+
+.metro-plaque.is-bad {
+  fill: var(--coral);
+}
+
+.metro-plaque.is-reflog {
+  fill: var(--paper-2);
+  stroke-dasharray: 4 3;
+}
+
+.metro-plaque-text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.metro-plaque-text.is-reflog {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Revert: a badge on the new station and a dashed arc to the commit it undoes. */
+.metro-undo {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.metro-undo-mark {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.metro-undo-arc {
+  fill: none;
+  stroke: var(--coral-deep);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.metro-undo-arc.is-head {
+  stroke-dasharray: none;
+}
+
+.metro-undo-label {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: var(--coral-deep);
+  paint-order: stroke;
+  stroke: var(--board);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+/* A stopped merge or rebase: the station it will build is only an outline. */
+.metro-pending-track {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 8 8;
+}
+
+.metro-copy-arc {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 2.5;
+  stroke-dasharray: 5 5;
+  stroke-linecap: round;
+}
+
+.metro-pending-side,
+.metro-pending-top {
+  fill: var(--card);
+  fill-opacity: 0.92;
+  stroke: var(--ink-2);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.metro-warn {
+  fill: var(--sun);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.metro-warn.is-done {
+  fill: var(--mint);
+}
+
+.metro-warn-badge {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.metro-warn-badge.is-done {
+  fill: var(--card);
+}
+
+.metro-warn-bang {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.metro-warn-tick {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.metro-warn-head {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+.metro-warn-file {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: var(--ink);
+}
+
+/* Bisect: the bracket over the commits still in the running. */
+.bisect-bracket {
+  fill: none;
+  stroke: var(--tangerine-deep);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bisect-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  fill: var(--tangerine-deep);
+  paint-order: stroke;
+  stroke: var(--board);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+/* The link between your map and origin's: push one way, fetch the other. */
+.remote-link-rail {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.remote-link.is-lit .remote-link-rail {
+  stroke: var(--tangerine-deep);
+  stroke-width: 4;
+}
+
+.remote-link-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--ink-3);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.remote-link.is-lit .remote-link-label {
+  fill: var(--tangerine-deep);
+}

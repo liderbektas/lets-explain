@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Repo } from "../engine/git";
-import { layoutGraph } from "./GraphStage";
+import { layoutGraph } from "./layout";
 
 const scenes = import.meta.glob<{ scene?: { run: { states: Repo[] } } }>("../lessons/*/Scene.tsx", { eager: true });
 

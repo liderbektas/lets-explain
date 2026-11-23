@@ -12,7 +12,8 @@ import { useGame } from "@lets-explain/core/lib/storage";
 import { gitShell } from "../../engine/cli";
 import { describeGit } from "../../engine/describe";
 import { simulate, type GitAction, type GitEvent, type Repo } from "../../engine/git";
-import { GIT_STAGE } from "../../iso/GraphStage";
+import { GIT_STAGE } from "../../iso/layout";
+import "../../iso/git-stage.css";
 import { gitChanges } from "./gitChanges";
 
 /**
@@ -269,6 +270,9 @@ export function makeGitScene(config: GitSceneConfig): GitScene {
 }
 
 const l = (tr: string, en: string): L => ({ tr, en });
+
+/** The words of the time arrow in a metro map's corner. */
+export const timeWords = (t: (x: L) => string): [string, string] => [t(l("eski", "older")), t(l("yeni", "newer"))];
 const text = {
   thisStep: l("Bu adımda olanlar", "What happened in this step"),
   latest: l("Son olaylar (en yenisi üstte)", "Latest events (newest first)"),

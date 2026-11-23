@@ -31,7 +31,7 @@ export const scene = makeGitScene({
   start: START,
   steps,
   label: l("Solda senin bilgisayarındaki repo, sağda origin (GitHub)", "Your repository on the left, origin (GitHub) on the right"),
-  view: (repo, info) => <TwoRepos repo={repo} fresh={info.fresh} t={info.t} />,
+  view: (repo, info) => <TwoRepos repo={repo} fresh={info.fresh} t={info.t} last={info.last} />,
   metrics: (repo, t) => remoteMetrics(repo, t),
   // Free play starts from a fresh clone; each scenario brings its own state.
   sandbox: { start: () => START, scenarios },

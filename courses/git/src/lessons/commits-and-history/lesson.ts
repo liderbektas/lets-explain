@@ -28,8 +28,8 @@ export const commitsAndHistory: Lesson = {
       title: l("Bir commit'in içinde ne var?", "What is inside a commit?"),
       body: [
         l(
-          "Soldaki küp ilk commit. Sağdaki terminal, `git show` komutunun bu commit için yazdığı çıktı: senin bilgisayarında da aynen böyle görünür.",
-          "The cube on the left is the first commit. The terminal on the right is what `git show` prints for it; it looks just like this on your computer too.",
+          "Soldaki istasyon ilk commit. Sağdaki terminal, `git show` komutunun bu commit için yazdığı çıktı: senin bilgisayarında da aynen böyle görünür.",
+          "The station on the left is the first commit. The terminal on the right is what `git show` prints for it; it looks just like this on your computer too.",
         ),
         l(
           "Bir commit dört şey taşır: o anki **bütün dosyaların** tam hali, **yazar** ve **zaman**, bir **mesaj**, ve bir önceki commit'e bir bağlantı. İlk commit'in öncesi olmadığı için bu bağlantı yok.",
@@ -65,12 +65,12 @@ export const commitsAndHistory: Lesson = {
       title: l("Her commit bir öncekini gösterir", "Every commit points at the one before"),
       body: [
         l(
-          "`app.js`'i ekleyip ikinci commit'i attık. Terminalde `parent` satırı göründü: bu commit, ilk commit'in kimliğini taşıyor. Grafikte de iki küp bir çizgiyle bağlandı.",
-          "We added `app.js` and made a second commit. A `parent` line appeared in the terminal: this commit carries the first commit's id. In the graph, the two cubes are now joined by a line.",
+          "`app.js`'i ekleyip ikinci commit'i attık. Terminalde `parent` satırı göründü: bu commit, ilk commit'in kimliğini taşıyor. Grafikte de iki istasyon bir hatla bağlandı.",
+          "We added `app.js` and made a second commit. A `parent` line appeared in the terminal: this commit carries the first commit's id. In the graph, the two stations are now joined by a line.",
         ),
         l(
-          "Geçmiş, sondan başa doğru bu bağlantılar takip edilerek okunur. `main` etiketi her zaman en yeni commit'te durur ve yeni commit atınca oraya kayar.",
-          "History is read by following these links from the newest back to the start. The `main` label always sits on the newest commit and slides forward with every new one.",
+          "Geçmiş, sondan başa doğru bu bağlantılar takip edilerek okunur. `main` tabelası her zaman en yeni commit'te durur ve yeni commit atınca oraya kayar.",
+          "History is read by following these links from the newest back to the start. The `main` sign always sits at the newest commit and slides forward with every new one.",
         ),
       ],
       practice: {
@@ -165,8 +165,8 @@ export const commitsAndHistory: Lesson = {
       title: l("İçerik değişirse kimlik de değişir", "Change the content and the id changes"),
       body: [
         l(
-          "`git commit --amend -m \"app.js: sürüm 2\"` son commit'i yeni mesajla yeniden yazdı. Grafikte yeni bir küp var; eskisi soluk duruyor çünkü artık hiçbir branch onu göstermiyor.",
-          "`git commit --amend -m \"app.js: sürüm 2\"` rewrote the last commit with a new message. There is a new cube in the graph; the old one is faded because no branch points at it any more.",
+          "`git commit --amend -m \"app.js: sürüm 2\"` son commit'i yeni mesajla yeniden yazdı. Grafikte yeni bir istasyon var; eskisi soluk duruyor çünkü artık hiçbir branch onu göstermiyor.",
+          "`git commit --amend -m \"app.js: sürüm 2\"` rewrote the last commit with a new message. There is a new station in the graph; the old one is faded because no branch points at it any more.",
         ),
         l(
           "Bir commit asla \"düzenlenmez\": değişen her şey yeni bir commit demektir. Bu yüzden başkalarıyla paylaştığın commit'leri amend etme; onların elindeki kopyada eski kimlik kalır.",
@@ -247,8 +247,8 @@ export const commitsAndHistory: Lesson = {
           "Your turn. Below is a shop project and **4 scenarios** from real work: a typo in a commit message, a forgotten file, two jobs mixed together. **Type the commands yourself** in the terminal; the scene shows how the history changes and the card on the right shows the last commit.",
         ),
         l(
-          "`git log --oneline` ve `git show` ile geçmişe istediğin zaman bakabilirsin. Soluk küpler, amend ile yerine yenisi konmuş eski commit'ler. Az komutla bitirirsen 3 yıldız alırsın.",
-          "You can look at the history any time with `git log --oneline` and `git show`. Faded cubes are old commits replaced by an amend. Finish in few commands for 3 stars.",
+          "`git log --oneline` ve `git show` ile geçmişe istediğin zaman bakabilirsin. Soluk istasyonlar, amend ile yerine yenisi konmuş eski commit'ler. Az komutla bitirirsen 3 yıldız alırsın.",
+          "You can look at the history any time with `git log --oneline` and `git show`. Faded stations are old commits replaced by an amend. Finish in few commands for 3 stars.",
         ),
       ],
     },

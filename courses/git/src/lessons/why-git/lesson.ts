@@ -87,8 +87,8 @@ export const whyGit: Lesson = {
           "Git is a **version control system**. Instead of copying files, you save the project's current state as a [[commit]]. Every commit has a message, an author, a time and an id.",
         ),
         l(
-          "Sahnede ilk commit'i görüyorsun: \"İlk taslak\". Küpün üstündeki harfler ve rakamlar onun kısa kimliği. Üstündeki `main` etiketi branch'in adı; şimdilik \"ana çizgi\" diye düşün.",
-          "The scene shows the first commit: \"İlk taslak\". The letters and digits on the cube are its short id. The `main` label above it is the branch name; for now, think of it as \"the main line\".",
+          "Sahnede ilk commit'i görüyorsun: \"İlk taslak\". İstasyonun üstündeki harfler ve rakamlar onun kısa kimliği. Önündeki `main` tabelası branch'in adı; şimdilik \"ana çizgi\" diye düşün.",
+          "The scene shows the first commit: \"İlk taslak\". The letters and digits on the station are its short id. The `main` sign in front of it is the branch name; for now, think of it as \"the main line\".",
         ),
       ],
       practice: {
@@ -120,8 +120,8 @@ export const whyGit: Lesson = {
       title: l("Klasörde tek dosya, Git'te üç sürüm", "One file in the folder, three versions in Git"),
       body: [
         l(
-          "İki commit daha attık. Grafik büyüdü: her küp bir sürüm ve her biri bir öncekine bağlı. `main` etiketi her commit'te en yenisine kaydı.",
-          "We made two more commits. The graph grew: every cube is a version, each linked to the one before. The `main` label moved to the newest one with every commit.",
+          "İki commit daha attık. Grafik büyüdü: her istasyon bir sürüm ve her biri bir öncekine bağlı. `main` tabelası her commit'te en yenisine kaydı.",
+          "We made two more commits. The graph grew: every station is a version, each linked to the one before. The `main` sign moved to the newest one with every commit.",
         ),
         l(
           "Klasörde hâlâ tek bir `rapor.md` var: son hali. Kopya yığını yok, ama bütün geçmiş eksiksiz duruyor ve her sürümün ne zaman, kim tarafından, neden yapıldığı belli.",
@@ -161,8 +161,8 @@ export const whyGit: Lesson = {
           "With `git checkout HEAD~2` we went back two versions. The report in the folder says just \"Giriş\" again: the first draft.",
         ),
         l(
-          "Sonraki iki commit grafikte duruyor. Koyu [[head]] etiketi şu an nerede olduğunu gösteriyor: `main` branch'inde değil, doğrudan eski commit'te. Buna **detached HEAD** denir; bakmak için güvenli, ama burada yeni iş yapma.",
-          "The two later commits are still in the graph. The dark [[head]] label shows where you are now: not on the `main` branch, but straight on the old commit. This is called **detached HEAD**; it is safe for looking, but do not start new work here.",
+          "Sonraki iki commit grafikte duruyor. Koyu [[head]] tabelası şu an nerede olduğunu gösteriyor: `main` branch'inde değil, doğrudan eski commit'te. Buna **detached HEAD** denir; bakmak için güvenli, ama burada yeni iş yapma.",
+          "The two later commits are still in the graph. The dark [[head]] sign shows where you are now: not on the `main` branch, but straight on the old commit. This is called **detached HEAD**; it is safe for looking, but do not start new work here.",
         ),
       ],
       callouts: [
@@ -187,8 +187,8 @@ export const whyGit: Lesson = {
       title: l("En yeni hale geri dön", "Back to the latest"),
       body: [
         l(
-          "`git switch main` ile tekrar `main`'e döndük. Klasördeki rapor yine son halinde ve HEAD yeniden `main` etiketinin yanında.",
-          "With `git switch main` we are back on `main`. The report in the folder is the latest again, and HEAD sits next to the `main` label once more.",
+          "`git switch main` ile tekrar `main`'e döndük. Klasördeki rapor yine son halinde ve HEAD yeniden `main` tabelasının yanında.",
+          "With `git switch main` we are back on `main`. The report in the folder is the latest again, and HEAD sits next to the `main` sign once more.",
         ),
         l(
           "Kopya yığınında yapamadığın her şeyi artık yapabilirsin: hangi sürümün son olduğunu görmek, neyin değiştiğini görmek ve istediğin ana gidip dönmek.",

@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, simulate, status, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { scenarios, SHOP } from "./scenarios";
-import { commitsOf, graphLegend, WorkStrip } from "./parts";
+import { commitsOf, metroLegend, WorkStrip } from "./parts";
 
 export const SLUG = "branches";
 
@@ -63,8 +63,8 @@ export const scene = makeGitScene({
   label: l("Commit grafiği ve klasördeki commit edilmemiş değişiklikler", "The commit graph and the uncommitted changes in the folder"),
   view: (repo, info) => (
     <g>
-      <GraphStage repo={repo} highlight={info.fresh} box={{ x: 0, y: 0, w: 860, h: 384 }} />
-      <WorkStrip repo={repo} t={info.t} />
+      <MetroStage repo={repo} highlight={info.fresh} lanes={2} box={{ x: 0, y: 0, w: 860, h: 390 }} time={timeWords(info.t)} t={info.t} />
+      <WorkStrip repo={repo} t={info.t} y={398} />
     </g>
   ),
   metrics: (repo, t) => {
@@ -77,7 +77,7 @@ export const scene = makeGitScene({
       { label: t(l("Kaydedilmemiş", "Unsaved")), value: unsaved, tone: unsaved ? "warn" : "plain" },
     ];
   },
-  legend: (t) => graphLegend(t, { ghost: true }),
+  legend: (t) => metroLegend(t),
   // Free play starts from the shop on main; each scenario brings its own state.
   sandbox: { start: () => SHOP, scenarios },
   extraChanges: (step) =>

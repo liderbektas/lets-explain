@@ -53,7 +53,7 @@ export const merging: Lesson = {
         ),
         options: [
           l("İki ebeveynli yeni bir merge commit oluşturur", "Makes a new merge commit with two parents"),
-          l("main bayrağını feature'ın commit'ine kaydırır, yeni commit yok", "Slides the main flag onto feature's commit, with no new commit"),
+          l("main tabelasını feature'ın commit'ine kaydırır, yeni commit yok", "Slides the main sign onto feature's commit, with no new commit"),
           l("feature'ın commit'lerini main'e kopyalar", "Copies feature's commits onto main"),
         ],
         answer: 1,
@@ -62,11 +62,11 @@ export const merging: Lesson = {
           "There is a straight road from main to feature. Git just slides main forward; this is a **fast-forward**. No new commit, no copies.",
         ),
       },
-      title: l("Fast-forward: bayrağı ileri kaydır", "Fast-forward: slide the flag forward"),
+      title: l("Fast-forward: tabelayı ileri kaydır", "Fast-forward: slide the sign forward"),
       body: [
         l(
-          "`main` bayrağı iki commit ileri kaydı ve artık `feature` ile aynı commit'i gösteriyor. Commit sayısı değişmedi.",
-          "The `main` flag slid two commits forward and now points at the same commit as `feature`. The number of commits did not change.",
+          "`main` tabelası iki commit ileri kaydı ve artık `feature` ile aynı commit'i gösteriyor. Commit sayısı değişmedi.",
+          "The `main` sign slid two commits forward and now points at the same commit as `feature`. The number of commits did not change.",
         ),
         l(
           "Git çıktısında `Fast-forward` yazar. Geçmiş düz bir çizgi olarak kalır; sanki her şey baştan main'de yapılmış gibi.",
@@ -299,7 +299,7 @@ export const merging: Lesson = {
   ],
   recap: [
     l("Merge her zaman bulunduğun branch'e yapılır: `git switch main`, sonra `git merge feature`.", "A merge always goes into the branch you are on: `git switch main`, then `git merge feature`."),
-    l("Bulunduğun branch ilerlemediyse Git fast-forward yapar: bayrak kayar, yeni commit oluşmaz.", "If your branch has not moved, Git fast-forwards: the flag slides, no new commit."),
+    l("Bulunduğun branch ilerlemediyse Git fast-forward yapar: tabela kayar, yeni commit oluşmaz.", "If your branch has not moved, Git fast-forwards: the sign slides, no new commit."),
     l("İki taraf da ilerlediyse iki ebeveynli bir merge commit oluşur.", "If both sides moved, a two-parent merge commit appears."),
     l("Git, iki ucu ve ortak atalarını (merge base) karşılaştırarak birleştirir.", "Git joins them by comparing both tips with their common ancestor (the merge base)."),
     l("`--no-ff` her zaman merge commit atar; `--ff-only` düz ilerleme değilse reddeder.", "`--no-ff` always makes a merge commit; `--ff-only` refuses unless it is a straight move."),

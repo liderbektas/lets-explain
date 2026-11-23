@@ -32,8 +32,8 @@ export const historyCleanup: Lesson = {
           "We worked on the login and password feature. The work is done, but the history is messy: a \"typo\" fix, a forgotten \"debug log\", a half-done commit called \"wip\", and a typo in the last commit's message (\"kontorlü\").",
         ),
         l(
-          "Kesik çizgili `origin/main` etiketi, sunucuda zaten olan son commit'i gösteriyor. Üstündeki beş commit **sadece bizim bilgisayarımızda**. Henüz kimse onları görmedi, o yüzden düzeltmekte özgürüz.",
-          "The dashed `origin/main` label marks the last commit already on the server. The five commits above it are **only on our machine**. Nobody has seen them yet, so we are free to fix them.",
+          "Kesik çizgili `origin/main` tabelası, sunucuda zaten olan son commit'i gösteriyor. Üstündeki beş commit **sadece bizim bilgisayarımızda**. Henüz kimse onları görmedi, o yüzden düzeltmekte özgürüz.",
+          "The dashed `origin/main` sign marks the last commit already on the server. The five commits above it are **only on our machine**. Nobody has seen them yet, so we are free to fix them.",
         ),
       ],
       callouts: [

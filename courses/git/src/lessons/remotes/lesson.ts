@@ -36,8 +36,8 @@ export const remotes: Lesson = {
           "The two graphs match: clone downloads not just the latest files but **every commit**. Now you can browse history, commit and branch without the internet.",
         ),
         l(
-          "Soldaki kesik çizgili `origin/main` etiketine dikkat: bu, senin bilgisayarının \"origin'deki main en son buradaydı\" notu.",
-          "Note the dashed `origin/main` label on the left: it is your computer's note that \"main on origin was here last time I looked\".",
+          "Soldaki kesik çizgili `origin/main` tabelasına dikkat: bu, senin bilgisayarının \"origin'deki main en son buradaydı\" notu.",
+          "Note the dashed `origin/main` sign on the left: it is your computer's note that \"main on origin was here last time I looked\".",
         ),
       ],
       practice: {
@@ -249,7 +249,7 @@ export const remotes: Lesson = {
       title: l("git push -u: bir kez söyle, sonra hatırlasın", "git push -u: say it once, then it remembers"),
       body: [
         l(
-          "`git push -u origin feature` branch'i origin'e gönderdi ve iki branch'i birbirine bağladı. Sağda feature göründü, solda da `origin/feature` etiketi.",
+          "`git push -u origin feature` branch'i origin'e gönderdi ve iki branch'i birbirine bağladı. Sağda feature göründü, solda da `origin/feature` tabelası.",
           "`git push -u origin feature` sent the branch to origin and linked the two. feature appears on the right, and `origin/feature` on the left.",
         ),
         l(

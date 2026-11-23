@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, headId, reachable, resolve, short, simulate, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { commitsOf, graphLegend } from "../branches/parts";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { commitsOf, metroLegend } from "../branches/parts";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { BASE, scenarios } from "./scenarios";
 
 export const SLUG = "refs-and-head";
@@ -63,7 +63,7 @@ export const scene = makeGitScene({
   view: (repo, info) => {
     // Step 3 points at HEAD~2 and main^ so the relative names have something to show.
     const marks = info.step === 3 ? new Set([resolve(repo, "HEAD~2")!, resolve(repo, "main^")!]) : info.fresh;
-    return <GraphStage repo={repo} highlight={marks} />;
+    return <MetroStage repo={repo} highlight={marks} lanes={2} time={timeWords(info.t)} t={info.t} />;
   },
   metrics: (repo, t) => {
     const branch = currentBranch(repo);
@@ -75,7 +75,7 @@ export const scene = makeGitScene({
       { label: t(l("Branch'siz commit", "Commits on no branch")), value: ghosts, tone: ghosts ? "danger" : "plain" },
     ];
   },
-  legend: (t) => graphLegend(t, { ghost: true }),
+  legend: (t) => metroLegend(t),
   // Free play starts from four commits on main; each scenario brings its own state.
   sandbox: { start: () => BASE, scenarios },
   extraChanges: (step) =>

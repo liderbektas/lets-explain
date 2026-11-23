@@ -1,7 +1,8 @@
-import { l } from "@lets-explain/core/i18n";
+import { l, type L } from "@lets-explain/core/i18n";
 import { createRepo, currentBranch, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { placeIn } from "../remotes/TwoRepos";
+import type { GitEvent } from "../../engine/git";
+import { MetroStage } from "../../iso/MetroStage";
+import { Link, placeIn } from "../remotes/TwoRepos";
 import { makeGitScene } from "../shared/GitScene";
 import { SANDBOX, scenarios, START } from "./scenarios";
 
@@ -52,16 +53,16 @@ export function remoteView(repo: Repo): Repo {
 }
 
 /** Both sides: your clone on the left, the shared repo on GitHub on the right. */
-function TwoSides({ repo, fresh, you, origin }: { repo: Repo; fresh: Set<string>; you: string; origin: string }) {
+function TwoSides({ repo, fresh, you, origin, last, t }: { repo: Repo; fresh: Set<string>; you: string; origin: string; last: GitEvent[]; t: (x: L) => string }) {
   const remote = remoteView(repo);
   const mine = { x: 0, y: 0, w: 450, h: 470 };
-  const theirs = { x: 454, y: 0, w: 406, h: 470 };
+  const theirs = { x: 450, y: 0, w: 410, h: 470 };
   return (
     <g>
-      {/* No ghosts or messages here: two graphs share the stage, and the lesson is about where commits are. */}
-      <GraphStage repo={repo} box={mine} highlight={fresh} title={you} showGhosts={false} messages={false} arrivals={placeIn(remote, theirs, { showGhosts: false, messages: false })} />
-      <line x1={452} y1={24} x2={452} y2={446} stroke="var(--line)" strokeWidth={2} strokeDasharray="6 6" />
-      <GraphStage repo={remote} box={theirs} highlight={fresh} title={origin} hideHead showGhosts={false} messages={false} arrivals={placeIn(repo, mine, { showGhosts: false, messages: false })} />
+      {/* No ghosts or messages here: two maps share the stage, and the lesson is about where commits are. */}
+      <MetroStage repo={repo} box={mine} highlight={fresh} title={you} showGhosts={false} messages={false} lanes={2} arrivals={placeIn(remote, theirs, { showGhosts: false, messages: false, lanes: 2 })} t={t} />
+      <MetroStage repo={remote} box={theirs} tone="sky" highlight={fresh} title={origin} hideHead showGhosts={false} messages={false} lanes={2} arrivals={placeIn(repo, mine, { showGhosts: false, messages: false, lanes: 2 })} t={t} />
+      <Link x={450} y={232} last={last} />
     </g>
   );
 }
@@ -72,7 +73,7 @@ export const scene = makeGitScene({
   steps,
   label: l("Ekip çalışma düzeni: yerel repo ve GitHub'daki origin yan yana", "A team workflow: your local repo next to origin on GitHub"),
   view: (repo, info) => (
-    <TwoSides repo={repo} fresh={info.fresh} you={info.t(l("Senin bilgisayarın", "Your computer"))} origin={info.t(l("origin (GitHub)", "origin (GitHub)"))} />
+    <TwoSides repo={repo} fresh={info.fresh} you={info.t(l("Senin bilgisayarın", "Your computer"))} origin={info.t(l("origin (GitHub)", "origin (GitHub)"))} last={info.last} t={info.t} />
   ),
   metrics: (repo, t) => {
     const branch = currentBranch(repo);

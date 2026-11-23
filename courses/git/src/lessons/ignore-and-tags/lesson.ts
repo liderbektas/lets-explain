@@ -258,8 +258,8 @@ export const ignoreAndTags: Lesson = {
       title: l("Tag: bir commit'e kalıcı isim", "A tag: a permanent name for a commit"),
       body: [
         l(
-          "Bu sürümü kullanıcılara verdik ve ona `v1.0` diyoruz. `git tag v1.0` şu anki commit'e bu adı yapıştırdı: grafikte sarı etiket.",
-          "We shipped this version to users and call it `v1.0`. `git tag v1.0` stuck that name on the current commit: the yellow label in the graph.",
+          "Bu sürümü kullanıcılara verdik ve ona `v1.0` diyoruz. `git tag v1.0` şu anki commit'e bu adı yapıştırdı: grafikte sarı plaka.",
+          "We shipped this version to users and call it `v1.0`. `git tag v1.0` stuck that name on the current commit: the yellow plaque in the graph.",
         ),
         l(
           "Artık \"v1.0'daki kod\" demek için commit kimliğini hatırlamak gerekmez. `git checkout v1.0` ile o sürüme dönebilir, `git diff v1.0` ile o günden beri neyin değiştiğini görebilirsin.",
@@ -342,8 +342,8 @@ export const ignoreAndTags: Lesson = {
           "Your turn. Below are **5 scenarios** from real work: a secret key, `node_modules`, a log committed by mistake, and two release tags. **Type the commands yourself** in the terminal.",
         ),
         l(
-          "`.gitignore`'u `echo \"kural\" > .gitignore` ile yazabilir, `>>` ile satır ekleyebilir ya da `nano .gitignore` ile açabilirsin. `git status` neyin yok sayıldığını, `git log --oneline` tag'leri gösterir. Repo panelindeki sarı etiketler de tag'ler.",
-          "You can write `.gitignore` with `echo \"rule\" > .gitignore`, add lines with `>>`, or open it with `nano .gitignore`. `git status` shows what is ignored, `git log --oneline` shows the tags. The yellow labels in the repo panel are tags too.",
+          "`.gitignore`'u `echo \"kural\" > .gitignore` ile yazabilir, `>>` ile satır ekleyebilir ya da `nano .gitignore` ile açabilirsin. `git status` neyin yok sayıldığını, `git log --oneline` tag'leri gösterir. Repo haritasındaki sarı plakalar da tag'ler.",
+          "You can write `.gitignore` with `echo \"rule\" > .gitignore`, add lines with `>>`, or open it with `nano .gitignore`. `git status` shows what is ignored, `git log --oneline` shows the tags. The yellow plaques on the repo map are tags too.",
         ),
       ],
     },

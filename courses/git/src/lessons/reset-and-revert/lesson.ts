@@ -90,8 +90,8 @@ export const resetAndRevert: Lesson = {
           "We fixed app.js, added it and committed again as \"Deneme, düzgün\". The new commit sits where the bad one was, on the same parent.",
         ),
         l(
-          "Hatalı commit hâlâ soluk bir küp olarak duruyor. Git hiçbir commit'i hemen silmez; ama hiçbir branch'te olmadığı için `git log`'da artık görünmez.",
-          "The bad commit is still a faded cube. Git never deletes a commit right away, but with no branch on it, it no longer shows up in `git log`.",
+          "Hatalı commit hâlâ soluk bir istasyon olarak duruyor. Git hiçbir commit'i hemen silmez; ama hiçbir branch'te olmadığı için `git log`'da artık görünmez.",
+          "The bad commit is still a faded station. Git never deletes a commit right away, but with no branch on it, it no longer shows up in `git log`.",
         ),
       ],
     },
@@ -147,8 +147,8 @@ export const resetAndRevert: Lesson = {
           "`--hard` made all three areas match that commit: the branch, staging and the folder. The folder is clean; app.js is back to the last commit.",
         ),
         l(
-          "Commit'lenmiş işler soluk küpler olarak duruyor ve reflog ile geri getirilebilir. Ama klasördeki **commit'lenmemiş** değişiklik gitti. `--hard`'dan önce iki kez düşün.",
-          "Committed work survives as faded cubes and can come back through the reflog. But the **uncommitted** change in the folder is gone. Think twice before `--hard`.",
+          "Commit'lenmiş işler soluk istasyonlar olarak duruyor ve reflog ile geri getirilebilir. Ama klasördeki **commit'lenmemiş** değişiklik gitti. `--hard`'dan önce iki kez düşün.",
+          "Committed work survives as faded stations and can come back through the reflog. But the **uncommitted** change in the folder is gone. Think twice before `--hard`.",
         ),
       ],
       callouts: [

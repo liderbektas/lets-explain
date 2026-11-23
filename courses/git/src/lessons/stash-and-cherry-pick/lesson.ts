@@ -98,8 +98,8 @@ export const stashAndCherryPick: Lesson = {
       title: l("git stash: yarım işi çekmeceye kaldır", "git stash: put the half-done work in a drawer"),
       body: [
         l(
-          "`git stash` yarım işi aldı ve sağdaki Stash kutusuna `stash@{0}` olarak koydu. Klasör temiz: app.js son commit'teki haline döndü.",
-          "`git stash` took the half-done work and put it in the Stash box on the right as `stash@{0}`. The folder is clean: app.js is back to the last commit.",
+          "`git stash` yarım işi aldı ve sağdaki Stash deposuna `stash@{0}` olarak koydu. Klasör temiz: app.js son commit'teki haline döndü.",
+          "`git stash` took the half-done work and put it in the Stash depot on the right as `stash@{0}`. The folder is clean: app.js is back to the last commit.",
         ),
         l(
           "Grafikte yeni bir commit yok. Stash, branch'lerin dışında duran ayrı bir rafta saklanır.",
@@ -157,8 +157,8 @@ export const stashAndCherryPick: Lesson = {
       title: l("git stash pop: kaldığın yerden devam", "git stash pop: pick up where you left off"),
       body: [
         l(
-          "`git switch feature` ve `git stash pop`. Yarım iş klasöre geri geldi, app.js yine \"filtre (yarım)\" halinde. Stash kutusu boşaldı.",
-          "`git switch feature` and `git stash pop`. The half-done work is back in the folder; app.js is \"filter (half done)\" again. The Stash box is empty.",
+          "`git switch feature` ve `git stash pop`. Yarım iş klasöre geri geldi, app.js yine \"filtre (yarım)\" halinde. Stash deposu boşaldı.",
+          "`git switch feature` and `git stash pop`. The half-done work is back in the folder; app.js is \"filter (half done)\" again. The Stash depot is empty.",
         ),
       ],
       practice: {

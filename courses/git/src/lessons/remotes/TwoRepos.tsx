@@ -1,12 +1,14 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import type { Metric } from "@lets-explain/core/components/SceneFrame";
-import { aheadBehind, BORA, createRepo, currentBranch, headId, reachable, short, type Repo } from "../../engine/git";
-import { GraphStage, graphGeometry } from "../../iso/GraphStage";
+import { aheadBehind, BORA, createRepo, currentBranch, headId, reachable, short, type GitEvent, type Repo } from "../../engine/git";
+import { metroGeometry, MetroStage } from "../../iso/MetroStage";
 
 /**
- * Your repository and origin side by side. origin is drawn as its own small repo built
- * from `repo.remote`: its branches, its commits, no HEAD. Commits that a force-push left
- * behind on origin show as ghosts.
+ * Your repository and origin side by side, each on its own metro map. origin is drawn as its
+ * own small repo built from `repo.remote`: its branches, its commits, no HEAD. Commits that a
+ * force-push left behind on origin show as ghosts. Between the maps runs the link both
+ * directions use: push carries commits to origin, fetch brings them back, and a commit that
+ * crosses travels from one map to the other.
  */
 
 /**
@@ -53,25 +55,52 @@ const text = {
 };
 
 /** Where each side draws a commit, so pushed and fetched commits travel from one repo to the other. */
-export function placeIn(repo: Repo | null, box: { x: number; y: number; w: number; h: number }, opts: { showGhosts?: boolean; messages?: boolean } = {}) {
+export function placeIn(repo: Repo | null, box: { x: number; y: number; w: number; h: number }, opts: { showGhosts?: boolean; messages?: boolean; lanes?: number } = {}) {
   if (!repo) return () => undefined;
-  const g = graphGeometry(repo, box, opts);
+  const g = metroGeometry(repo, box, opts);
   return (id: string) => (g.layout.pos.has(id) ? g.at(id) : undefined);
 }
 
-const LOCAL_BOX = { x: 0, y: 0, w: 440, h: 470 };
-const ORIGIN_BOX = { x: 452, y: 0, w: 396, h: 470 };
+const LOCAL_BOX = { x: 0, y: 0, w: 446, h: 470 };
+const ORIGIN_BOX = { x: 446, y: 0, w: 414, h: 470 };
 
-export function TwoRepos({ repo, fresh, t }: { repo: Repo; fresh: Set<string>; t: (x: L) => string }) {
+export function TwoRepos({ repo, fresh, t, last }: { repo: Repo; fresh: Set<string>; t: (x: L) => string; last: GitEvent[] }) {
   const originRepo = originView(repo);
   const local = recent(repo);
   const origin = originRepo && recent(originRepo, 3, true);
   return (
     <g>
-      <rect x={452} y={14} width={396} height={442} rx={22} className="area-tray" style={{ fill: "var(--lilac-soft)", opacity: 0.6 }} />
-      <line x1={444} x2={444} y1={30} y2={440} stroke="var(--ink)" strokeWidth={2} strokeDasharray="6 6" opacity={0.35} />
-      <GraphStage repo={local} box={LOCAL_BOX} highlight={fresh} title={t(text.local)} showGhosts={false} arrivals={placeIn(origin, ORIGIN_BOX)} />
-      {origin && <GraphStage repo={origin} box={ORIGIN_BOX} highlight={fresh} hideHead title={t(text.origin)} arrivals={placeIn(local, LOCAL_BOX, { showGhosts: false })} />}
+      <MetroStage repo={local} box={LOCAL_BOX} highlight={fresh} title={t(text.local)} showGhosts={false} lanes={2} arrivals={placeIn(origin, ORIGIN_BOX, { lanes: 2 })} t={t} />
+      {origin && <MetroStage repo={origin} box={ORIGIN_BOX} tone="sky" highlight={fresh} hideHead lanes={2} title={t(text.origin)} arrivals={placeIn(local, LOCAL_BOX, { showGhosts: false, lanes: 2 })} t={t} />}
+      {origin && <Link x={LOCAL_BOX.x + LOCAL_BOX.w} y={232} last={last} />}
+    </g>
+  );
+}
+
+/**
+ * The link between the two maps: push carries commits to origin, fetch (and pull, which
+ * starts with a fetch) brings them over. The direction the last command used lights up.
+ */
+export function Link({ x, y, last }: { x: number; y: number; last: GitEvent[] }) {
+  const pushed = last.some((e) => e.type === "pushed");
+  const fetched = last.some((e) => e.type === "fetched");
+  const lane = (dy: number, dir: 1 | -1, lit: boolean, label: string) => {
+    const x1 = x - 26 * dir;
+    const x2 = x + 26 * dir;
+    return (
+      <g className={`remote-link ${lit ? "is-lit" : ""}`}>
+        <path d={`M${x1} ${y + dy} L${x2} ${y + dy}`} className="remote-link-rail" />
+        <path d={`M${x2 - 8 * dir} ${y + dy - 6} L${x2} ${y + dy} L${x2 - 8 * dir} ${y + dy + 6}`} className="remote-link-rail" />
+        <text x={x} y={y + dy + (dy < 0 ? -10 : 22)} textAnchor="middle" className="remote-link-label">
+          {label}
+        </text>
+      </g>
+    );
+  };
+  return (
+    <g>
+      {lane(-10, 1, pushed, "push")}
+      {lane(10, -1, fetched, "fetch")}
     </g>
   );
 }

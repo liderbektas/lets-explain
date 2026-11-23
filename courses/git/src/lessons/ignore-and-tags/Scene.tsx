@@ -1,8 +1,8 @@
 import { l, type L } from "@lets-explain/core/i18n";
-import { ADA, createRepo, firstParents, headId, simulate, status, type GitAction, type Repo } from "../../engine/git";
+import { ADA, createRepo, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { AreasStage, type AreaFlow, type AreasLabels } from "../../iso/AreasStage";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { scenarios } from "./scenarios";
 
 export const SLUG = "ignore-and-tags";
@@ -74,36 +74,6 @@ function flowOf(last: { type: string }[]): AreaFlow {
   return null;
 }
 
-/**
- * Tags drawn next to the repo tray's short history, so the try-it step shows them without
- * switching to the graph. Positions follow AreasStage's default 860×470 layout.
- */
-function TagOverlay({ repo }: { repo: Repo }) {
-  const gap = 84;
-  const trayW = (860 - 24 - gap * 2) / 3;
-  const x = 12 + 2 * (trayW + gap) + trayW - 12;
-  const history = firstParents(repo, headId(repo)).slice(0, 3);
-  return (
-    <g>
-      {history.map((id, i) => {
-        const names = Object.entries(repo.tags).filter(([, at]) => at === id).map(([n]) => n);
-        if (!names.length) return null;
-        const text = names.join(", ");
-        const w = Math.round(text.length * 7 + 18);
-        const y = 20 + 430 - 86 + 8 + i * 24;
-        return (
-          <g key={id} transform={`translate(${x - w} ${y - 9})`}>
-            <rect width={w} height={18} rx={9} style={{ fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: 1.5 }} />
-            <text x={w / 2} y={13} textAnchor="middle" className="file-badge">
-              {text}
-            </text>
-          </g>
-        );
-      })}
-    </g>
-  );
-}
-
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -111,12 +81,10 @@ export const scene = makeGitScene({
   label: l(".gitignore ile yok sayılan dosyalar ve sürüm tag'leri", "Files ignored with .gitignore, and release tags"),
   view: (repo, info) =>
     GRAPH_STEPS.has(info.step) && !info.sandbox ? (
-      <GraphStage repo={repo} highlight={info.fresh} />
+      <MetroStage repo={repo} highlight={info.fresh} lanes={1} time={timeWords(info.t)} t={info.t} />
     ) : (
-      <g>
-        <AreasStage repo={repo} labels={labels(info.t)} flow={flowOf(info.last)} last={info.last} />
-        {info.sandbox && <TagOverlay repo={repo} />}
-      </g>
+      // The repo's map shows tags as plaques on its stations, so the try-it step needs no graph.
+      <AreasStage repo={repo} labels={labels(info.t)} flow={flowOf(info.last)} last={info.last} />
     ),
   metrics: (repo, t) => {
     const st = status(repo);

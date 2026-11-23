@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, headId, mergeBase, short, simulate, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { commitsOf, graphLegend } from "../branches/parts";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { commitsOf, metroLegend } from "../branches/parts";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { scenarios, TWO_BRANCHES } from "./scenarios";
 
 export const SLUG = "merging";
@@ -81,7 +81,7 @@ export const scene = makeGitScene({
       const [ours, theirs] = merge.parents as [string, string];
       marks = new Set([ours, theirs, mergeBase(repo, ours, theirs)!]);
     }
-    return <GraphStage repo={repo} highlight={marks} />;
+    return <MetroStage repo={repo} highlight={marks} lanes={2} time={timeWords(info.t)} t={info.t} />;
   },
   metrics: (repo, t) => {
     const merges = Object.values(repo.commits).filter((c) => c.parents.length > 1).length;
@@ -92,7 +92,7 @@ export const scene = makeGitScene({
       { label: t(l("Merge commit", "Merge commits")), value: merges },
     ];
   },
-  legend: (t) => graphLegend(t, { merge: true }),
+  legend: (t) => metroLegend(t, { merge: true, ghost: false }),
   // Free play starts with login (can fast-forward) and menu (cannot); each scenario brings its own state.
   sandbox: { start: () => TWO_BRANCHES, scenarios },
   extraChanges: (step) =>

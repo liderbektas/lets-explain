@@ -1,7 +1,7 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import type { GitAction } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { FilePanel, type FilePanelLabels } from "./FilePanel";
 import { LOG, START, TITLE } from "./repo";
 import { scenarios } from "./scenarios";
@@ -43,7 +43,7 @@ export const scene = makeGitScene({
   label: l("Commit grafiği ve conflict'li dosyalar", "The commit graph and the conflicted files"),
   view: (repo, info) => (
     <g>
-      <GraphStage repo={repo} box={{ x: 0, y: 0, w: 500, h: 470 }} highlight={info.fresh} showGhosts={false} />
+      <MetroStage repo={repo} box={{ x: 0, y: 0, w: 500, h: 470 }} highlight={info.fresh} showGhosts={false} lanes={2} time={timeWords(info.t)} t={info.t} />
       <FilePanel repo={repo} paths={[TITLE, LOG]} labels={panelLabels(info.t)} box={{ x: 506, y: 22, w: 336, h: 430 }} />
     </g>
   ),

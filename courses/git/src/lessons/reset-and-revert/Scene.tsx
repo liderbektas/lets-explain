@@ -1,7 +1,7 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, firstParents, headId, reachable, simulate, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { scenarios } from "./scenarios";
 import { WherePanel } from "./WherePanel";
 
@@ -50,7 +50,7 @@ export const scene = makeGitScene({
   label: l("reset branch'i geri taşır, revert geri alan yeni bir commit ekler", "reset moves the branch back; revert adds a new undo commit"),
   view: (repo, info) => (
     <g>
-      <GraphStage repo={repo} highlight={info.fresh} box={{ x: 0, y: 0, w: 860, h: 398 }} />
+      <MetroStage repo={repo} highlight={info.fresh} lanes={3} box={{ x: 0, y: 0, w: 860, h: 398 }} time={timeWords(info.t)} t={info.t} />
       <WherePanel
         repo={repo}
         y={398}

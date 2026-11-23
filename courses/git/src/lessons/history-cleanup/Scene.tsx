@@ -12,8 +12,8 @@ import {
   type PlanItem,
   type Repo,
 } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { scenarios, START } from "./scenarios";
 import "./todo.css";
 
@@ -147,7 +147,7 @@ export const scene = makeGitScene({
       action?.type === "rebaseInteractive" ? action.plan : todo(repo).map((id) => ({ id, action: "pick" as const }));
     return (
       <g>
-        <GraphStage repo={withRecentGhosts(repo)} box={{ x: 0, y: 0, w: 552, h: 470 }} highlight={info.fresh} />
+        <MetroStage repo={withRecentGhosts(repo)} box={{ x: 0, y: 0, w: 552, h: 470 }} highlight={info.fresh} time={timeWords(info.t)} t={info.t} />
         <TodoPanel repo={repo} items={items} t={info.t} />
       </g>
     );

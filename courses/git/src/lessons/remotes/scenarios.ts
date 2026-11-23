@@ -83,7 +83,7 @@ export const scenarios: GitScenario[] = [
     start: BORA_PUSHED,
     hints: [
       l("Uzaktakini indiren ama hiçbir şeyi birleştirmeyen bir komut var.", "There is a command that downloads without combining anything."),
-      l("`git fetch` sadece `origin/...` etiketlerini taşır. `git pull` ise birleştirir de.", "`git fetch` moves only the `origin/...` labels. `git pull` also combines."),
+      l("`git fetch` sadece `origin/...` tabelalarını taşır. `git pull` ise birleştirir de.", "`git fetch` moves only the `origin/...` signs. `git pull` also combines."),
       l("`git fetch` (sonra istersen `git log --oneline origin/main`)", "`git fetch` (then, if you like, `git log --oneline origin/main`)"),
     ],
     par: 1,

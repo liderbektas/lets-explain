@@ -1,7 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, firstParents, headId, short, simulate, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { lineSwatch, stationSwatch } from "../branches/parts";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { CommitCard, type CardMode } from "./CommitCard";
 import { scenarios, SHOP } from "./scenarios";
 
@@ -48,7 +49,7 @@ export const scene = makeGitScene({
     const glow = info.step === 3 && !info.sandbox ? new Set(firstParents(repo, headId(repo)).slice(2, 3)) : info.fresh;
     return (
       <g>
-        <GraphStage repo={repo} highlight={glow} box={{ x: 0, y: 0, w: 520, h: 470 }} />
+        <MetroStage repo={repo} highlight={glow} lanes={2} box={{ x: 0, y: 0, w: 520, h: 470 }} time={timeWords(info.t)} t={info.t} />
         <CommitCard repo={repo} mode={mode} x={528} y={24} w={318} h={420} />
       </g>
     );
@@ -66,15 +67,15 @@ export const scene = makeGitScene({
   },
   legend: (t) => [
     {
-      swatch: <rect x={-7} y={-7} width={14} height={12} rx={2} className="ink" style={{ fill: "var(--sun)" }} />,
-      label: t(l("commit (üstünde kısa kimlik)", "commit (short id on top)")),
+      swatch: stationSwatch(),
+      label: t(l("istasyon = commit (üstünde kısa kimlik)", "station = commit (short id on top)")),
     },
     {
-      swatch: <path d="M-10 0h20" stroke="var(--ink)" strokeWidth={3} />,
-      label: t(l("çizgi = parent bağlantısı", "line = parent link")),
+      swatch: lineSwatch(),
+      label: t(l("hat = parent bağlantısı", "line = parent link")),
     },
     {
-      swatch: <rect x={-7} y={-7} width={14} height={12} rx={2} style={{ fill: "#f4efe6", stroke: "var(--ink-3)", strokeDasharray: "3 2" }} />,
+      swatch: stationSwatch("var(--paper-2)", "var(--line)", true),
       label: t(l("soluk = artık hiçbir branch'te değil", "faded = on no branch any more")),
     },
   ],

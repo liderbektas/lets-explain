@@ -32,8 +32,8 @@ export const threeAreas: Lesson = {
           "When you work with Git, your files live in three places. On the left is the **folder**, the ordinary project folder you edit every day. Git calls it the [[workingTree]].",
         ),
         l(
-          "Ortadaki **staging**, bir sonraki commit'in hazırlandığı tezgâh. Sağdaki **repo** da projenin bütün geçmişi: commit'lerin saklandığı gizli `.git` klasörü, yani [[repository]].",
-          "In the middle, **staging** is the bench where the next commit is put together. On the right, the **repo** holds the whole history: the hidden `.git` folder where commits are kept, the [[repository]].",
+          "Ortadaki **staging**, bir sonraki commit'in hazırlandığı peron. Sağdaki **repo** da projenin bütün geçmişi: commit'lerin saklandığı gizli `.git` klasörü, yani [[repository]].",
+          "In the middle, **staging** is the platform where the next commit is put together. On the right, the **repo** holds the whole history: the hidden `.git` folder where commits are kept, the [[repository]].",
         ),
         l(
           "Şu an klasörde bir `README.md` var ama Git onu henüz takip etmiyor: üstünde \"yeni\" yazıyor. Staging ve repo boş.",

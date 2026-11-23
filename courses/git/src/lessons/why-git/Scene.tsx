@@ -1,8 +1,9 @@
 import { l, type L } from "@lets-explain/core/i18n";
 import { Person, TINTS } from "@lets-explain/core/iso/shapes";
 import { ADA, createRepo, currentBranch, headId, short, type GitAction, type Repo } from "../../engine/git";
-import { GIT_STAGE, GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { stationSwatch } from "../branches/parts";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { DRAFT, scenarios } from "./scenarios";
 
 export const SLUG = "why-git";
@@ -112,7 +113,7 @@ export const scene = makeGitScene({
   view: (repo, info) => {
     if (!info.sandbox && info.step === 0) return <CopiesPile t={info.t} />;
     if (!info.sandbox && info.step === 1) return <EmailMess t={info.t} />;
-    return <GraphStage repo={repo} highlight={info.fresh} box={{ x: 0, y: 0, w: GIT_STAGE.width, h: GIT_STAGE.height }} />;
+    return <MetroStage repo={repo} highlight={info.fresh} lanes={1} time={timeWords(info.t)} t={info.t} />;
   },
   metrics: (repo, t, info) => {
     if (!info.sandbox && info.step < 2) {
@@ -131,15 +132,15 @@ export const scene = makeGitScene({
   },
   legend: (t) => [
     {
-      swatch: <rect x={-7} y={-7} width={14} height={12} rx={2} className="ink" style={{ fill: "var(--sun)" }} />,
-      label: t(l("commit = kaydedilmiş bir sürüm", "commit = a saved version")),
+      swatch: stationSwatch(),
+      label: t(l("istasyon = commit, kaydedilmiş bir sürüm", "station = commit, a saved version")),
     },
     {
-      swatch: <rect x={-10} y={-6} width={20} height={11} rx={5.5} className="ink" style={{ fill: "var(--tangerine)" }} />,
-      label: t(l("branch adı (main)", "branch name (main)")),
+      swatch: <rect x={-11} y={-8} width={22} height={13} rx={4} style={{ fill: "var(--tangerine)", stroke: "var(--ink)", strokeWidth: 1.5 }} />,
+      label: t(l("tabela = branch adı (main)", "sign = branch name (main)")),
     },
     {
-      swatch: <rect x={-10} y={-6} width={20} height={11} rx={5.5} style={{ fill: "var(--ink)" }} />,
+      swatch: <rect x={-11} y={-8} width={22} height={13} rx={4} style={{ fill: "var(--ink)" }} />,
       label: t(l("HEAD = şu an baktığın yer", "HEAD = where you are looking now")),
     },
   ],

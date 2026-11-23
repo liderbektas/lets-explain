@@ -1,7 +1,9 @@
 import { useMemo } from "react";
+import { useLang } from "@lets-explain/core/i18n";
 import { useTicker } from "@lets-explain/core/lib/playback";
 import { simulate, type GitAction } from "./engine/git";
-import { GIT_STAGE, GraphStage } from "./iso/GraphStage";
+import { GIT_STAGE } from "./iso/layout";
+import { MetroStage } from "./iso/MetroStage";
 
 const edit = (path: string, content: string, message: string): GitAction[] => [
   { type: "write", path, content },
@@ -34,9 +36,10 @@ export function GitHero() {
   const i = tick % (frames.length + 2);
   const state = frames[Math.min(i, frames.length - 1)]!;
   const highlight = useMemo(() => new Set<string>(), []);
+  const { t } = useLang();
   return (
     <svg className="stage-svg" viewBox={`0 0 ${GIT_STAGE.width} ${GIT_STAGE.height}`} aria-hidden="true">
-      <GraphStage repo={state} highlight={highlight} />
+      <MetroStage repo={state} highlight={highlight} t={t} />
     </svg>
   );
 }

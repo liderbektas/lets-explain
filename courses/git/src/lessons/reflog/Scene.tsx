@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, reachable, simulate, status, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
-import { ReflogPanel } from "./ReflogPanel";
+import { MetroStage, type StationMark } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
+import { ReflogPanel, reflogEntries } from "./ReflogPanel";
 import { scenarios } from "./scenarios";
 
 export const SLUG = "reflog";
@@ -55,6 +55,19 @@ export const steps: GitAction[][] = [
 export const sandboxStart = (): Repo =>
   simulate([{ type: "reset", target: "HEAD~1", mode: "hard" }, { type: "deleteBranch", name: "deneme", force: true }], START).states[2]!;
 
+/**
+ * A commit no branch reaches is still named in the reflog: its newest entry hangs on the
+ * faded station as a plaque, the name you can bring it back with.
+ */
+function reflogNames(repo: Repo): Map<string, StationMark> {
+  const live = reachable(repo);
+  const marks = new Map<string, StationMark>();
+  for (const e of reflogEntries(repo, Infinity)) {
+    if (!live.has(e.to) && !marks.has(e.to)) marks.set(e.to, { label: `HEAD@{${e.n}}`, tone: "reflog" });
+  }
+  return marks;
+}
+
 export const scene = makeGitScene({
   slug: SLUG,
   start: START,
@@ -62,7 +75,7 @@ export const scene = makeGitScene({
   label: l("Commit grafiği ve HEAD'in günlüğü: git reflog", "The commit graph and HEAD's diary: git reflog"),
   view: (repo, info) => (
     <g>
-      <GraphStage repo={repo} highlight={info.fresh} box={{ x: 0, y: 0, w: 570, h: 470 }} />
+      <MetroStage repo={repo} highlight={info.fresh} lanes={2} box={{ x: 0, y: 0, w: 570, h: 470 }} marks={reflogNames(repo)} time={timeWords(info.t)} t={info.t} />
       <ReflogPanel repo={repo} x={580} w={268} labels={{ title: info.t(l("HEAD'in günlüğü", "HEAD's diary")), lost: info.t(l("kayıp", "lost")) }} />
     </g>
   ),

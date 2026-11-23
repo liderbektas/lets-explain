@@ -1,9 +1,9 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, ancestors, createRepo, reachable, simulate, type GitAction, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
+import { MetroStage } from "../../iso/MetroStage";
 import { FilePanel } from "../conflicts/FilePanel";
 import { panelLabels } from "../conflicts/Scene";
-import { makeGitScene } from "../shared/GitScene";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { BLOG, scenarios } from "./scenarios";
 
 export const SLUG = "rebase";
@@ -78,11 +78,11 @@ export const scene = makeGitScene({
   view: (repo, info) =>
     repo.op ? (
       <g>
-        <GraphStage repo={withLatestRebaseGhosts(repo)} box={{ x: 0, y: 0, w: 520, h: 470 }} highlight={info.fresh} laneOrder={["main", "feature", "theme"]} />
+        <MetroStage repo={withLatestRebaseGhosts(repo)} box={{ x: 0, y: 0, w: 520, h: 470 }} highlight={info.fresh} laneOrder={["main", "feature", "theme"]} lanes={3} time={timeWords(info.t)} t={info.t} />
         <FilePanel repo={repo} paths={[STYLE]} labels={panelLabels(info.t)} box={{ x: 526, y: 30, w: 318, h: 420 }} />
       </g>
     ) : (
-      <GraphStage repo={withLatestRebaseGhosts(repo)} highlight={info.fresh} laneOrder={["main", "feature", "theme"]} />
+      <MetroStage repo={withLatestRebaseGhosts(repo)} highlight={info.fresh} laneOrder={["main", "feature", "theme"]} lanes={3} time={timeWords(info.t)} t={info.t} />
     ),
   metrics: (repo, t) => {
     const ghosts = Object.keys(withLatestRebaseGhosts(repo).commits).length - reachable(repo).size;

@@ -78,8 +78,8 @@ export const rebase: Lesson = {
           "Git took feature's two commits in order and **replayed** them on top of main's tip. The messages and changes are the same, but the parents changed, so the ids changed too.",
         ),
         l(
-          "Soluk, kesik çizgili küpler eski commit'ler: artık hiçbir branch onları göstermiyor. Silinmediler ve `git reflog` ile bulunabilirler, ama artık geçmişin parçası değiller.",
-          "The faded, dashed cubes are the old commits: no branch points at them any more. They are not deleted and `git reflog` can still find them, but they are no longer part of the history.",
+          "Soluk, kesik çizgili istasyonlar eski commit'ler: artık hiçbir branch onları göstermiyor. Silinmediler ve `git reflog` ile bulunabilirler, ama artık geçmişin parçası değiller.",
+          "The faded, dashed stations are the old commits: no branch points at them any more. They are not deleted and `git reflog` can still find them, but they are no longer part of the history.",
         ),
       ],
       practice: {
@@ -104,15 +104,15 @@ export const rebase: Lesson = {
         ],
         answer: 1,
         why: l(
-          "feature artık main'in ucundan başlıyor, yani main'in tam devamı. Birleştirilecek iki ayrı geçmiş yok: main etiketi feature'ın ucuna kayar. Buna fast-forward denir.",
-          "feature now starts from main's tip, so it is a straight continuation of main. There are no two histories to join: the main label slides to feature's tip. That is a fast-forward.",
+          "feature artık main'in ucundan başlıyor, yani main'in tam devamı. Birleştirilecek iki ayrı geçmiş yok: main tabelası feature'ın ucuna kayar. Buna fast-forward denir.",
+          "feature now starts from main's tip, so it is a straight continuation of main. There are no two histories to join: the main sign slides to feature's tip. That is a fast-forward.",
         ),
       },
       title: l("Sonuç: dümdüz bir geçmiş", "The result: a straight history"),
       body: [
         l(
-          "main'e geçip feature'ı merge ettik ve Git sadece **fast-forward** yaptı: main etiketi ileri kaydı. Merge commit'i yok, çizgi dümdüz.",
-          "We switched to main and merged feature, and Git just **fast-forwarded**: the main label slid forward. No merge commit; the line is straight.",
+          "main'e geçip feature'ı merge ettik ve Git sadece **fast-forward** yaptı: main tabelası ileri kaydı. Merge commit'i yok, hat dümdüz.",
+          "We switched to main and merged feature, and Git just **fast-forwarded**: the main sign slid forward. No merge commit; the line is straight.",
         ),
         l(
           "Rebase + fast-forward, \"önce main'i al, sonra üstüne ekle\" demenin bir yolu. Geçmişi okumak kolaylaşır: her commit bir öncekinin üstüne gelir.",

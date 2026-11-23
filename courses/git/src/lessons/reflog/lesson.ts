@@ -69,8 +69,8 @@ export const reflog: Lesson = {
       title: l("Yanlışlıkla reset --hard", "An accidental reset --hard"),
       body: [
         l(
-          "main bir commit geri gitti ve \"Önemli iş\" soluk bir küp oldu. `git log` artık onu göstermiyor; ilk bakışta iş kaybolmuş gibi.",
-          "main went back one commit and \"Önemli iş\" became a faded cube. `git log` no longer shows it; at first glance the work seems gone.",
+          "main bir commit geri gitti ve \"Önemli iş\" soluk bir istasyon oldu. `git log` artık onu göstermiyor; ilk bakışta iş kaybolmuş gibi.",
+          "main went back one commit and \"Önemli iş\" became a faded station. `git log` no longer shows it; at first glance the work seems gone.",
         ),
         l(
           "Ama reflog'un en üstüne yeni bir satır düştü: `reset: moving to HEAD~1`. Ve bir alttaki satır, `HEAD@{1}`, hâlâ \"Önemli iş\"i gösteriyor. Yanında kırmızı \"kayıp\" etiketi var.",
@@ -130,8 +130,8 @@ export const reflog: Lesson = {
       title: l("Reset ile main'i geri taşı", "Move main back with reset"),
       body: [
         l(
-          "`git reset --hard <kimlik>` main'i \"Önemli iş\"e geri taşıdı. Küp yine canlı, important.js klasörde. Hiçbir şey kaybolmamıştı.",
-          "`git reset --hard <id>` moved main back onto \"Önemli iş\". The cube is solid again and important.js is back in the folder. Nothing was ever lost.",
+          "`git reset --hard <kimlik>` main'i \"Önemli iş\"e geri taşıdı. İstasyon yine canlı, important.js klasörde. Hiçbir şey kaybolmamıştı.",
+          "`git reset --hard <id>` moved main back onto \"Önemli iş\". The station is solid again and important.js is back in the folder. Nothing was ever lost.",
         ),
         l(
           "Aynı şeyi `git reset --hard HEAD@{1}` ile de yapabilirdin. Ama dikkat: her hareketten sonra numaralar kayar, bu yüzden kimliği kullanmak daha güvenli.",
@@ -167,8 +167,8 @@ export const reflog: Lesson = {
       title: l("Bir branch'i yanlışlıkla sildin", "You deleted a branch by mistake"),
       body: [
         l(
-          "`-D` bayrağı, birleştirilmemiş bir branch'i de zorla siler. `deneme` gitti ve \"Deneme\" commit'i soluk bir küp oldu.",
-          "The `-D` flag deletes a branch even if it was never merged. `deneme` is gone and the \"Deneme\" commit is a faded cube.",
+          "`-D` bayrağı, birleştirilmemiş bir branch'i de zorla siler. `deneme` gitti ve \"Deneme\" commit'i soluk bir istasyon oldu.",
+          "The `-D` flag deletes a branch even if it was never merged. `deneme` is gone and the \"Deneme\" commit is a faded station.",
         ),
         l(
           "Reflog'da \"commit: Deneme\" satırı duruyor, çünkü o commit'i atarken HEAD oradaydı.",
@@ -188,8 +188,8 @@ export const reflog: Lesson = {
       title: l("Kaybolan commit'e yeni bir branch koy", "Put a new branch on the lost commit"),
       body: [
         l(
-          "Bu sefer main'i taşımak istemiyoruz. Onun yerine `git branch deneme <kimlik>` ile commit'in üstüne yeni bir isim koyduk. Küp yeniden canlandı.",
-          "This time we do not want to move main. Instead, `git branch deneme <id>` put a new name on the commit, and the cube came back to life.",
+          "Bu sefer main'i taşımak istemiyoruz. Onun yerine `git branch deneme <kimlik>` ile commit'in üstüne yeni bir isim koyduk. İstasyon yeniden canlandı.",
+          "This time we do not want to move main. Instead, `git branch deneme <id>` put a new name on the commit, and the station came back to life.",
         ),
         l(
           "Kural basit: **bir commit'i kurtarmak, üstüne tekrar bir isim koymaktır.** Bunu reset ile main'i taşıyarak ya da yeni bir branch açarak yaparsın.",

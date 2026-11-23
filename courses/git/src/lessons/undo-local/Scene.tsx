@@ -1,8 +1,8 @@
 import { l } from "@lets-explain/core/i18n";
 import { ADA, createRepo, firstParents, headId, reachable, simulate, status, type GitAction, type Repo } from "../../engine/git";
 import { AreasStage, type AreaFlow } from "../../iso/AreasStage";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { areasLabels } from "./labels";
 import { scenarios } from "./scenarios";
 
@@ -71,7 +71,7 @@ export const scene = makeGitScene({
   label: l("Hatanın olduğu yere göre geri alma: klasör, staging ve son commit", "Undoing by where the mistake is: folder, staging and the last commit"),
   view: (repo, info) =>
     GRAPH_STEPS.has(info.step) ? (
-      <GraphStage repo={repo} highlight={info.fresh} />
+      <MetroStage repo={repo} highlight={info.fresh} lanes={3} time={timeWords(info.t)} t={info.t} />
     ) : (
       <AreasStage repo={repo} labels={areasLabels(info.t)} flow={flowOf(info.last)} last={info.last} />
     ),

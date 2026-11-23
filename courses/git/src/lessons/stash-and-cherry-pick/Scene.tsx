@@ -1,8 +1,8 @@
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import { l, type L } from "@lets-explain/core/i18n";
 import { ADA, createRepo, currentBranch, short, simulate, status, type GitAction, type GitEvent, type Repo } from "../../engine/git";
-import { GraphStage } from "../../iso/GraphStage";
-import { makeGitScene } from "../shared/GitScene";
+import { MetroStage } from "../../iso/MetroStage";
+import { makeGitScene, timeWords } from "../shared/GitScene";
 import { scenarios } from "./scenarios";
 
 export const SLUG = "stash-and-cherry-pick";
@@ -87,7 +87,8 @@ const glide = { type: "spring", stiffness: 170, damping: 22 } as const;
 const leave: Variants = { leave: (to: number | null) => (to === null ? { opacity: 0, transition: { duration: 0.2 } } : { y: to, opacity: 0, transition: { duration: 0.55, ease: "easeInOut" } }) };
 
 /**
- * The right-hand panel: what is unsaved in the folder, and what is in the stash. `git stash`
+ * The right-hand panel: the desk with what is unsaved in the folder, and the stash as a depot
+ * beside the line, its entries crates on a shelf. `git stash`
  * takes the changes out of the folder and pushes them onto the stack as stash@{0} (older
  * entries move down a slot); `stash pop` takes the top entry off and puts its changes back.
  */
@@ -103,18 +104,47 @@ function SidePanel({ repo, t, last }: { repo: Repo; t: (x: L) => string; last: G
   ];
   const x = 650;
   const w = 200;
-  const card = (y: number, h: number, title: string, fill: string) => (
+  // The folder: a desk your unsaved changes lie on.
+  const desk = (y: number, h: number, title: string) => (
     <g>
-      <rect x={x} y={y + 4} width={w} height={h} rx={16} style={{ fill: "var(--ink)" }} />
-      <rect x={x} y={y} width={w} height={h} rx={16} className="area-tray" style={{ fill }} />
+      <rect x={x + 16} y={y + h - 6} width={11} height={14} rx={3} className="desk-leg" />
+      <rect x={x + w - 27} y={y + h - 6} width={11} height={14} rx={3} className="desk-leg" />
+      <rect x={x} y={y + 4} width={w} height={h - 4} rx={14} className="area-shadow" />
+      <rect x={x} y={y} width={w} height={h - 4} rx={14} className="desk-top" />
+      <path d={`M${x} ${y + h - 26} V${y + h - 18} Q${x} ${y + h - 4} ${x + 14} ${y + h - 4} H${x + w - 14} Q${x + w} ${y + h - 4} ${x + w} ${y + h - 18} V${y + h - 26}`} className="desk-edge" />
       <text x={x + 14} y={y + 26} className="area-title" style={{ fontSize: 13 }}>
         {title}
       </text>
     </g>
   );
+  // The stash: a depot with a striped awning and shelves the entries are stacked on.
+  const depot = (y: number, h: number, title: string) => (
+    <g>
+      <rect x={x} y={y + 4} width={w} height={h} rx={14} className="area-shadow" />
+      <rect x={x} y={y} width={w} height={h} rx={14} className="depot-wall" />
+      {/* A striped awning over the door, with the depot's name board on it. */}
+      <clipPath id="depot-roof">
+        <path d={`M${x - 6} ${y + 34} L${x + 10} ${y} H${x + w - 10} L${x + w + 6} ${y + 34} Z`} />
+      </clipPath>
+      <path d={`M${x - 6} ${y + 34} L${x + 10} ${y} H${x + w - 10} L${x + w + 6} ${y + 34} Z`} className="depot-roof" />
+      <g clipPath="url(#depot-roof)">
+        {Array.from({ length: 8 }, (_, i) => (
+          <rect key={i} x={x - 6 + i * 28} y={y} width={14} height={34} className="depot-roof-stripe" />
+        ))}
+      </g>
+      <path d={`M${x - 6} ${y + 34} L${x + 10} ${y} H${x + w - 10} L${x + w + 6} ${y + 34} Z`} className="depot-roof-line" />
+      <rect x={x + w / 2 - (title.length * 8 + 24) / 2} y={y + 7} width={title.length * 8 + 24} height={21} rx={5} className="depot-sign" />
+      <text x={x + w / 2} y={y + 22} textAnchor="middle" className="area-title" style={{ fontSize: 13 }}>
+        {title}
+      </text>
+      {[0, 1, 2].map((i) => (
+        <path key={i} d={`M${x + 8} ${STASH_ROW(i) + 44} H${x + w - 8}`} className="depot-shelf" />
+      ))}
+    </g>
+  );
   return (
     <g>
-      {card(40, 176, t(text.folder), "var(--sky-soft)")}
+      {desk(40, 176, t(text.folder))}
       {changes.length === 0 ? (
         <text x={x + 16} y={92} className="area-empty">
           {t(text.clean)}
@@ -132,7 +162,9 @@ function SidePanel({ repo, t, last }: { repo: Repo; t: (x: L) => string; last: G
             exit="leave"
             transition={glide}
           >
+            <rect y={3} width={w - 28} height={34} rx={9} className="area-shadow" />
             <rect width={w - 28} height={34} rx={9} className="area-tray" style={{ fill: "var(--card)" }} />
+            <path d={`M${w - 40} 0 V10 H${w - 28}`} className="sheet-fold" />
             <text x={12} y={14} className="file-name">
               {c.path}
             </text>
@@ -142,7 +174,7 @@ function SidePanel({ repo, t, last }: { repo: Repo; t: (x: L) => string; last: G
           </motion.g>
         ))}
       </AnimatePresence>
-      {card(232, 200, t(text.stash), "var(--lilac-soft)")}
+      {depot(226, 206, t(text.stash))}
       {repo.stash.length === 0 ? (
         <text x={x + 16} y={284} className="area-empty">
           {t(text.empty)}
@@ -161,7 +193,11 @@ function SidePanel({ repo, t, last }: { repo: Repo; t: (x: L) => string; last: G
             exit="leave"
             transition={stashing && i === 0 ? { duration: 0.55, ease: "easeInOut" } : glide}
           >
-            <rect width={w - 28} height={40} rx={9} className="area-tray" style={{ fill: "var(--card)" }} />
+            {/* A crate: what was in the folder, packed away on top of the commit it was based on. */}
+            <rect y={3} width={w - 28} height={40} rx={6} className="area-shadow" />
+            <rect width={w - 28} height={40} rx={6} className="crate" />
+            <path d={`M4 20 H${w - 32}`} className="crate-slat" />
+            <rect x={6} y={3} width={78} height={16} rx={3} className="crate-label" />
             <text x={12} y={16} className="file-name">{`stash@{${i}}`}</text>
             <text x={12} y={31} className="file-body">
               {clip(`${Object.keys(e.work).join(", ")} · ${short(e.base)}`, 24)}
@@ -184,7 +220,7 @@ export const scene = makeGitScene({
   label: l("Commit grafiği, kaydedilmemiş değişiklikler ve stash", "The commit graph, unsaved changes and the stash"),
   view: (repo, info) => (
     <g>
-      <GraphStage repo={repo} box={{ x: 0, y: 0, w: 640, h: 470 }} highlight={info.fresh} />
+      <MetroStage repo={repo} box={{ x: 0, y: 0, w: 640, h: 470 }} highlight={info.fresh} lanes={2} time={timeWords(info.t)} t={info.t} />
       <SidePanel repo={repo} t={info.t} last={info.last} />
     </g>
   ),

@@ -28,8 +28,8 @@ export const refsAndHead: Lesson = {
       title: l("Bir branch, içinde id yazan bir dosyadır", "A branch is a file with an id in it"),
       body: [
         l(
-          "Grafikte üç commit var ve en sonuncusunun üstünde `main` bayrağı duruyor. Bu bayrak, yani [[branch]], Git'in içinde çok basit bir şey: `.git/refs/heads/main` adında, içinde tek satır olan bir dosya.",
-          "The graph has three commits, with the `main` flag on the last one. That flag, a [[branch]], is something very simple inside Git: a file called `.git/refs/heads/main` with a single line in it.",
+          "Grafikte üç commit var ve en sonuncusunun önünde `main` tabelası duruyor. Bu tabela, yani [[branch]], Git'in içinde çok basit bir şey: `.git/refs/heads/main` adında, içinde tek satır olan bir dosya.",
+          "The graph has three commits, with the `main` sign at the last one. That sign, a [[branch]], is something very simple inside Git: a file called `.git/refs/heads/main` with a single line in it.",
         ),
         l(
           "O satır, gösterdiği commit'in 40 karakterlik kimliği. Sonundaki satır sonuyla birlikte dosya **41 bayt**. Branch açmak bu kadar ucuz: Git hiçbir dosyayı kopyalamaz, sadece bu küçük dosyayı yazar.",
@@ -54,8 +54,8 @@ export const refsAndHead: Lesson = {
       title: l("HEAD: şu an neredesin?", "HEAD: where are you now?"),
       body: [
         l(
-          "`main` bayrağının solundaki koyu etiket [[head]]. HEAD, şu an üzerinde çalıştığın yeri gösterir ve çoğu zaman bir commit'i değil, **bir branch'i** gösterir.",
-          "The dark tab on the left of the `main` flag is [[head]]. HEAD marks where you are working right now, and most of the time it points at **a branch**, not at a commit.",
+          "`main` tabelasının solundaki koyu tabela [[head]]. HEAD, şu an üzerinde çalıştığın yeri gösterir ve çoğu zaman bir commit'i değil, **bir branch'i** gösterir.",
+          "The dark sign on the left of the `main` sign is [[head]]. HEAD marks where you are working right now, and most of the time it points at **a branch**, not at a commit.",
         ),
         l(
           "Bu da bir dosya: `.git/HEAD`. İçinde `ref: refs/heads/main` yazar, yani \"main neredeyse ben oradayım\". Zincir şöyle: HEAD → main → commit.",
@@ -91,8 +91,8 @@ export const refsAndHead: Lesson = {
       title: l("Commit atınca branch ilerler, HEAD onunla gelir", "A commit moves the branch, and HEAD comes along"),
       body: [
         l(
-          "\"Ödeme eklendi\" commit'i atıldı. `main` bayrağı yeni commit'e kaydı ve HEAD de onunla birlikte geldi, çünkü HEAD doğrudan bir commit'i değil `main`'i gösteriyor.",
-          "The \"Ödeme eklendi\" commit was made. The `main` flag slid onto it and HEAD came along, because HEAD points at `main`, not at a commit.",
+          "\"Ödeme eklendi\" commit'i atıldı. `main` tabelası yeni commit'e kaydı ve HEAD de onunla birlikte geldi, çünkü HEAD doğrudan bir commit'i değil `main`'i gösteriyor.",
+          "The \"Ödeme eklendi\" commit was made. The `main` sign slid onto it and HEAD came along, because HEAD points at `main`, not at a commit.",
         ),
         l(
           "Git'in yaptığı tek şey `.git/refs/heads/main` dosyasına yeni id'yi yazmak oldu. Branch'ler bu yüzden \"hareket eden isimler\"dir.",
@@ -251,8 +251,8 @@ export const refsAndHead: Lesson = {
       title: l("Commit'i kurtarmak: ona bir isim ver", "Rescue a commit: give it a name"),
       body: [
         l(
-          "Commit'in id'siyle oraya geçtik ve `git switch -c deneme` dedik. Soluk commit yeniden renklendi, üstünde `deneme` bayrağı ve HEAD var.",
-          "We went to the commit by its id and ran `git switch -c deneme`. The faded commit is colourful again, with the `deneme` flag and HEAD on it.",
+          "Commit'in id'siyle oraya geçtik ve `git switch -c deneme` dedik. Soluk commit yeniden renklendi, önünde `deneme` tabelası ve HEAD var.",
+          "We went to the commit by its id and ran `git switch -c deneme`. The faded commit is colourful again, with the `deneme` sign and HEAD at it.",
         ),
         l(
           "Kural basit: Git'te bir commit'i görünür tutan şey, onu gösteren bir isimdir. Detached HEAD'de işe yarar bir şey yaptıysan, ayrılmadan önce `switch -c` ile isim ver.",
